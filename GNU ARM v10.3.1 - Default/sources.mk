@@ -44,4 +44,5 @@ gecko_sdk_4.3.1/platform/service/system/src \
 gecko_sdk_4.3.1/protocol/bluetooth/src \
 gecko_sdk_4.3.1/util/silicon_labs/silabs_core/memory_manager \
 gecko_sdk_4.3.1/util/third_party/mbedtls/library \
+gecko_sdk_4.3.1/util/third_party/segger/systemview/SEGGER \
 

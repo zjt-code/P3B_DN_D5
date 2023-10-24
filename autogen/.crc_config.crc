@@ -1,4 +1,5 @@
 #CRC Codes for initially generated config files -- do not modify!
+SEGGER_RTT_Conf.h=-421909511
 app_assert_config.h=1351236558
 app_log_config.h=-1893283838
 app_properties_config.h=-763091270

@@ -27,6 +27,7 @@ include:
 sdk: {id: gecko_sdk, version: 4.3.1}
 toolchain_settings: []
 component:
+- {id: iostream_rtt}
 - {id: bluetooth_feature_gatt_server}
 - {id: mpu}
 - {id: bluetooth_feature_legacy_advertiser}

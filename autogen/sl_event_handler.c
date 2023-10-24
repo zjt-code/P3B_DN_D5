@@ -12,6 +12,7 @@
 #include "sl_sleeptimer.h"
 #include "app_log.h"
 #include "sl_bluetooth.h"
+#include "sl_iostream_rtt.h"
 #include "sl_iostream_stdlib_config.h"
 #include "sl_iostream_init_usart_instances.h"
 #include "sl_mbedtls.h"
@@ -83,6 +84,7 @@ void sl_internal_app_process_action(void)
 
 void sl_iostream_init_instances(void)
 {
+  sl_iostream_rtt_init();
   sl_iostream_usart_init_instances();
 }
 
