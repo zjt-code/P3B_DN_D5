@@ -1,6 +1,6 @@
-/******************** (C) COPYRIGHT 2023 ³ÂËÕÑô ********************************
+/******************** (C) COPYRIGHT 2023 é™ˆè‹é˜³ ********************************
 * File Name          :  app.c
-* Author             :  ³ÂËÕÑô
+* Author             :  é™ˆè‹é˜³
 * CPU Type         	 :  NRF52832
 * IDE                :  Keil
 * Version            :  V1.0
@@ -16,10 +16,14 @@
 #include "sl_bluetooth.h"
 #include "gatt_db.h"
 #include "app.h"
-
+#include "app_global.h"
+#include "ble_adv.h"
 /* Private variables ---------------------------------------------------------*/
-static uint8_t advertising_set_handle = 0xff;
+static uint8_t advertising_set_handle = 0xff;           // BLEå¹¿æ’­é›†å¥æŸ„
 
+
+uint8_t g_ucAdvDataBuffer[31];            // BLEå¹¿æ’­å†…å®¹
+uint8_t g_ucAdvDataLen;                   // BLEå¹¿æ’­å†…å®¹é•¿åº¦
         
 /* Private function prototypes -----------------------------------------------*/
 
@@ -30,68 +34,36 @@ static uint8_t advertising_set_handle = 0xff;
 
 
 
-
-
-/******************* (C) COPYRIGHT 2023 ³ÂËÕÑô **** END OF FILE ****************/
-
-
-
-
-
-
-// The advertising set handle allocated from Bluetooth stack.
-
-/**************************************************************************//**
- * Application Init.
- *****************************************************************************/
-SL_WEAK void app_init(void)
-{
-  /////////////////////////////////////////////////////////////////////////////
-  // Put your additional application init code here!                         //
-  // This is called once during start-up.                                    //
-  /////////////////////////////////////////////////////////////////////////////
-}
-
-/**************************************************************************//**
- * Application Process Action.
- *****************************************************************************/
-SL_WEAK void app_process_action(void)
-{
-
-
-  /////////////////////////////////////////////////////////////////////////////
-  // Put your additional application code here!                              //
-  // This is called infinitely.                                              //
-  // Do not call blocking functions from here!                               //
-  /////////////////////////////////////////////////////////////////////////////
-}
-
 /*******************************************************************************
-*                           ³ÂËÕÑô@2023-10-24
+*                           é™ˆè‹é˜³@2023-10-24
 * Function Name  :  sl_bt_on_event
-* Description    :  BLEĞ­ÒéÕ»ÊÂ¼ş´¦Àíº¯Êı
+* Description    :  BLEåè®®æ ˆäº‹ä»¶å¤„ç†å‡½æ•°
 * Input          :  sl_bt_msg_t * evt
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void sl_bt_on_event(sl_bt_msg_t *evt)
+void sl_bt_on_event(sl_bt_msg_t* evt)
 {
-  sl_status_t sc;
+    sl_status_t sc;
 
-  switch (SL_BT_MSG_ID(evt->header)) 
-  {
-    // BLEĞ­ÒéÕ»³õÊ¼»¯Íê³ÉÊÂ¼ş
+    switch (SL_BT_MSG_ID(evt->header))
+    {
+        // BLEåè®®æ ˆåˆå§‹åŒ–å®Œæˆäº‹ä»¶
     case sl_bt_evt_system_boot_id:
     {
-        // ´´½¨Ò»¸öBLE¹ã²¥¼¯
+        // åˆ›å»ºä¸€ä¸ªBLEå¹¿æ’­é›†
         sc = sl_bt_advertiser_create_set(&advertising_set_handle);
         app_assert_status(sc);
 
-        // Éú³ÉBLE¹ã²¥Êı¾İ
-        sc = sl_bt_legacy_advertiser_generate_data(advertising_set_handle,sl_bt_advertiser_general_discoverable);
+        // ç”ŸæˆBLEå¹¿æ’­æ•°æ®
+        ble_adv_generate_adv_data(g_ucAdvDataBuffer,&g_ucAdvDataLen);
+
+        // è®¾ç½®å¹¿æ’­æ•°æ®
+        //sc = sl_bt_legacy_advertiser_generate_data(advertising_set_handle,sl_bt_advertiser_general_discoverable);
+        sc = sl_bt_legacy_advertiser_set_data(advertising_set_handle, sl_bt_advertiser_general_discoverable,g_ucAdvDataLen,g_ucAdvDataBuffer);
         app_assert_status(sc);
 
-        // ÉèÖÃ¹ã²¥µÄÊ±¼ä²ÎÊı
+        // è®¾ç½®å¹¿æ’­çš„æ—¶é—´å‚æ•°
         sc = sl_bt_advertiser_set_timing(
             advertising_set_handle,
             160, // min. adv. interval (milliseconds * 1.6)
@@ -100,41 +72,57 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
             0);  // max. num. adv. events
         app_assert_status(sc);
 
-        // ¿ªÊ¼BLE¹ã²¥
-        sc = sl_bt_legacy_advertiser_start(advertising_set_handle,sl_bt_advertiser_connectable_scannable);
+        // å¼€å§‹BLEå¹¿æ’­
+        sc = sl_bt_legacy_advertiser_start(advertising_set_handle, sl_bt_advertiser_connectable_scannable);
         app_assert_status(sc);
 
         break;
     }
 
     // -------------------------------
-    // BLEÁ¬½ÓÊÂ¼ş
+    // BLEè¿æ¥äº‹ä»¶
     case sl_bt_evt_connection_opened_id:
     {
         app_log_info("Connection opened.\n");
         break;
     }
-
+/*
     // -------------------------------
-    // BLE¶Ï¿ªÁ¬½ÓÊÂ¼ş
+    // BLEè¿æ¥å‚æ•°æ›´æ–°äº‹ä»¶
+    case sl_bt_evt_connection_parameters_id:
+    {
+       uint8_t  connection = evt->data.evt_connection_parameters.connection;    // Connection handle
+       uint16_t interval = evt->data.evt_connection_parameters.interval;      // Connection interval. Time = Value x 1.25 ms
+       uint16_t latency = evt->data.evt_connection_parameters.latency;       // Peripheral latency (how many connection intervals the peripheral can skip)
+       uint16_t timeout = evt->data.evt_connection_parameters.timeout;       // Supervision timeout. Time = Value x 10 ms
+
+       // è°ƒç”¨APPå±‚çš„è¿æ¥å‚æ•°æ›´æ–°å›è°ƒ
+       app_event_ble_param_updated_callback(connection,interval,latency,timeout);
+
+        app_log_info("Connection parameter update.\n");
+        break;
+    }
+*/
+    // -------------------------------
+    // BLEæ–­å¼€è¿æ¥äº‹ä»¶
     case sl_bt_evt_connection_closed_id:
     {
         app_log_info("Connection closed.\n");
 
-        // Éú³É¹ã²¥Êı¾İ°ü
+        // ç”Ÿæˆå¹¿æ’­æ•°æ®åŒ…
         sc = sl_bt_legacy_advertiser_generate_data(advertising_set_handle,
             sl_bt_advertiser_general_discoverable);
         app_assert_status(sc);
 
-        // ÖØĞÂ¿ªÊ¼¹ã²¥
-        sc = sl_bt_legacy_advertiser_start(advertising_set_handle,sl_bt_advertiser_connectable_scannable);
+        // é‡æ–°å¼€å§‹å¹¿æ’­
+        sc = sl_bt_legacy_advertiser_start(advertising_set_handle, sl_bt_advertiser_connectable_scannable);
         app_assert_status(sc);
 
         break;
     }
 
     // -------------------------------
-    // Ô¶³ÌGATT¿Í»§¶Ë¸ü¸ÄÁË±¾µØGATTÊı¾İ¿âÖĞµÄÊôĞÔÖµÊÂ¼ş
+    // è¿œç¨‹GATTå®¢æˆ·ç«¯æ›´æ”¹äº†æœ¬åœ°GATTæ•°æ®åº“ä¸­çš„å±æ€§å€¼äº‹ä»¶
     case sl_bt_evt_gatt_server_attribute_value_id:
     {
         // The value of the gattdb_led_control characteristic was changed.
@@ -142,20 +130,20 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
     }
 
     // -------------------------------
-    // µ±Ô¶¶ËÉè±¸ÆôÓÃ»ò½ûÓÃÍ¨ÖªÊÂ¼ş
+    // å½“è¿œç«¯è®¾å¤‡å¯ç”¨æˆ–ç¦ç”¨é€šçŸ¥äº‹ä»¶
     case sl_bt_evt_gatt_server_characteristic_status_id:
     {
         break;
     }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Add additional event handlers here as your application requires!      //
-    ///////////////////////////////////////////////////////////////////////////
-
-    // -------------------------------
-    // Default event handler.
     default:
-      break;
-  }
+    {
+        break;
+    }
+    }
 }
+
+
+
+
+/******************* (C) COPYRIGHT 2023 é™ˆè‹é˜³ **** END OF FILE ****************/
 

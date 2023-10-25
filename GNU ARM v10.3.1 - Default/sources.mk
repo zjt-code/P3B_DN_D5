@@ -18,6 +18,9 @@ C_DEPS :=
 SUBDIRS := \
 . \
 autogen \
+code/app \
+code/ble \
+code/utility \
 gecko_sdk_4.3.1/app/common/util/app_log \
 gecko_sdk_4.3.1/platform/Device/SiliconLabs/EFR32BG27/Source \
 gecko_sdk_4.3.1/platform/bootloader/api \
