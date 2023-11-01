@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ASCII"?>
 <model:MDescriptors xmlns:model="http://www.silabs.com/ss/Studio.ecore">
   <descriptors name="NewGN_2_EFR32BG27">
-    <properties key="projectCommon.sdkId" value="com.silabs.sdk.stack.super:4.3.1._-1596418234"/>
+    <properties key="projectCommon.sdkId" value="com.silabs.sdk.stack.super:4.3.2._1942681965"/>
     <properties key="universalConfig.generationDirectory" value=""/>
     <properties key="universalConfig.relativeWorkspacePath" value="..\NewGN_2_EFR32BG27.slcw"/>
     <properties key="universalConfig.toolchainCompatibility" value="iar gcc"/>

@@ -19,11 +19,9 @@
 #include "app_global.h"
 #include "ble_adv.h"
 /* Private variables ---------------------------------------------------------*/
-static uint8_t advertising_set_handle = 0xff;           // BLE广播集句柄
-
-
-uint8_t g_ucAdvDataBuffer[31];            // BLE广播内容
-uint8_t g_ucAdvDataLen;                   // BLE广播内容长度
+static uint8_t g_ucAdvertisingSetHandle = 0xff;     // BLE广播集句柄
+static uint8_t g_ucAdvDataBuffer[31];               // BLE广播内容
+static uint8_t g_ucAdvDataLen;                      // BLE广播内容长度
         
 /* Private function prototypes -----------------------------------------------*/
 
@@ -51,8 +49,13 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         // BLE协议栈初始化完成事件
     case sl_bt_evt_system_boot_id:
     {
+        int16_t min_pwr, max_pwr;
+        // 设置TX发射功率为0dB
+        sc = sl_bt_system_set_tx_power(0, 0, &min_pwr, &max_pwr);
+        app_assert_status(sc);
+
         // 创建一个BLE广播集
-        sc = sl_bt_advertiser_create_set(&advertising_set_handle);
+        sc = sl_bt_advertiser_create_set(&g_ucAdvertisingSetHandle);
         app_assert_status(sc);
 
         // 生成BLE广播数据
@@ -60,20 +63,20 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
 
         // 设置广播数据
         //sc = sl_bt_legacy_advertiser_generate_data(advertising_set_handle,sl_bt_advertiser_general_discoverable);
-        sc = sl_bt_legacy_advertiser_set_data(advertising_set_handle, sl_bt_advertiser_general_discoverable,g_ucAdvDataLen,g_ucAdvDataBuffer);
+        sc = sl_bt_legacy_advertiser_set_data(g_ucAdvertisingSetHandle, sl_bt_advertiser_general_discoverable,g_ucAdvDataLen,g_ucAdvDataBuffer);
         app_assert_status(sc);
 
         // 设置广播的时间参数
         sc = sl_bt_advertiser_set_timing(
-            advertising_set_handle,
-            160, // min. adv. interval (milliseconds * 1.6)
-            160, // max. adv. interval (milliseconds * 1.6)
+            g_ucAdvertisingSetHandle,
+            1600, // min. adv. interval (milliseconds * 1.6)
+            1600, // max. adv. interval (milliseconds * 1.6)
             0,   // adv. duration
             0);  // max. num. adv. events
         app_assert_status(sc);
 
         // 开始BLE广播
-        sc = sl_bt_legacy_advertiser_start(advertising_set_handle, sl_bt_advertiser_connectable_scannable);
+        sc = sl_bt_legacy_advertiser_start(g_ucAdvertisingSetHandle, sl_bt_advertiser_connectable_scannable);
         app_assert_status(sc);
 
         break;
@@ -84,9 +87,11 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
     case sl_bt_evt_connection_opened_id:
     {
         app_log_info("Connection opened.\n");
+        // 调用应用层的回调
+        //app_event_ble_connected_callback(evt->data.evt_connection_opened.connection);
         break;
     }
-/*
+
     // -------------------------------
     // BLE连接参数更新事件
     case sl_bt_evt_connection_parameters_id:
@@ -97,25 +102,28 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
        uint16_t timeout = evt->data.evt_connection_parameters.timeout;       // Supervision timeout. Time = Value x 10 ms
 
        // 调用APP层的连接参数更新回调
-       app_event_ble_param_updated_callback(connection,interval,latency,timeout);
+       //app_event_ble_param_updated_callback(connection,interval,latency,timeout);
 
         app_log_info("Connection parameter update.\n");
         break;
     }
-*/
+
     // -------------------------------
     // BLE断开连接事件
     case sl_bt_evt_connection_closed_id:
     {
         app_log_info("Connection closed.\n");
 
+        // 调用应用层的回调
+        //app_event_ble_disconnect_callback(evt->data.evt_connection_closed.connection);
+
         // 生成广播数据包
-        sc = sl_bt_legacy_advertiser_generate_data(advertising_set_handle,
+        sc = sl_bt_legacy_advertiser_generate_data(g_ucAdvertisingSetHandle,
             sl_bt_advertiser_general_discoverable);
         app_assert_status(sc);
 
         // 重新开始广播
-        sc = sl_bt_legacy_advertiser_start(advertising_set_handle, sl_bt_advertiser_connectable_scannable);
+        sc = sl_bt_legacy_advertiser_start(g_ucAdvertisingSetHandle, sl_bt_advertiser_connectable_scannable);
         app_assert_status(sc);
 
         break;

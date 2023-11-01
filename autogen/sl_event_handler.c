@@ -3,21 +3,22 @@
 #include "em_chip.h"
 #include "sl_device_init_nvic.h"
 #include "sl_device_init_dcdc.h"
+#include "sl_device_init_lfxo.h"
 #include "sl_device_init_hfxo.h"
 #include "sl_device_init_clocks.h"
 #include "sl_device_init_emu.h"
 #include "pa_conversions_efr32.h"
 #include "sl_rail_util_pti.h"
-#include "btl_interface.h"
 #include "sl_sleeptimer.h"
 #include "app_log.h"
 #include "sl_bluetooth.h"
+#include "gpiointerrupt.h"
 #include "sl_iostream_rtt.h"
 #include "sl_iostream_stdlib_config.h"
-#include "sl_iostream_init_usart_instances.h"
 #include "sl_mbedtls.h"
 #include "sl_mpu.h"
 #include "nvm3_default.h"
+#include "sl_spidrv_instances.h"
 #include "psa/crypto.h"
 #include "sli_protocol_crypto.h"
 #include "sl_iostream_init_instances.h"
@@ -29,16 +30,18 @@ void sl_platform_init(void)
   CHIP_Init();
   sl_device_init_nvic();
   sl_device_init_dcdc();
+  sl_device_init_lfxo();
   sl_device_init_hfxo();
   sl_device_init_clocks();
   sl_device_init_emu();
-  bootloader_init();
   nvm3_initDefault();
   sl_power_manager_init();
 }
 
 void sl_driver_init(void)
 {
+  GPIOINT_Init();
+  sl_spidrv_init_instances();
 }
 
 void sl_service_init(void)
@@ -85,6 +88,5 @@ void sl_internal_app_process_action(void)
 void sl_iostream_init_instances(void)
 {
   sl_iostream_rtt_init();
-  sl_iostream_usart_init_instances();
 }
 

@@ -155,7 +155,7 @@
 // <SL_IOSTREAM_TYPE_UART=> UART
 // <SL_IOSTREAM_TYPE_VUART=> VUART
 // <i> Default: UART
-#define APP_LOG_STREAM_TYPE        SL_IOSTREAM_TYPE_RTT
+#define APP_LOG_STREAM_TYPE        SL_IOSTREAM_TYPE_UART
 
 // <s APP_LOG_STREAM_INSTANCE> Preferred instance
 // <i> Preferred IOStream instance name

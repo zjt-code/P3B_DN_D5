@@ -22,7 +22,9 @@
 #endif // SL_CATALOG_KERNEL_PRESENT
 #include "app_global.h"
 #include "app_log.h"
-
+#include "em_cmu.h"
+#include "afe.h"
+#include "pin_config.h"
 /* Private variables ---------------------------------------------------------*/
 
 
@@ -46,6 +48,13 @@ int main(void)
 {
     // 系统初始化
     sl_system_init();
+
+    // 初始化GPIO的时钟
+    CMU_ClockEnable(cmuClock_GPIO, true);
+
+    app_log_info("sys init");
+    // 初始化AFE
+    afe_init();
 
     // 应用层初始化
     app_init();

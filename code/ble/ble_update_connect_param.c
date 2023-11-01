@@ -12,6 +12,7 @@
 #include "sl_sleeptimer.h"
 #include "ble_update_connect_param.h"
 #include "app.h"
+#include "app_log.h"
 /* Private variables ---------------------------------------------------------*/
 
 sl_sleeptimer_timer_handle_t g_BleUpdateConnectParamTimer;
@@ -141,11 +142,13 @@ void ble_update_connect_param_start(uint16_t usConnectionHandle)
                 // 如果当前连接参数不符合要求
                 if (ble_update_connect_param_is_pass(usConnectionHandle) == false)
                 {
+                    //app_log_info("sleeptimer_start_timer BleUpdateConnectParamTimer");
                     // 触发连接参数更新定时器
                     sl_sleeptimer_start_timer(&g_BleUpdateConnectParamTimer,BLE_CONNECT_PARAM_UPDATE_DELAY*1000,ble_update_connect_param_timer_callback,(void*)NULL,0,0);
                 }
                 else
                 {
+                    //app_log_info("BleUpdateConnectParam Done");
                     // 如果当前连接参数符合要求
                     app_global_get_app_state()->BleConnectInfo[i].bIsUpdateConnectParameter = true;
                 }

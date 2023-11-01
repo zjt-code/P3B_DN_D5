@@ -14,6 +14,7 @@
 #include "ble_update_connect_param.h"
 #include "string.h"
 #include "ble_adv.h"
+#include "app_log.h"
 /* Private variables ---------------------------------------------------------*/
 app_state_t g_app_state;
 

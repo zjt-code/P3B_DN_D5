@@ -74,14 +74,6 @@
 // [TIMER4]$
 
 // $[USART0]
-// USART0 TX on PA00
-#ifndef USART0_TX_PORT                          
-#define USART0_TX_PORT                           gpioPortA
-#endif
-#ifndef USART0_TX_PIN                           
-#define USART0_TX_PIN                            0
-#endif
-
 // [USART0]$
 
 // $[USART1]
@@ -93,28 +85,20 @@
 #define USART1_CLK_PIN                           5
 #endif
 
-// USART1 CS on PA06
-#ifndef USART1_CS_PORT                          
-#define USART1_CS_PORT                           gpioPortA
-#endif
-#ifndef USART1_CS_PIN                           
-#define USART1_CS_PIN                            6
-#endif
-
-// USART1 RX on PB04
+// USART1 RX on PA03
 #ifndef USART1_RX_PORT                          
-#define USART1_RX_PORT                           gpioPortB
+#define USART1_RX_PORT                           gpioPortA
 #endif
 #ifndef USART1_RX_PIN                           
-#define USART1_RX_PIN                            4
+#define USART1_RX_PIN                            3
 #endif
 
-// USART1 TX on PA03
+// USART1 TX on PA04
 #ifndef USART1_TX_PORT                          
 #define USART1_TX_PORT                           gpioPortA
 #endif
 #ifndef USART1_TX_PIN                           
-#define USART1_TX_PIN                            3
+#define USART1_TX_PIN                            4
 #endif
 
 // [USART1]$
@@ -132,6 +116,14 @@
 // [LETIMER0]$
 
 // $[IADC0]
+// IADC0 POS on PB00
+#ifndef IADC0_POS_PORT                          
+#define IADC0_POS_PORT                           gpioPortB
+#endif
+#ifndef IADC0_POS_PIN                           
+#define IADC0_POS_PIN                            0
+#endif
+
 // [IADC0]$
 
 // $[ACMP0]
@@ -150,25 +142,18 @@
 // [MODEM]$
 
 // $[CUSTOM_PIN_NAME]
-#ifndef LOG_TX_PORT                             
-#define LOG_TX_PORT                              gpioPortA
+#ifndef SPI_MISO_PORT                           
+#define SPI_MISO_PORT                            gpioPortA
 #endif
-#ifndef LOG_TX_PIN                              
-#define LOG_TX_PIN                               0
+#ifndef SPI_MISO_PIN                            
+#define SPI_MISO_PIN                             3
 #endif
 
 #ifndef SPI_MOSI_PORT                           
 #define SPI_MOSI_PORT                            gpioPortA
 #endif
 #ifndef SPI_MOSI_PIN                            
-#define SPI_MOSI_PIN                             3
-#endif
-
-#ifndef SPI_MISO_PORT                           
-#define SPI_MISO_PORT                            gpioPortA
-#endif
-#ifndef SPI_MISO_PIN                            
-#define SPI_MISO_PIN                             4
+#define SPI_MOSI_PIN                             4
 #endif
 
 #ifndef SPI_CLK_PORT                            
@@ -192,11 +177,32 @@
 #define AFE_INT_PIN                              7
 #endif
 
-#ifndef LOG_RX_PORT                             
-#define LOG_RX_PORT                              gpioPortB
+#ifndef NTC_ADC_PORT                            
+#define NTC_ADC_PORT                             gpioPortB
 #endif
-#ifndef LOG_RX_PIN                              
-#define LOG_RX_PIN                               4
+#ifndef NTC_ADC_PIN                             
+#define NTC_ADC_PIN                              0
+#endif
+
+#ifndef NTC_EN_PORT                             
+#define NTC_EN_PORT                              gpioPortB
+#endif
+#ifndef NTC_EN_PIN                              
+#define NTC_EN_PIN                               1
+#endif
+
+#ifndef AFE_WAKE_UP_PORT                        
+#define AFE_WAKE_UP_PORT                         gpioPortB
+#endif
+#ifndef AFE_WAKE_UP_PIN                         
+#define AFE_WAKE_UP_PIN                          2
+#endif
+
+#ifndef AFE_CHIP_EN_PORT                        
+#define AFE_CHIP_EN_PORT                         gpioPortB
+#endif
+#ifndef AFE_CHIP_EN_PIN                         
+#define AFE_CHIP_EN_PIN                          3
 #endif
 
 // [CUSTOM_PIN_NAME]$

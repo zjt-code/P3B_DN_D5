@@ -75,9 +75,6 @@ void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint8_t* pAdvDataLen)
         memcpy(&pAdvDataBuffer[ucDataIndex], &usCompanyID, sizeof(usCompanyID));
         ucDataIndex += sizeof(usCompanyID);
         if (pAdvDataLen)*pAdvDataLen = ucDataIndex;
-
-        //app_log("generate_adv_data");
-        //app_log_hexdump_level(APP_LOG_LEVEL_DEBUG,pAdvDataBuffer,pAdvDataBuffer);
     }
 }
 
