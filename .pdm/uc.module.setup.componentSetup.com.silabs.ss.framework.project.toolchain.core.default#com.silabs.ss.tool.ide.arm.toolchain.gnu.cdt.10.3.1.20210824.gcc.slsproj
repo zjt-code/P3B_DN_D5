@@ -338,6 +338,15 @@
             <file name="sli_sleeptimer.h" linked="false" uri="studio:/sdk/platform/service/sleeptimer/inc/sli_sleeptimer.h"/>
           </folder>
         </folder>
+        <folder name="udelay">
+          <folder name="src">
+            <file name="sl_udelay.c" linked="false" uri="studio:/sdk/platform/service/udelay/src/sl_udelay.c"/>
+            <file name="sl_udelay_armv6m_gcc.S" linked="false" uri="studio:/sdk/platform/service/udelay/src/sl_udelay_armv6m_gcc.S"/>
+          </folder>
+          <folder name="inc">
+            <file name="sl_udelay.h" linked="false" uri="studio:/sdk/platform/service/udelay/inc/sl_udelay.h"/>
+          </folder>
+        </folder>
       </folder>
       <folder name="emdrv">
         <folder name="dmadrv">
@@ -791,6 +800,7 @@
   <includePath uri="studio:/project/gecko_sdk_4.3.2/platform/service/sleeptimer/inc"/>
   <includePath uri="studio:/project/gecko_sdk_4.3.2/platform/security/sl_component/sl_protocol_crypto/src"/>
   <includePath uri="studio:/project/gecko_sdk_4.3.2/platform/emdrv/spidrv/inc"/>
+  <includePath uri="studio:/project/gecko_sdk_4.3.2/platform/service/udelay/inc"/>
   <macroDefinition name="EFR32BG27C140F768IM40"/>
   <macroDefinition name="SL_COMPONENT_CATALOG_PRESENT"/>
   <macroDefinition name="MBEDTLS_CONFIG_FILE" value="&lt;sl_mbedtls_config.h>"/>

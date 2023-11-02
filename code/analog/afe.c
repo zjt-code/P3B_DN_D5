@@ -14,20 +14,11 @@
 #include "app_log.h"
 /* Private variables ---------------------------------------------------------*/
 
-sl_sleeptimer_timer_handle_t g_AfeTimer;
-        
 /* Private function prototypes -----------------------------------------------*/
 
 
 
 /* Private functions ---------------------------------------------------------*/
-
-
-void afe_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
-{
-  app_log_info("bms003_config");
-    //bms003_config();
-}
 
 
 
@@ -42,11 +33,16 @@ void afe_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 *******************************************************************************/
 void afe_init(void)
 {
+    // 初始化bms003
     bms003_init();
-    app_log_info("bms003_config");
+
+    // bms003开始工作
+    bms003_start();
+    
+    // bms003配置
     bms003_config();
-    app_log_info("bms003_config done");
 }
+
 
 
 

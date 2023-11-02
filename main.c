@@ -52,12 +52,14 @@ int main(void)
     // 初始化GPIO的时钟
     CMU_ClockEnable(cmuClock_GPIO, true);
 
-    app_log_info("sys init");
+    // 应用层初始化
+    app_init();
+
     // 初始化AFE
     afe_init();
 
-    // 应用层初始化
-    app_init();
+    app_log_info("sys init\n");
+
 
 #if defined(SL_CATALOG_KERNEL_PRESENT)
     // Start the kernel. Task(s) created in app_init() will start running.

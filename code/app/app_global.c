@@ -15,9 +15,10 @@
 #include "string.h"
 #include "ble_adv.h"
 #include "app_log.h"
+#include "sl_bt_api.h"
 /* Private variables ---------------------------------------------------------*/
 app_state_t g_app_state;
-
+event_info_t g_EventInfoArray[APP_EVENT_MAX_NUM];
         
 /* Private function prototypes -----------------------------------------------*/
 
@@ -251,6 +252,9 @@ void app_init(void)
         app_ble_connect_info_init(&(app_global_get_app_state()->BleConnectInfo[i]));
     }
 
+    // 初始化事件处理
+    event_init();
+
     // 临时设置SN
     ble_adv_set_sn("JN-ABC0000\0");
 
@@ -269,6 +273,95 @@ void app_init(void)
     // 初始化历史数据存储部分
     //cgms_db_init();
 }
+
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-02
+* Function Name  :  event_init
+* Description    :  初始化事件处理
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void event_init(void)
+{
+    // 清空数组
+    for (uint32_t i = 0; i < APP_EVENT_MAX_NUM; i++)
+    {
+        memset(&g_EventInfoArray[i], 0x00, sizeof(event_info_t));
+    }
+}
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-02
+* Function Name  :  event_push
+* Description    :  推送事件
+* Input          :  uint32_t uiEventId
+* Output         :  None
+* Return         :  uint8_t
+*******************************************************************************/
+uint8_t event_push(uint32_t uiEventId)
+{
+    // 发送事件
+    if (sl_bt_external_signal(uiEventId) == SL_STATUS_OK)return 1;
+    return 0;
+}
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-02
+* Function Name  :  event_add
+* Description    :  添加事件
+* Input          :  uint32_t uiEventId
+* Input          :  event_callback_t CallBack
+* Output         :  None
+* Return         :  uint8_t
+*******************************************************************************/
+uint8_t event_add(uint32_t uiEventId, event_callback_t CallBack)
+{
+    // 先判断数组中是否已经有本事件
+    for (uint32_t i = 0; i < APP_EVENT_MAX_NUM; i++)
+    {
+        if (g_EventInfoArray[i].uiEventId == uiEventId)
+        {
+            g_EventInfoArray[i].CallBack = CallBack;
+            return 1;
+        }
+    }
+
+    // 寻找空闲位置添加事件信息
+    for (uint32_t i = 0; i < APP_EVENT_MAX_NUM; i++)
+    {
+        if (g_EventInfoArray[i].uiEventId == 0 && g_EventInfoArray[i].CallBack == NULL)
+        {
+            g_EventInfoArray[i].uiEventId = uiEventId;
+            g_EventInfoArray[i].CallBack = CallBack;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-02
+* Function Name  :  event_handler
+* Description    :  处理事件
+* Input          :  uint32_t uiEventId
+* Output         :  None
+* Return         :  uint8_t
+*******************************************************************************/
+uint8_t event_handler(uint32_t uiEventId)
+{
+    for (uint32_t i = 0; i < APP_EVENT_MAX_NUM; i++)
+    {
+        if (g_EventInfoArray[i].uiEventId == uiEventId && g_EventInfoArray[i].CallBack != NULL)
+        {
+            g_EventInfoArray[i].CallBack();
+            return 1;
+        }
+    }
+    return 0;
+}
+
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/
 

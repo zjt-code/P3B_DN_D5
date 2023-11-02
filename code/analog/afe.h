@@ -28,7 +28,6 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void afe_int_irq_callback(void);
 void afe_init(void);
 #endif /* __AFE_H */
 

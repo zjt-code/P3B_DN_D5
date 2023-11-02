@@ -15,8 +15,18 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stdint.h"
 #include "stdbool.h"
-#
+
 /* Private define ------------------------------------------------------------*/
+
+
+/*************************Main Loop事件掩码*****************************/
+
+#define MAIN_LOOP_EVENT_AFE_TIMER                   (0x01<<0)          // AFE定时器周期触发事件
+#define MAIN_LOOP_EVENT_AFE_IRQ                     (0x01<<1)          // AFE中断触发事件
+
+/**********************************************************************/
+
+
 
 
 /*******************************存储部分********************************/
@@ -40,6 +50,7 @@
 
 
 /*******************************设置部分********************************/
+#define APP_EVENT_MAX_NUM                           10                 // 最大的APP事件数量
 
 #define SOCP_SKIP_CRC_CHECK                         1                  // 是否跳过CRC检查
 #define SOCP_SKIP_SEC_AUTH_CHECK                    1                  // 是否跳过安全认证检查
@@ -70,7 +81,16 @@
 /**********************************************************************/
 /* Private typedef -----------------------------------------------------------*/
 
+// 事件回调
+typedef void (*event_callback_t)(void);
 
+
+// 事件信息结构体
+typedef struct
+{
+    uint32_t uiEventId;
+    event_callback_t CallBack;
+}event_info_t;
 
 
 // BLE通知队列序号
@@ -191,6 +211,10 @@ void app_event_ble_connected_callback(uint16_t usConnectionHandle);
 void app_event_ble_param_updated_callback(uint16_t usConnectionHandle, uint16_t usConnectInterval, uint16_t usConnectLatency, uint16_t usConnectTimeout);
 void app_event_ble_disconnect_callback(uint16_t usConnectionHandle);
 void app_init(void);
+void event_init(void);
+uint8_t event_push(uint32_t uiEventId);
+uint8_t event_add(uint32_t uiEventId, event_callback_t CallBack);
+uint8_t event_handler(uint32_t uiEventId);
 /* Private function prototypes -----------------------------------------------*/
 
 #endif /* __APP_GLOBAL_H */

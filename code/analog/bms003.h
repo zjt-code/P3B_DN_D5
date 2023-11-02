@@ -227,9 +227,14 @@ extern uint8_t CIC;
 
 /* Private function prototypes -----------------------------------------------*/
 void bms003_init(void);
+void bms003_periodic_timer_handler(void);
+void bms003_start(void);
+void bms003_stop(void);
 void bms003_wakeup(void);
 void bms003_sleep(void);
+void bms003_int_irq_handler(void);
 void bms003_config(void);
+void bms003_wakeup_config(void);
 #endif /* __BMS003_H */
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/

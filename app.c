@@ -18,6 +18,7 @@
 #include "app.h"
 #include "app_global.h"
 #include "ble_adv.h"
+
 /* Private variables ---------------------------------------------------------*/
 static uint8_t g_ucAdvertisingSetHandle = 0xff;     // BLE广播集句柄
 static uint8_t g_ucAdvDataBuffer[31];               // BLE广播内容
@@ -143,6 +144,9 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
     {
         break;
     }
+    case sl_bt_evt_system_external_signal_id:
+        // 处理事件
+        event_handler(evt->data.evt_system_external_signal.extsignals);
     default:
     {
         break;
