@@ -21,8 +21,9 @@
 
 /*************************Main Loop事件掩码*****************************/
 
-#define MAIN_LOOP_EVENT_AFE_TIMER                   (0x01<<0)          // AFE定时器周期触发事件
-#define MAIN_LOOP_EVENT_AFE_IRQ                     (0x01<<1)          // AFE中断触发事件
+#define MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER            (0x01<<0)          // AFE周期唤醒定时器事件
+#define MAIN_LOOP_EVENT_AFE_MEASURE_TIMER           (0x01<<1)          // AFE触发测量定时器事件
+#define MAIN_LOOP_EVENT_AFE_IRQ                     (0x01<<2)          // AFE中断触发事件
 
 /**********************************************************************/
 

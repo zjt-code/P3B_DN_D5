@@ -29,7 +29,7 @@ uint8_t CH1_DINWE_L8 =0x94;
 uint8_t CH1_DINWE_H2 =0x0;
 
 // 修改ICLK&PCLK&CIC
-uint8_t CLK = 0x3e;
+uint8_t CLK = 0x26;
 uint8_t CIC = 0x61;
 
 uint16_t buff_we1 = 0;
@@ -38,7 +38,8 @@ float g_fBms003CurrData = 0.0f;                     // BMS003当前数据
 uint8_t g_ucBms003NewDataFlag = 0;                  // BMS003有新数据标志位
 uint32_t g_Bms003IrqInterrupt;                      // BMS003中断引脚的中断号
 
-sl_sleeptimer_timer_handle_t g_Bms003Timer;
+sl_sleeptimer_timer_handle_t g_Bms003WakeupTimer;
+sl_sleeptimer_timer_handle_t g_Bms003MeasureTimer;
 #define SLEEP_TIMER_INTERVAL (32768 * 20)  // 目前时钟源为32.768K，分频为1，32768次时钟为1秒
 
 
@@ -141,11 +142,27 @@ void bms003_disable(void)
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void bms003_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
+void bms003_wakeup_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 {
     // 发送事件
-    event_push(MAIN_LOOP_EVENT_AFE_TIMER);
+    event_push(MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER);
 }
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-02
+* Function Name  :  bms003_measure_timer_callback
+* Description    :  bms003定时器回调
+* Input          :  sl_sleeptimer_timer_handle_t * handle
+* Input          :  void * data
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void bms003_measure_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
+{
+    // 发送事件
+    event_push(MAIN_LOOP_EVENT_AFE_MEASURE_TIMER);
+}
+
 
 
 /*******************************************************************************
@@ -174,7 +191,8 @@ void bms003_init(void)
     g_Bms003IrqInterrupt = GPIOINT_CallbackRegisterExt(AFE_INT_PIN, bms003_int_irq_callback, NULL);
     
     // 添加事件
-    event_add(MAIN_LOOP_EVENT_AFE_TIMER, bms003_periodic_timer_handler);
+    event_add(MAIN_LOOP_EVENT_AFE_MEASURE_TIMER, bms003_measure_timer_handler);
+    event_add(MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER, bms003_wakeup_timer_handler);
     event_add(MAIN_LOOP_EVENT_AFE_IRQ, bms003_int_irq_handler);
 
     // 清空新数据标志位
@@ -273,27 +291,46 @@ void bms003_read_adc_data(void)
     }
 }
 
+
 /*******************************************************************************
 *                           陈苏阳@2023-11-02
-* Function Name  :  bms003_periodic_timer_handler
-* Description    :  BMS003休眠定时器唤醒回调
+* Function Name  :  bms003_measure_timer_handler
+* Description    :  BMS003触发测量定时器
+* Input          :  void
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void bms003_periodic_timer_handler(void)
+void bms003_measure_timer_handler(void)
 {
-    app_log_info("bms003_periodic_timer_handler\n");
-    // 唤醒BMS003
-    bms003_wakeup();
-
-    // 等待BMS003唤醒
-    bms003_delay_us(1000 * 1000);
-
+    app_log_info("bms003_measure_timer_handler\n");
     // 设置AFE的INT引脚中断
     GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
 
     // BMS003唤醒配置
     bms003_wakeup_config();
+}
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-02
+* Function Name  :  bms003_wakeup_timer_handler
+* Description    :  BMS003休眠定时器唤醒回调
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void bms003_wakeup_timer_handler(void)
+{
+    sl_status_t status;
+    app_log_info("bms003_wakeup_timer_handler\n");
+    // 唤醒BMS003
+    bms003_wakeup();
+
+    // 启动一个1S后的单次定时器
+    status = sl_sleeptimer_start_timer(&g_Bms003MeasureTimer, 32768, bms003_measure_timer_callback, (void*)NULL, 0, 0);
+    if (status != SL_STATUS_OK)
+    {
+        app_log_info("sl_sleeptimer_start_timer failed\n");
+        return;
+    }
 }
 
 /*******************************************************************************
@@ -320,7 +357,7 @@ void bms003_start(void)
     // 设置AFE的INT引脚中断
     GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
 
-    status = sl_sleeptimer_start_periodic_timer(&g_Bms003Timer, SLEEP_TIMER_INTERVAL, bms003_timer_callback, (void*)NULL, 0, 0);
+    status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, SLEEP_TIMER_INTERVAL, bms003_wakeup_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
     {
         app_log_info("sl_sleeptimer_start_periodic_timer failed\n");
@@ -340,7 +377,9 @@ void bms003_start(void)
 void bms003_stop(void)
 {
     // 停止定时器
-    sl_sleeptimer_stop_timer(&g_Bms003Timer);
+    sl_sleeptimer_stop_timer(&g_Bms003WakeupTimer);
+
+    sl_sleeptimer_stop_timer(&g_Bms003MeasureTimer);
 
     // 关闭AFE的INT引脚中断
     GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, false, false, false);
@@ -699,7 +738,7 @@ void bms003_wakeup_config(void)
     bms003_delay_us(10 * 1000);
 
     ucBufferIndex = 0;
-    ucWriteBuffer[ucBufferIndex++] = ELE_BUF;
+    ucWriteBuffer[ucBufferIndex++] = 0x0D;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     bms003_write_burst(0x61, ucWriteBuffer, ucBufferIndex, 0, 30);
 
