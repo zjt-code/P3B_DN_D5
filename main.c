@@ -21,7 +21,7 @@
 #include "pin_config.h"
 #include "temp_sensor.h"
 /* Private variables ---------------------------------------------------------*/
-sl_sleeptimer_timer_handle_t g_TestTimer;
+//sl_sleeptimer_timer_handle_t g_TestTimer;
 
         
 /* Private function prototypes -----------------------------------------------*/
@@ -31,10 +31,12 @@ sl_sleeptimer_timer_handle_t g_TestTimer;
 /* Private functions ---------------------------------------------------------*/
 
 
+/*
 void test_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 {
     temp_sensor_start_meas();
 }
+*/
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-25
@@ -56,14 +58,14 @@ int main(void)
     app_init();
 
     // 初始化AFE
-    //afe_init();
+    afe_init();
 
     // 初始化温度传感器
-    temp_sensor_init();
+    //temp_sensor_init();
 
     app_log_info("sys init\n");
 
-    sl_sleeptimer_start_periodic_timer(&g_TestTimer, sl_sleeptimer_ms_to_tick(10*1000), test_timer_callback, (void*)NULL, 0, 0);
+    //sl_sleeptimer_start_periodic_timer(&g_TestTimer, sl_sleeptimer_ms_to_tick(10*1000), test_timer_callback, (void*)NULL, 0, 0);
 
     while (1) 
     {

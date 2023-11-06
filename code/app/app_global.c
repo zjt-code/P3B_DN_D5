@@ -16,6 +16,7 @@
 #include "ble_adv.h"
 #include "app_log.h"
 #include "sl_bt_api.h"
+#include "cgms_prm.h"
 /* Private variables ---------------------------------------------------------*/
 app_state_t g_app_state;
 event_info_t g_EventInfoArray[APP_EVENT_MAX_NUM];
@@ -267,8 +268,8 @@ void app_init(void)
     // 初始化事件处理
     event_init();
 
-    // 临时设置SN
-    ble_adv_set_sn("JN-ABC0000\0");
+    // 参数存储上电初始化
+    cgms_prm_db_power_on_init();
 
     // 初始化血糖算法
     //simpleGlucoInit();
