@@ -12,21 +12,16 @@
 #include "sl_component_catalog.h"
 #include "sl_system_init.h"
 #include "app.h"
-#if defined(SL_CATALOG_POWER_MANAGER_PRESENT)
 #include "sl_power_manager.h"
-#endif // SL_CATALOG_POWER_MANAGER_PRESENT
-#if defined(SL_CATALOG_KERNEL_PRESENT)
-#include "sl_system_kernel.h"
-#else // SL_CATALOG_KERNEL_PRESENT
 #include "sl_system_process_action.h"
-#endif // SL_CATALOG_KERNEL_PRESENT
 #include "app_global.h"
 #include "app_log.h"
 #include "em_cmu.h"
 #include "afe.h"
 #include "pin_config.h"
+#include "temp_sensor.h"
 /* Private variables ---------------------------------------------------------*/
-
+sl_sleeptimer_timer_handle_t g_TestTimer;
 
         
 /* Private function prototypes -----------------------------------------------*/
@@ -35,6 +30,11 @@
 
 /* Private functions ---------------------------------------------------------*/
 
+
+void test_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
+{
+    temp_sensor_start_meas();
+}
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-25
@@ -56,25 +56,21 @@ int main(void)
     app_init();
 
     // 初始化AFE
-    afe_init();
+    //afe_init();
+
+    // 初始化温度传感器
+    temp_sensor_init();
 
     app_log_info("sys init\n");
 
+    sl_sleeptimer_start_periodic_timer(&g_TestTimer, sl_sleeptimer_ms_to_tick(10*1000), test_timer_callback, (void*)NULL, 0, 0);
 
-#if defined(SL_CATALOG_KERNEL_PRESENT)
-    // Start the kernel. Task(s) created in app_init() will start running.
-    sl_system_kernel_start();
-#else // SL_CATALOG_KERNEL_PRESENT
-    while (1) {
-        // Do not remove this call: Silicon Labs components process action routine
-        // must be called from the super loop.
+    while (1) 
+    {
         sl_system_process_action();
-#if defined(SL_CATALOG_POWER_MANAGER_PRESENT)
-        // Let the CPU go to sleep if the system allows it.
         sl_power_manager_sleep();
-#endif
+
     }
-#endif // SL_CATALOG_KERNEL_PRESENT
 }
 
 

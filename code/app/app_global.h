@@ -15,16 +15,23 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stdint.h"
 #include "stdbool.h"
-
+#include "sl_sleeptimer.h"
 /* Private define ------------------------------------------------------------*/
 
 
-/*************************Main Loop事件掩码*****************************/
+/*************************Main Loop事件ID*****************************/
 
-#define MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER            (0x01<<0)          // AFE周期唤醒定时器事件
-#define MAIN_LOOP_EVENT_AFE_MEASURE_TIMER           (0x01<<1)          // AFE触发测量定时器事件
-#define MAIN_LOOP_EVENT_AFE_IRQ                     (0x01<<2)          // AFE中断触发事件
 
+typedef enum
+{
+ MAIN_LOOP_EVENT_NONE,                              // 无效事件
+ MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER,                  // AFE周期唤醒定时器事件
+ MAIN_LOOP_EVENT_AFE_MEASURE_TIMER,                 // AFE触发测量定时器事件
+ MAIN_LOOP_EVENT_AFE_IRQ,                           // AFE中断触发事件
+ MAIN_lOOP_EVENT_TEMP_SENSOR_READ_START_TIMER,      // 温度传感器读取开始定时器事件
+ MAIN_lOOP_EVENT_TEMP_SENSOR_READ_END_TIMER,        // 温度传感器读取结束定时器事件
+
+}main_Loop_event_t;
 /**********************************************************************/
 
 
@@ -69,7 +76,7 @@
 #define APP_COMPANY_ID                              0x0362
 #define APP_COMPLETE_LIST_16_BIT_UUID               0x181F
 
-#define BLE_CONNECT_PARAM_UPDATE_DELAY              5                  // 从连接建立到发起更新连接参数所需的延时时间(S)
+#define BLE_CONNECT_PARAM_UPDATE_DELAY              5000               // 从连接建立到发起更新连接参数所需的延时时间(ms)
 #define BLE_PRE_INTERVAL_MIN                        70                 // 期望的BLE连接间隔(最小值)(*1.25ms)
 #define BLE_PRE_INTERVAL_MAX                        100                // 期望的BLE连接间隔(最大值)(*1.25ms)
 #define BLE_PRE_LATENCY                             7                  // 期望的BLE连接可跳过的包数
@@ -179,10 +186,10 @@ typedef struct
     bool bIsConnected;                              // 当前是否连接
     bool bIsUpdateConnectParameter;                 // 是否已经触发更新连接参数
     uint16_t usBleConidx;                           // BLE连接句柄
-    uint16_t usUpdateConnectParameterTimerHandle;   // 更新连接参数所使用的定时器句柄
     uint16_t usConnectInterval;                     // 连接间隔
     uint16_t usConnectLatency;                      // 可跳过的包数
     uint16_t usConnectTimeout;                      // 连接超时时间
+    sl_sleeptimer_timer_handle_t BleUpdateConnectParamTimer;// BLE更新连接参数定时器
 }BleConnectInfo_t;
 
 typedef struct

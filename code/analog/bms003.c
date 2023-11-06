@@ -40,7 +40,7 @@ uint32_t g_Bms003IrqInterrupt;                      // BMS003中断引脚的中�
 
 sl_sleeptimer_timer_handle_t g_Bms003WakeupTimer;
 sl_sleeptimer_timer_handle_t g_Bms003MeasureTimer;
-#define SLEEP_TIMER_INTERVAL (32768 * 20)  // 目前时钟源为32.768K，分频为1，32768次时钟为1秒
+#define SLEEP_TIMER_INTERVAL    (20*1000)
 
 
 
@@ -302,7 +302,7 @@ void bms003_read_adc_data(void)
 *******************************************************************************/
 void bms003_measure_timer_handler(void)
 {
-    app_log_info("bms003_measure_timer_handler\n");
+    //app_log_info("bms003_measure_timer_handler\n");
     // 设置AFE的INT引脚中断
     GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
 
@@ -320,12 +320,12 @@ void bms003_measure_timer_handler(void)
 void bms003_wakeup_timer_handler(void)
 {
     sl_status_t status;
-    app_log_info("bms003_wakeup_timer_handler\n");
+    //app_log_info("bms003_wakeup_timer_handler\n");
     // 唤醒BMS003
     bms003_wakeup();
 
     // 启动一个1S后的单次定时器
-    status = sl_sleeptimer_start_timer(&g_Bms003MeasureTimer, 32768, bms003_measure_timer_callback, (void*)NULL, 0, 0);
+    status = sl_sleeptimer_start_timer(&g_Bms003MeasureTimer, sl_sleeptimer_ms_to_tick(1000), bms003_measure_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
     {
         app_log_info("sl_sleeptimer_start_timer failed\n");
@@ -357,7 +357,7 @@ void bms003_start(void)
     // 设置AFE的INT引脚中断
     GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
 
-    status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, SLEEP_TIMER_INTERVAL, bms003_wakeup_timer_callback, (void*)NULL, 0, 0);
+    status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, sl_sleeptimer_ms_to_tick(SLEEP_TIMER_INTERVAL), bms003_wakeup_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
     {
         app_log_info("sl_sleeptimer_start_periodic_timer failed\n");
@@ -434,7 +434,7 @@ void bms003_sleep(void)
 *******************************************************************************/
 void bms003_int_irq_handler(void)
 {
-    app_log_info("bms003_int_irq_handler\n");
+    //app_log_info("bms003_int_irq_handler\n");
     // 读取数据
     bms003_read_adc_data();
 }

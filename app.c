@@ -63,7 +63,6 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         ble_adv_generate_adv_data(g_ucAdvDataBuffer,&g_ucAdvDataLen);
 
         // 设置广播数据
-        //sc = sl_bt_legacy_advertiser_generate_data(advertising_set_handle,sl_bt_advertiser_general_discoverable);
         sc = sl_bt_legacy_advertiser_set_data(g_ucAdvertisingSetHandle, sl_bt_advertiser_general_discoverable,g_ucAdvDataLen,g_ucAdvDataBuffer);
         app_assert_status(sc);
 
@@ -89,7 +88,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
     {
         app_log_info("Connection opened.\n");
         // 调用应用层的回调
-        //app_event_ble_connected_callback(evt->data.evt_connection_opened.connection);
+        app_event_ble_connected_callback(evt->data.evt_connection_opened.connection);
         break;
     }
 
@@ -103,9 +102,8 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
        uint16_t timeout = evt->data.evt_connection_parameters.timeout;       // Supervision timeout. Time = Value x 10 ms
 
        // 调用APP层的连接参数更新回调
-       //app_event_ble_param_updated_callback(connection,interval,latency,timeout);
-
-        app_log_info("Connection parameter update.\n");
+       app_event_ble_param_updated_callback(connection,interval,latency,timeout);
+       app_log_info("Connection parameter update.:%d,latency:%d,timeout:%d\n", interval, latency, timeout);
         break;
     }
 
@@ -116,7 +114,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         app_log_info("Connection closed.\n");
 
         // 调用应用层的回调
-        //app_event_ble_disconnect_callback(evt->data.evt_connection_closed.connection);
+        app_event_ble_disconnect_callback(evt->data.evt_connection_closed.connection);
 
         // 生成广播数据包
         sc = sl_bt_legacy_advertiser_generate_data(g_ucAdvertisingSetHandle,

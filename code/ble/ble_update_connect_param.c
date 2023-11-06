@@ -15,17 +15,34 @@
 #include "app_log.h"
 /* Private variables ---------------------------------------------------------*/
 
-sl_sleeptimer_timer_handle_t g_BleUpdateConnectParamTimer;
-        
+
 /* Private function prototypes -----------------------------------------------*/
 
 
 
 /* Private functions ---------------------------------------------------------*/
 
+/*******************************************************************************
+*                           陈苏阳@2023-11-03
+* Function Name  :  ble_update_connect_param_timer_callback
+* Description    :  更新连接参数定时器回调
+* Input          :  sl_sleeptimer_timer_handle_t * handle
+* Input          :  void * data
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
 void ble_update_connect_param_timer_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
 {
-
+    BleConnectInfo_t* p = (BleConnectInfo_t*)data;
+    if (p)
+    {
+        // 如果当前保持连接,且未更新连接参数
+        if (p->bIsConnected && p->bIsUpdateConnectParameter == false)
+        {
+            // 触发开始更新连接参数
+            ble_update_connect_param(p->usBleConidx);
+        }
+    }
 }
 
 
@@ -53,27 +70,6 @@ bool ble_update_connect_param_is_pass(uint16_t usConnectionHandle)
     return true;
 }
 
-/*******************************************************************************
-*                           陈苏阳@2023-10-25
-* Function Name  :  ble_update_connect_param_connection_handle_to_update_connect_parameter_timer_handle
-* Description    :  BLE连接句柄转更新连接参数定时器句柄
-* Input          :  uint16_t usConnectionHandle
-* Output         :  None
-* Return         :  int32_t
-*******************************************************************************/
-int32_t ble_update_connect_param_connection_handle_to_update_connect_parameter_timer_handle(uint16_t usConnectionHandle)
-{
-    for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
-    {
-        // 找到对应的连接信息
-        if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true && app_global_get_app_state()->BleConnectInfo[i].usBleConidx == usConnectionHandle)
-        {
-            return app_global_get_app_state()->BleConnectInfo[i].usUpdateConnectParameterTimerHandle;
-        }
-    }
-    return -1;
-}
-
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-25
@@ -85,7 +81,7 @@ int32_t ble_update_connect_param_connection_handle_to_update_connect_parameter_t
 *******************************************************************************/
 void ble_update_connect_param(uint16_t usConnectionHandle)
 {
-    GAPC_ParamUpdateCmd(usConnectionHandle, BLE_PRE_INTERVAL_MIN, BLE_PRE_INTERVAL_MAX, BLE_PRE_LATENCY, BLE_PRE_TIMEOUT, 0xffff, 0xffff);
+    sl_bt_connection_set_parameters(usConnectionHandle, BLE_PRE_INTERVAL_MIN, BLE_PRE_INTERVAL_MAX, BLE_PRE_LATENCY, BLE_PRE_TIMEOUT, 0xffff, 0xffff);
 }
 
 
@@ -104,7 +100,7 @@ void ble_update_connect_param_stop(uint16_t usConnectionHandle)
         // 找到对应的连接信息
         if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true && app_global_get_app_state()->BleConnectInfo[i].usBleConidx == usConnectionHandle)
         {
-            sl_sleeptimer_stop_timer(&g_BleUpdateConnectParamTimer);
+            sl_sleeptimer_stop_timer(&(app_global_get_app_state()->BleConnectInfo[i].BleUpdateConnectParamTimer));
         }
     }
 }
@@ -119,13 +115,20 @@ void ble_update_connect_param_stop(uint16_t usConnectionHandle)
 *******************************************************************************/
 void ble_update_connect_param_all_stop(void)
 {
-    sl_sleeptimer_stop_timer(&g_BleUpdateConnectParamTimer);
+    for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
+    {
+        // 找到对应的连接信息
+        if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true)
+        {
+            sl_sleeptimer_stop_timer(&(app_global_get_app_state()->BleConnectInfo[i].BleUpdateConnectParamTimer));
+        }
+    }
 }
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-25
 * Function Name  :  ble_update_connect_param_start
-* Description    :  
+* Description    :  开始更新BLE连接参数
 * Input          :  uint16_t usConnectionHandle
 * Output         :  None
 * Return         :  void
@@ -142,13 +145,11 @@ void ble_update_connect_param_start(uint16_t usConnectionHandle)
                 // 如果当前连接参数不符合要求
                 if (ble_update_connect_param_is_pass(usConnectionHandle) == false)
                 {
-                    //app_log_info("sleeptimer_start_timer BleUpdateConnectParamTimer");
                     // 触发连接参数更新定时器
-                    sl_sleeptimer_start_timer(&g_BleUpdateConnectParamTimer,BLE_CONNECT_PARAM_UPDATE_DELAY*1000,ble_update_connect_param_timer_callback,(void*)NULL,0,0);
+                    sl_sleeptimer_start_timer(&(app_global_get_app_state()->BleConnectInfo[i].BleUpdateConnectParamTimer), sl_sleeptimer_ms_to_tick(BLE_CONNECT_PARAM_UPDATE_DELAY),ble_update_connect_param_timer_callback,(void*)&app_global_get_app_state()->BleConnectInfo[i],0,0);
                 }
                 else
                 {
-                    //app_log_info("BleUpdateConnectParam Done");
                     // 如果当前连接参数符合要求
                     app_global_get_app_state()->BleConnectInfo[i].bIsUpdateConnectParameter = true;
                 }
@@ -182,7 +183,7 @@ void ble_update_connect_param_timer_handle(uint16_t usConnectionHandle)
                     ble_update_connect_param(usConnectionHandle);
 
                     // 触发连接参数更新定时器  todo:多连接时需要额外处理
-                    sl_sleeptimer_restart_timer(&g_BleUpdateConnectParamTimer,BLE_CONNECT_PARAM_UPDATE_DELAY*1000,ble_update_connect_param_timer_callback,(void*)NULL,0,0);
+                    sl_sleeptimer_restart_timer(&(app_global_get_app_state()->BleConnectInfo[i].BleUpdateConnectParamTimer),BLE_CONNECT_PARAM_UPDATE_DELAY*1000,ble_update_connect_param_timer_callback,(void*)NULL,0,0);
                 }
                 else
                 {

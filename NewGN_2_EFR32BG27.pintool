@@ -10,16 +10,17 @@
     <property object="PA06" propertyId="pin.reserve" value="Reserved"/>
     <property object="PA07" propertyId="pin.name" value="AFE_INT"/>
     <property object="PA07" propertyId="pin.reserve" value="Reserved"/>
-    <property object="PB00" propertyId="pin.name" value="NTC_ADC"/>
-    <property object="PB01" propertyId="pin.name" value="NTC_EN"/>
+    <property object="PB00" propertyId="pin.name" value="TEMP_SENSOR"/>
+    <property object="PB01" propertyId="pin.name" value="TEMP_SENSOR_EN"/>
     <property object="PB01" propertyId="pin.reserve" value="Reserved"/>
     <property object="PB02" propertyId="pin.name" value="AFE_WAKE_UP"/>
     <property object="PB02" propertyId="pin.reserve" value="Reserved"/>
     <property object="PB03" propertyId="pin.name" value="AFE_CHIP_EN"/>
     <property object="PB03" propertyId="pin.reserve" value="Reserved"/>
     <property object="PORTIO" propertyId="portio.eusart0.location.tx" value="3"/>
-    <property object="PORTIO" propertyId="portio.iadc0.enable.pos" value="Enabled"/>
     <property object="PORTIO" propertyId="portio.iadc0.location.pos" value="144"/>
+    <property object="PORTIO" propertyId="portio.timer0.enable.cc0" value="Enabled"/>
+    <property object="PORTIO" propertyId="portio.timer0.location.cc0" value="16"/>
     <property object="PORTIO" propertyId="portio.usart0.location.tx" value="3"/>
     <property object="PORTIO" propertyId="portio.usart1.enable.clk" value="Enabled"/>
     <property object="PORTIO" propertyId="portio.usart1.enable.rx" value="Enabled"/>

@@ -59,6 +59,14 @@
 // [GPIO]$
 
 // $[TIMER0]
+// TIMER0 CC0 on PB00
+#ifndef TIMER0_CC0_PORT                         
+#define TIMER0_CC0_PORT                          gpioPortB
+#endif
+#ifndef TIMER0_CC0_PIN                          
+#define TIMER0_CC0_PIN                           0
+#endif
+
 // [TIMER0]$
 
 // $[TIMER1]
@@ -116,14 +124,6 @@
 // [LETIMER0]$
 
 // $[IADC0]
-// IADC0 POS on PB00
-#ifndef IADC0_POS_PORT                          
-#define IADC0_POS_PORT                           gpioPortB
-#endif
-#ifndef IADC0_POS_PIN                           
-#define IADC0_POS_PIN                            0
-#endif
-
 // [IADC0]$
 
 // $[ACMP0]
@@ -177,18 +177,18 @@
 #define AFE_INT_PIN                              7
 #endif
 
-#ifndef NTC_ADC_PORT                            
-#define NTC_ADC_PORT                             gpioPortB
+#ifndef TEMP_SENSOR_PORT                        
+#define TEMP_SENSOR_PORT                         gpioPortB
 #endif
-#ifndef NTC_ADC_PIN                             
-#define NTC_ADC_PIN                              0
+#ifndef TEMP_SENSOR_PIN                         
+#define TEMP_SENSOR_PIN                          0
 #endif
 
-#ifndef NTC_EN_PORT                             
-#define NTC_EN_PORT                              gpioPortB
+#ifndef TEMP_SENSOR_EN_PORT                     
+#define TEMP_SENSOR_EN_PORT                      gpioPortB
 #endif
-#ifndef NTC_EN_PIN                              
-#define NTC_EN_PIN                               1
+#ifndef TEMP_SENSOR_EN_PIN                      
+#define TEMP_SENSOR_EN_PIN                       1
 #endif
 
 #ifndef AFE_WAKE_UP_PORT                        

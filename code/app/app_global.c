@@ -81,7 +81,7 @@ void app_ble_connect_info_init(BleConnectInfo_t* p)
         p->usConnectInterval = 0;
         p->usConnectLatency = 0;
         p->usConnectTimeout = 0;
-        p->usUpdateConnectParameterTimerHandle = 0;
+        memset(&(p->BleUpdateConnectParamTimer), 0x00, sizeof(p->BleUpdateConnectParamTimer));
     }
 }
 
@@ -194,6 +194,18 @@ void app_event_ble_param_updated_callback(uint16_t usConnectionHandle, uint16_t 
             app_global_get_app_state()->BleConnectInfo[i].usConnectInterval = usConnectInterval;
             app_global_get_app_state()->BleConnectInfo[i].usConnectLatency = usConnectLatency;
             app_global_get_app_state()->BleConnectInfo[i].usConnectTimeout = usConnectTimeout;
+
+            // 判断当前连接参数是否符合要求
+            if (ble_update_connect_param_is_pass(usConnectionHandle))
+            {
+                // 更新标志位
+                app_global_get_app_state()->BleConnectInfo[i].bIsUpdateConnectParameter = true;
+            }
+            else
+            {
+                // 如果不符合要求,启动连接参数更新定时器
+                ble_update_connect_param_start(usConnectionHandle);
+            }
         }
     }
 }
@@ -321,7 +333,7 @@ uint8_t event_add(uint32_t uiEventId, event_callback_t CallBack)
     // 先判断数组中是否已经有本事件
     for (uint32_t i = 0; i < APP_EVENT_MAX_NUM; i++)
     {
-        if (g_EventInfoArray[i].uiEventId == uiEventId)
+        if (g_EventInfoArray[i].uiEventId == (0x01 << uiEventId))
         {
             g_EventInfoArray[i].CallBack = CallBack;
             return 1;
@@ -333,7 +345,7 @@ uint8_t event_add(uint32_t uiEventId, event_callback_t CallBack)
     {
         if (g_EventInfoArray[i].uiEventId == 0 && g_EventInfoArray[i].CallBack == NULL)
         {
-            g_EventInfoArray[i].uiEventId = uiEventId;
+            g_EventInfoArray[i].uiEventId = (0x01 << uiEventId);
             g_EventInfoArray[i].CallBack = CallBack;
             return 1;
         }
@@ -353,7 +365,7 @@ uint8_t event_handler(uint32_t uiEventId)
 {
     for (uint32_t i = 0; i < APP_EVENT_MAX_NUM; i++)
     {
-        if (g_EventInfoArray[i].uiEventId == uiEventId && g_EventInfoArray[i].CallBack != NULL)
+        if (g_EventInfoArray[i].uiEventId == (0x01 << uiEventId) && g_EventInfoArray[i].CallBack != NULL)
         {
             g_EventInfoArray[i].CallBack();
             return 1;
