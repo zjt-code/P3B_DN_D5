@@ -41,7 +41,6 @@ typedef struct
     uint16_t usDataSum;// 效验
     uint32_t uiRecordsNum;// 当前历史数据总数
     ble_cgms_sst_t sst;// CGM会话启动时间
-
 }record_index_storage_unit_t;// 历史数据参数存储结构体
 
 typedef struct

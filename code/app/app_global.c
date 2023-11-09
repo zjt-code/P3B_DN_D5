@@ -14,7 +14,7 @@
 #include "ble_update_connect_param.h"
 #include "string.h"
 #include "ble_adv.h"
-#include "app_log.h"
+#include <elog.h>
 #include "sl_bt_api.h"
 #include "cgms_prm.h"
 /* Private variables ---------------------------------------------------------*/

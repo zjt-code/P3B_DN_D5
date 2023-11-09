@@ -12,7 +12,7 @@
 
 #include "em_common.h"
 #include "app_assert.h"
-#include "app_log.h"
+#include <elog.h>
 #include "sl_bluetooth.h"
 #include "gatt_db.h"
 #include "app.h"
@@ -86,7 +86,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
     // BLE连接事件
     case sl_bt_evt_connection_opened_id:
     {
-        app_log_info("Connection opened.\n");
+        log_i("Connection opened.");
         // 调用应用层的回调
         app_event_ble_connected_callback(evt->data.evt_connection_opened.connection);
         break;
@@ -103,7 +103,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
 
        // 调用APP层的连接参数更新回调
        app_event_ble_param_updated_callback(connection,interval,latency,timeout);
-       app_log_info("Connection parameter update.:%d,latency:%d,timeout:%d\n", interval, latency, timeout);
+       log_i("Connection parameter update.:%d,latency:%d,timeout:%d", interval, latency, timeout);
         break;
     }
 
@@ -111,7 +111,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
     // BLE断开连接事件
     case sl_bt_evt_connection_closed_id:
     {
-        app_log_info("Connection closed.\n");
+        log_i("Connection closed.");
 
         // 调用应用层的回调
         app_event_ble_disconnect_callback(evt->data.evt_connection_closed.connection);

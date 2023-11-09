@@ -12,7 +12,7 @@
 #include "sl_sleeptimer.h"
 #include "ble_update_connect_param.h"
 #include "app.h"
-#include "app_log.h"
+#include <elog.h>
 /* Private variables ---------------------------------------------------------*/
 
 

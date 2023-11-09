@@ -38,7 +38,7 @@
 
 // <o SL_SPIDRV_USART_AFESPIINST_BITRATE> SPI bitrate
 // <i> Default: 1000000
-#define SL_SPIDRV_USART_AFESPIINST_BITRATE           1000000
+#define SL_SPIDRV_USART_AFESPIINST_BITRATE           700000
 
 // <o SL_SPIDRV_USART_AFESPIINST_FRAME_LENGTH> SPI frame length <4-16>
 // <i> Default: 8
@@ -64,7 +64,7 @@
 // <o SL_SPIDRV_USART_AFESPIINST_CS_CONTROL> SPI master chip select (CS) control scheme.
 // <spidrvCsControlAuto=> CS controlled by the SPI driver
 // <spidrvCsControlApplication=> CS controlled by the application
-#define SL_SPIDRV_USART_AFESPIINST_CS_CONTROL        spidrvCsControlAuto
+#define SL_SPIDRV_USART_AFESPIINST_CS_CONTROL        spidrvCsControlApplication
 
 // <o SL_SPIDRV_USART_AFESPIINST_SLAVE_START_MODE> SPI slave transfer start scheme
 // <spidrvSlaveStartImmediate=> Transfer starts immediately
@@ -78,34 +78,34 @@
 // <usart signal=TX,RX,CLK,(CS)> SL_SPIDRV_USART_AFESPIINST
 // $[USART_SL_SPIDRV_USART_AFESPIINST]
 #ifndef SL_SPIDRV_USART_AFESPIINST_PERIPHERAL   
-#define SL_SPIDRV_USART_AFESPIINST_PERIPHERAL    USART1
+#define SL_SPIDRV_USART_AFESPIINST_PERIPHERAL    USART0
 #endif
 #ifndef SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO
-#define SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO 1
+#define SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO 0
 #endif
 
-// USART1 TX on PA04
+// USART0 TX on PA05
 #ifndef SL_SPIDRV_USART_AFESPIINST_TX_PORT      
 #define SL_SPIDRV_USART_AFESPIINST_TX_PORT       gpioPortA
 #endif
 #ifndef SL_SPIDRV_USART_AFESPIINST_TX_PIN       
-#define SL_SPIDRV_USART_AFESPIINST_TX_PIN        4
+#define SL_SPIDRV_USART_AFESPIINST_TX_PIN        5
 #endif
 
-// USART1 RX on PA03
+// USART0 RX on PA06
 #ifndef SL_SPIDRV_USART_AFESPIINST_RX_PORT      
 #define SL_SPIDRV_USART_AFESPIINST_RX_PORT       gpioPortA
 #endif
 #ifndef SL_SPIDRV_USART_AFESPIINST_RX_PIN       
-#define SL_SPIDRV_USART_AFESPIINST_RX_PIN        3
+#define SL_SPIDRV_USART_AFESPIINST_RX_PIN        6
 #endif
 
-// USART1 CLK on PA05
+// USART0 CLK on PA04
 #ifndef SL_SPIDRV_USART_AFESPIINST_CLK_PORT     
 #define SL_SPIDRV_USART_AFESPIINST_CLK_PORT      gpioPortA
 #endif
 #ifndef SL_SPIDRV_USART_AFESPIINST_CLK_PIN      
-#define SL_SPIDRV_USART_AFESPIINST_CLK_PIN       5
+#define SL_SPIDRV_USART_AFESPIINST_CLK_PIN       4
 #endif
 
 // [USART_SL_SPIDRV_USART_AFESPIINST]$

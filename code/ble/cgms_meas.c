@@ -19,7 +19,7 @@
 #include "ble_customss.h"
 #include "app_util.h"
 #include "cgms_aes128.h"
-#include "app_log.h"
+#include <elog.h>
 /* Private variables ---------------------------------------------------------*/
   
 /* Private function prototypes -----------------------------------------------*/
@@ -44,7 +44,7 @@ ret_code_t cgms_meas_send_raw(ble_event_info_t BleEventInfo,uint8_t* pData, uint
 
     memcpy(ucDatapacketBuffer, pData, ucLen);
 
-    app_log_info("cgms_meas_send:");
+    log_i("cgms_meas_send:");
     app_log_hexdump_info(ucDatapacketBuffer, ucLen);
 
 #ifdef CGMS_ENCRYPT_ENABLE

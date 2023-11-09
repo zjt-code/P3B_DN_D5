@@ -9,13 +9,18 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
+#if !defined(LOG_TAG)
+    #define LOG_TAG                "LTCGM1272"
+#endif
+#undef LOG_LVL
+#define LOG_LVL                    ELOG_LVL_DEBUG
 
 #include "ltcgm1272.h"
 #include "spidrv.h"
 #include "sl_udelay.h"
 #include "sl_spidrv_instances.h"
 #include "pin_config.h"
-#include "app_log.h"
+#include <elog.h>
 #include "gpiointerrupt.h"
 #include "app_global.h"
 /* Private variables ---------------------------------------------------------*/
@@ -32,7 +37,8 @@ sl_sleeptimer_timer_handle_t g_Ltcgm1272MeasureTimer;
 /* Private function prototypes -----------------------------------------------*/
 void ltcgm1272_int_irq_handler(void);
 void ltcgm1272_int_irq_callback(uint8_t intNo, void* ctx);
-
+void ltcgm1272_write_reg(uint8_t ucAddr, uint8_t ucData);
+uint8_t ltcgm1272_read_reg(uint8_t ucAddr);
 /* Private functions ---------------------------------------------------------*/
 
 
@@ -46,14 +52,9 @@ void ltcgm1272_int_irq_callback(uint8_t intNo, void* ctx);
 *******************************************************************************/
 void ltcgm1272_init(void)
 {
+    log_d("ltcgm1272_init");
     // 设置CS引脚为推挽输出
     GPIO_PinModeSet(SPI_CS_PORT, SPI_CS_PIN, gpioModePushPull, 1);
-
-    // 设置AFE_CHIP_EN引脚为推挽输出
-    GPIO_PinModeSet(AFE_CHIP_EN_PORT, AFE_CHIP_EN_PIN, gpioModePushPull, 1);
-
-    // 设置AFE_WAKEUP引脚为推挽输出
-    GPIO_PinModeSet(AFE_WAKE_UP_PORT, AFE_WAKE_UP_PIN, gpioModePushPull, 1);
 
     // 设置AFE的INT引脚下拉输入
     GPIO_PinModeSet(AFE_INT_PORT, AFE_INT_PIN, gpioModeInputPull, 0);
@@ -61,9 +62,10 @@ void ltcgm1272_init(void)
     // 配置中断处理函数
     g_ucLtcgm1272IrqInterrupt = GPIOINT_CallbackRegisterExt(AFE_INT_PIN, ltcgm1272_int_irq_callback, NULL);
 
+    log_d("g_ucLtcgm1272IrqInterrupt:%d", g_ucLtcgm1272IrqInterrupt);
+
     // 添加事件
     event_add(MAIN_LOOP_EVENT_AFE_IRQ, ltcgm1272_int_irq_handler);
-
     // 清空新数据标志位
     g_ucLtcgm1272NewDataFlag = 0;
 }
@@ -79,13 +81,14 @@ void ltcgm1272_init(void)
 *******************************************************************************/
 void ltcgm1272_write_reg(uint8_t ucAddr, uint8_t ucData)
 {
+    log_d("ltcgm1272_write_reg:0x%02x,0x%02x", ucAddr, ucData);
     uint8_t ucWriteBuffer[2];
     uint8_t ucBufferIndex = 0;
-    ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = ucAddr & 0x7F;
     ucWriteBuffer[ucBufferIndex++] = ucData;
 
     GPIO_PinOutClear(SPI_CS_PORT, SPI_CS_PIN);
+    sl_udelay_wait(310);
     SPIDRV_MTransmitB(sl_spidrv_usart_AfeSpiInst_handle, ucWriteBuffer, ucBufferIndex);
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
 }
@@ -101,17 +104,18 @@ void ltcgm1272_write_reg(uint8_t ucAddr, uint8_t ucData)
 uint8_t ltcgm1272_read_reg(uint8_t ucAddr)
 {
     uint8_t ucWriteBuffer[2];
-    uint8_t ucReadBuffer[2] = { 0, 0, 0 };
+    uint8_t ucReadBuffer[2] = { 0, 0 };
     uint8_t ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = ucAddr | 0x80;
     ucWriteBuffer[ucBufferIndex++] = 0xFF;
 
     GPIO_PinOutClear(SPI_CS_PORT, SPI_CS_PIN);
+    sl_udelay_wait(310);
     SPIDRV_MTransferB(sl_spidrv_usart_AfeSpiInst_handle, ucWriteBuffer, ucReadBuffer, ucBufferIndex);
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
+    log_d("ltcgm1272_read_reg:0x%02x return:0x%02x", ucAddr, ucReadBuffer[1]);
     return ucReadBuffer[1];
 }
-
 
 
 /*******************************************************************************
@@ -125,6 +129,7 @@ uint8_t ltcgm1272_read_reg(uint8_t ucAddr)
 *******************************************************************************/
 void ltcgm1272_int_irq_callback(uint8_t intNo, void* ctx)
 {
+    log_d("ltcgm1272_int_irq_callback");
     // 发送事件
     event_push(MAIN_LOOP_EVENT_AFE_IRQ);
 }
@@ -140,17 +145,18 @@ void ltcgm1272_int_irq_callback(uint8_t intNo, void* ctx)
 *******************************************************************************/
 void ltcgm1272_start(void)
 {
-    ltcgm1272_write_reg(0X00, 0x3E);    //采样次数31+1=32次
-    ltcgm1272_write_reg(0x04, 0x03);    //ADC时钟4分频
-    ltcgm1272_write_reg(0x05, 0x0F);    //采样时间间隔
-    ltcgm1272_write_reg(0X1A, 0x0A);    //FIFO水线=18
-    ltcgm1272_write_reg(0X12, 0x01);    //open oprce
-    ltcgm1272_write_reg(0X13, 0x01);    //open oprtia
-    ltcgm1272_write_reg(0X14, 0x35);    //set Rtia
-    ltcgm1272_write_reg(0X15, 0x4a);    //set 2-lead mode-1   
-    ltcgm1272_write_reg(0X16, 0x0f);    //buffer bypass
-    ltcgm1272_write_reg(0X17, 0x78);    //WE=0.55V
-    ltcgm1272_write_reg(0X11, 0x64);    //10s采一个点
+    log_d("ltcgm1272_start");
+
+    ltcgm1272_write_reg(0x13, 0x01);	//open oprtia
+    ltcgm1272_write_reg(0x14, 0x07);	//set Rtia
+    ltcgm1272_write_reg(0x15, 0x4a | 0x01);//set 2-lead mode-1
+    ltcgm1272_write_reg(0x16, 0x0f);	//buffer enable
+    ltcgm1272_write_reg(0x17, 0x4E);	//WE=0.55V
+    ltcgm1272_write_reg(0x1A, 0x12);//set waterline = 18
+    ltcgm1272_write_reg(0X00, 0X3E);//Adc sample cnt = 31+1
+    ltcgm1272_write_reg(0x11, 0x64);	//start adc, Tsample = 100/10 sec
+    // 设置AFE的INT引脚中断
+    GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_ucLtcgm1272IrqInterrupt, true, false, true);
 }
 
 /*******************************************************************************
@@ -163,6 +169,7 @@ void ltcgm1272_start(void)
 *******************************************************************************/
 void ltcgm1272_stop(void)
 {
+    log_d("ltcgm1272_stop");
     // 设置ADC采样频率为0
     ltcgm1272_write_reg(0X11, 0x00);
 }
@@ -178,7 +185,9 @@ void ltcgm1272_stop(void)
 *******************************************************************************/
 void ltcgm1272_int_irq_handler(void)
 {
+    log_d("ltcgm1272_int_irq_handler");
     uint16_t usDataArray[20];
+    // 唤醒
     for (uint8_t i = 0; i < 20; i++)
     {
         // 读取数据数量
@@ -193,9 +202,14 @@ void ltcgm1272_int_irq_handler(void)
             break;
         }
     }
-    for(uint8_t i=0;i<18;i++)app_log_info("No.%d Data:%d\n", usDataArray[i]);
-
-    app_log_info("\r\n\r\n");
+    for (uint8_t i = 0; i < 18; i++)
+    {
+        double vref = 1800;
+        double adc_vol = ((vref / 4096.0) * ((double)usDataArray[i])) - (0x4E * vref / 255);
+        double electricity = adc_vol / 10000000.0 * 1000.0 * 1000.0;
+        log_d("No.%d Data:%d   I:%.2f nA", i, usDataArray[i], electricity);
+    }
+    log_d("\r\r");
 }
 
 

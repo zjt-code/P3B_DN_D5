@@ -485,7 +485,7 @@ static ret_code_t cgms_db_record_get_raw_data(uint16_t usRecordIndex, cgms_meas_
         uint32_t uiReadAddr = MEAS_RECORD_ADDR + (usPageIndex * cgm_db_flash_get_info()->usSectorByteSize) + (usPosInPage * usOneRecordStorageUnitSize);
 
         cgms_db_flash_read(uiReadAddr, (uint8_t *)&TmpRecord, sizeof(one_record_storage_unit_t));
-        app_log_info("cgms_db_record_get_raw_data1  0x%x\r\n", uiReadAddr);
+        log_i("cgms_db_record_get_raw_data1  0x%x\r\n", uiReadAddr);
         app_log_hexdump_info((uint8_t*)(&TmpRecord), sizeof(one_record_storage_unit_t));
     }
     // 如果当前有历史数据在RAM中
@@ -502,7 +502,7 @@ static ret_code_t cgms_db_record_get_raw_data(uint16_t usRecordIndex, cgms_meas_
 
             memcpy(&TmpRecord, (void*)uiReadAddr,sizeof(one_record_storage_unit_t));
 
-            app_log_info("cgms_db_record_get_raw_data2  0x%x\r\n", uiReadAddr);
+            log_i("cgms_db_record_get_raw_data2  0x%x\r\n", uiReadAddr);
             app_log_hexdump_info((uint8_t*)&TmpRecord, sizeof(one_record_storage_unit_t));
         }
         else
@@ -513,7 +513,7 @@ static ret_code_t cgms_db_record_get_raw_data(uint16_t usRecordIndex, cgms_meas_
             uint32_t uiReadAddr = MEAS_RECORD_ADDR + (usPageIndex * cgm_db_flash_get_info()->usSectorByteSize) + (usPosInPage * usOneRecordStorageUnitSize);
             memcpy(&TmpRecord, (void*)uiReadAddr, sizeof(one_record_storage_unit_t));
 
-            app_log_info("cgms_db_record_get_raw_data3  0x%x\r\n", uiReadAddr);
+            log_i("cgms_db_record_get_raw_data3  0x%x\r\n", uiReadAddr);
             app_log_hexdump_info((uint8_t*)uiReadAddr, sizeof(one_record_storage_unit_t));
         }
     }
@@ -533,7 +533,7 @@ static ret_code_t cgms_db_record_get_raw_data(uint16_t usRecordIndex, cgms_meas_
 *******************************************************************************/
 ret_code_t cgms_db_record_get(uint16_t usRecordIndex, cgms_meas_t* pRec)
 {
-  app_log_info("cgms_db_record_get %d\r\n", usRecordIndex);
+  log_i("cgms_db_record_get %d\r\n", usRecordIndex);
     if (cgms_db_record_get_raw_data(usRecordIndex, pRec) == 0)
     {
         // 设置最高位为1,用于标识本条数据为历史数据而不是实时数据.
@@ -578,7 +578,7 @@ ret_code_t cgms_db_record_add(cgms_meas_t* pRec)
     uint16_t usPageIndex, usPosInPage;
     cgms_db_calculation_record_pos(g_uiRecordsNum, &usPageIndex, &usPosInPage);
 
-    app_log_info("cgms_db_record_add %d , %d , %d\r\n", g_uiRecordsNum, usPageIndex, usPosInPage);
+    log_i("cgms_db_record_add %d , %d , %d\r\n", g_uiRecordsNum, usPageIndex, usPosInPage);
     app_log_hexdump_info((uint8_t*)&TmpBuffer, sizeof(TmpBuffer));
 
 
@@ -590,7 +590,7 @@ ret_code_t cgms_db_record_add(cgms_meas_t* pRec)
     // 拷贝历史数据
     memcpy((uint8_t*)uiWriteAddr, &TmpBuffer, sizeof(one_record_storage_unit_t));
 
-    app_log_info("memcpy %x\r\n", uiWriteAddr);
+    log_i("memcpy %x\r\n", uiWriteAddr);
 
     // 如果当前要写入的是这个page中最后一个数据
     if (usPosInPage == usOnePageRecNum - 1)
@@ -681,11 +681,11 @@ void cmgs_db_force_write_flash(void)
         uint32_t uiWriteAddr = MEAS_RECORD_ADDR + (usPageIndex * cgm_db_flash_get_info()->usSectorByteSize);
         if (cgms_db_flash_write(uiWriteAddr, g_pSavedMeas, cgm_db_flash_get_info()->usSectorByteSize))
         {
-            app_log_info("Flash_WriteBuffer %x error\r\n", uiWriteAddr);
+            log_i("Flash_WriteBuffer %x error\r\n", uiWriteAddr);
         }
         else
         {
-            app_log_info("Flash_WriteBuffer %x ok\r\n", uiWriteAddr);
+            log_i("Flash_WriteBuffer %x ok\r\n", uiWriteAddr);
         }
     }
     else

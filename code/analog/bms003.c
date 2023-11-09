@@ -9,13 +9,20 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
+
+#if !defined(LOG_TAG)
+#define LOG_TAG                "BMS0003"
+#endif
+#undef LOG_LVL
+#define LOG_LVL                ELOG_LVL_WARN
+
 #include "spidrv.h"
 #include "sl_udelay.h"
 #include "sl_spidrv_instances.h"
 #include "bms003.h"
 #include "cmsis_gcc.h"
 #include "pin_config.h"
-#include "app_log.h"
+#include <elog.h>
 #include "gpiointerrupt.h"
 #include "app_global.h"
 /* Private variables ---------------------------------------------------------*/
@@ -144,6 +151,7 @@ void bms003_disable(void)
 *******************************************************************************/
 void bms003_wakeup_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 {
+    log_d("bms003_wakeup_timer_callback\n");
     // 发送事件
     event_push(MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER);
 }
@@ -159,6 +167,7 @@ void bms003_wakeup_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* da
 *******************************************************************************/
 void bms003_measure_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 {
+    log_d("bms003_measure_timer_callback\n");
     // 发送事件
     event_push(MAIN_LOOP_EVENT_AFE_MEASURE_TIMER);
 }
@@ -175,6 +184,7 @@ void bms003_measure_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* d
 *******************************************************************************/
 void bms003_init(void)
 {
+    log_d("bms003_init\n");
     // 设置CS引脚为推挽输出
     GPIO_PinModeSet(SPI_CS_PORT, SPI_CS_PIN, gpioModePushPull, 1);
 
@@ -189,7 +199,7 @@ void bms003_init(void)
 
     // 配置中断处理函数
     g_Bms003IrqInterrupt = GPIOINT_CallbackRegisterExt(AFE_INT_PIN, bms003_int_irq_callback, NULL);
-    
+    log_d("g_Bms003IrqInterrupt:%d\n", g_Bms003IrqInterrupt);
     // 添加事件
     event_add(MAIN_LOOP_EVENT_AFE_MEASURE_TIMER, bms003_measure_timer_handler);
     event_add(MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER, bms003_wakeup_timer_handler);
@@ -254,7 +264,7 @@ void bms003_read_adc_data(void)
         {
             i_i = 3;
             ad = (buff - buff_we1) / 32768.0 * 1.165 * 100;
-            app_log_info("buff:%d,buff_we1:%d,%.5f\n",buff,buff_we1, ad);
+            log_i("buff:%d,buff_we1:%d,%.5f\n",buff,buff_we1, ad);
 
             // 记录新数据,更新标志位
             g_fBms003CurrData = ad;
@@ -302,7 +312,7 @@ void bms003_read_adc_data(void)
 *******************************************************************************/
 void bms003_measure_timer_handler(void)
 {
-    //app_log_info("bms003_measure_timer_handler\n");
+    log_d("bms003_measure_timer_handler\n");
     // 设置AFE的INT引脚中断
     GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
 
@@ -320,7 +330,7 @@ void bms003_measure_timer_handler(void)
 void bms003_wakeup_timer_handler(void)
 {
     sl_status_t status;
-    //app_log_info("bms003_wakeup_timer_handler\n");
+   log_d("bms003_wakeup_timer_handler\n");
     // 唤醒BMS003
     bms003_wakeup();
 
@@ -328,7 +338,7 @@ void bms003_wakeup_timer_handler(void)
     status = sl_sleeptimer_start_timer(&g_Bms003MeasureTimer, sl_sleeptimer_ms_to_tick(1000), bms003_measure_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
     {
-        app_log_info("sl_sleeptimer_start_timer failed\n");
+        log_e("sl_sleeptimer_start_timer failed\n");
         return;
     }
 }
@@ -360,7 +370,7 @@ void bms003_start(void)
     status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, sl_sleeptimer_ms_to_tick(SLEEP_TIMER_INTERVAL), bms003_wakeup_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
     {
-        app_log_info("sl_sleeptimer_start_periodic_timer failed\n");
+        log_e("sl_sleeptimer_start_periodic_timer failed\n");
         return;
     }
 }
@@ -434,7 +444,7 @@ void bms003_sleep(void)
 *******************************************************************************/
 void bms003_int_irq_handler(void)
 {
-    //app_log_info("bms003_int_irq_handler\n");
+    log_d("bms003_int_irq_handler\n");
     // 读取数据
     bms003_read_adc_data();
 }
@@ -592,7 +602,7 @@ void bms003_config(void)
     bms003_write_cycle(0x3A, (CLK | 0x80), 0, 30);
 
 
-    app_log_info("CFG_BURST_ANA FINISH!\r\n");
+    log_d("CFG_BURST_ANA FINISH!\r\n");
 
     bms003_delay_us(300);
 
@@ -620,67 +630,67 @@ void bms003_config(void)
     bms003_write_burst(0x17, ucWriteBuffer, ucBufferIndex, 17, 30);
 
 
-    app_log_info("CFG BURST IMEAS FINISH!\r\n");
+    log_d("CFG BURST IMEAS FINISH!\r\n");
     // 读寄存器
     bms003_delay_us(300);
 
     uint8_t ucReadData = bms003_read_cycle(0x73, 0, 1);
-    app_log_info("addr:%x\n", 0x73);
-    app_log_info("check data write:%x\n", ucReadData);
+    log_d("addr:%x\n", 0x73);
+    log_d("check data write:%x\n", ucReadData);
 
     bms003_delay_us(300);
 
     ucReadData = bms003_read_cycle(0x53, 0, 1);
-    app_log_info("addr:%x\n", 0x53);
-    app_log_info("FB res:%x\n", ucReadData);
+    log_d("addr:%x\n", 0x53);
+    log_d("FB res:%x\n", ucReadData);
 
     bms003_delay_us(300);
 
     ucReadData = bms003_read_cycle(0x54, 0, 1);
-    app_log_info("addr:%x\n", 0x54);
-    app_log_info("DDA:%x\n", ucReadData);
+    log_d("addr:%x\n", 0x54);
+    log_d("DDA:%x\n", ucReadData);
 
     bms003_delay_us(300);
 
     ucReadData = bms003_read_cycle(0x59, 0, 1);
-    app_log_info("addr:%x\n", 0x59);
-    app_log_info("diff vol low 8bit:%x\n", ucReadData);
+    log_d("addr:%x\n", 0x59);
+    log_d("diff vol low 8bit:%x\n", ucReadData);
 
     bms003_delay_us(300);
 
     ucReadData = bms003_read_cycle(0x5A, 0, 1);
-    app_log_info("addr:%x\n", 0x5A);
-    app_log_info("diff vol high 2bit:%x\n", ucReadData);
+    log_d("addr:%x\n", 0x5A);
+    log_d("diff vol high 2bit:%x\n", ucReadData);
 
     bms003_delay_us(300);
 
     ucReadData = bms003_read_cycle(0x3A, 0, 1);
-    app_log_info("addr:%x\n", 0x3A);
-    app_log_info("PCLK&ICK:%x\n", ucReadData);
+    log_d("addr:%x\n", 0x3A);
+    log_d("PCLK&ICK:%x\n", ucReadData);
 
     bms003_delay_us(300);
 
     ucReadData = bms003_read_cycle(0x01, 0, 1);
-    app_log_info("addr:%x\n", 0x01);
-    app_log_info("CIC enable state:%x\n", ucReadData);
+    log_d("addr:%x\n", 0x01);
+    log_d("CIC enable state:%x\n", ucReadData);
 
     bms003_delay_us(300);
 
     ucReadData = bms003_read_cycle(0x50, 0, 1);
-    app_log_info("addr:%x\n", 0x50);
-    app_log_info("BG,DAC enable state:%x\n", ucReadData);
+    log_d("addr:%x\n", 0x50);
+    log_d("BG,DAC enable state:%x\n", ucReadData);
 
     bms003_delay_us(300);
 
     ucReadData = bms003_read_cycle(0x3B, 0, 1);
-    app_log_info("addr:%x\n", 0x3B);
-    app_log_info("0X3B:%x\n", ucReadData);
+    log_d("addr:%x\n", 0x3B);
+    log_d("0X3B:%x\n", ucReadData);
 
     bms003_delay_us(300);
 
     ucReadData = bms003_read_cycle(0x55, 0, 1);
-    app_log_info("addr:%x\n", 0x55);
-    app_log_info("0X55:%x\n", ucReadData);
+    log_d("addr:%x\n", 0x55);
+    log_d("0X55:%x\n", ucReadData);
 }
 
 

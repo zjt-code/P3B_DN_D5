@@ -12,7 +12,7 @@
 #include "ble_adv.h"
 #include "string.h"
 #include "app_global.h"
-#include "app_log.h"
+#include <elog.h>
 /* Private variables ---------------------------------------------------------*/
 
 char g_cAdvSnStr[12];

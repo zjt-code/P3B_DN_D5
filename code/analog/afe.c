@@ -9,10 +9,18 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
+
+#if !defined(LOG_TAG)
+#define LOG_TAG                "AFE"
+#endif
+#undef LOG_LVL
+#define LOG_LVL                ELOG_LVL_INFO
+
+
 #include "bms003.h"
 #include "ltcgm1272.h"
 #include "sl_sleeptimer.h"
-#include "app_log.h"
+#include <elog.h>
 /* Private variables ---------------------------------------------------------*/
 
 /* Private function prototypes -----------------------------------------------*/
@@ -34,7 +42,7 @@
 *******************************************************************************/
 void afe_init(void)
 {
-
+    log_d("afe_init\n");
 #if 0
     // 初始化bms003
     bms003_init();

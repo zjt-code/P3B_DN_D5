@@ -100,7 +100,7 @@ void cgms_prm_db_power_on_init(void)
     cgms_prm_flash_read(0, &g_PrmDb, sizeof(g_PrmDb));
 
     memset(g_ucSn, 0, sizeof(g_ucSn));
-    cgms_prm_get_sn(g_ucSn);
+    //cgms_prm_get_sn(g_ucSn);
 }
 
 /*******************************************************************************

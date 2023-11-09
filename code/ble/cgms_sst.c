@@ -13,6 +13,7 @@
 #include "cgms_crc.h"
 #include "app_util.h"
 #include "ble_customss.h"
+#include "string.h"
 /* Private variables ---------------------------------------------------------*/
 ble_cgms_sst_t g_mSST;
 
@@ -48,7 +49,7 @@ void cgms_update_sst_and_time_zone(uint32_t uiStartTime, uint8_t ucTimeZone)
 
     g_mSST.time_zone = ucTimeZone;
 
-    app_log_info("cgm_update_sst %04d/%02d/%02d  %02d:%02d:%02d\r\n", g_mSST.date_time.time_info.year, g_mSST.date_time.time_info.month, g_mSST.date_time.time_info.day, g_mSST.date_time.time_info.hour, g_mSST.date_time.time_info.minute, g_mSST.date_time.time_info.sec);
+    log_i("cgm_update_sst %04d/%02d/%02d  %02d:%02d:%02d\r\n", g_mSST.date_time.time_info.year, g_mSST.date_time.time_info.month, g_mSST.date_time.time_info.day, g_mSST.date_time.time_info.hour, g_mSST.date_time.time_info.minute, g_mSST.date_time.time_info.sec);
 }
 
 /*******************************************************************************

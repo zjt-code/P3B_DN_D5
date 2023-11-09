@@ -9,6 +9,13 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
+#if !defined(LOG_TAG)
+#define LOG_TAG                   "Temp sensor"
+#endif
+#undef LOG_LVL
+#define LOG_LVL                    ELOG_LVL_INFO
+
+
 #include "em_device.h"
 #include "em_cmu.h"
 #include "em_emu.h"
@@ -17,7 +24,7 @@
 #include "em_timer.h"
 #include "temp_sensor.h"
 #include "pin_config.h"
-#include "app_log.h"
+#include <elog.h>
 #include "app_global.h"
 #include "sl_power_manager.h"
 /* Private variables ---------------------------------------------------------*/
@@ -48,6 +55,7 @@ void temp_sensor_read_end_timer_callback(sl_sleeptimer_timer_handle_t* handle, v
 *******************************************************************************/
 void temp_sensor_init(void)
 {
+    log_d("temp_sensor_init\n");
     g_bTempSensorIsBusyFlag = false;
     g_bNewTempDataFlag = false;
     CMU_ClockEnable(cmuClock_TIMER0, true);
@@ -87,6 +95,7 @@ void temp_sensor_init(void)
 *******************************************************************************/
 void temp_sensor_read_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 {
+    log_d("temp_sensor_read_timer_callback\n");
     // 事件推送
     event_push(MAIN_lOOP_EVENT_TEMP_SENSOR_READ_START_TIMER);
 }
@@ -102,7 +111,8 @@ void temp_sensor_read_timer_callback(sl_sleeptimer_timer_handle_t* handle, void*
 * Return         :  void
 *******************************************************************************/
 void temp_sensor_read_end_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
-{
+{   
+    log_d("temp_sensor_read_end_timer_callback\n");
     // 事件推送
     event_push(MAIN_lOOP_EVENT_TEMP_SENSOR_READ_END_TIMER);
 }
@@ -118,6 +128,7 @@ void temp_sensor_read_end_timer_callback(sl_sleeptimer_timer_handle_t* handle, v
 *******************************************************************************/
 void temp_sensor_read_timer_handler(void)
 {
+    log_d("temp_sensor_read_timer_handler\n");
     // 清空计数
     TIMER_CounterSet(TIMER0, 0);
     
@@ -148,6 +159,7 @@ void temp_sensor_read_timer_handler(void)
 *******************************************************************************/
 void temp_sensor_read_end_timer_handler(void)
 {
+    log_d("temp_sensor_read_end_timer_handler\n");
     uint16_t usCounter = TIMER_CounterGet(TIMER0);
 
     // 计算温度
@@ -159,7 +171,7 @@ void temp_sensor_read_end_timer_handler(void)
     // 移除EM规则,允许休眠到EM2
     sl_power_manager_remove_em_requirement(SL_POWER_MANAGER_EM1);
 
-    app_log_info("temp:%.3f C\n", g_sCurTemp/100.0f);
+    log_i("temp:%.3f C\n", g_sCurTemp/100.0f);
 
     // 新数据标志位
     g_bNewTempDataFlag = true;
@@ -179,6 +191,7 @@ void temp_sensor_read_end_timer_handler(void)
 *******************************************************************************/
 void temp_sensor_start_meas(void)
 {
+    log_d("temp_sensor_start_meas\n");
     // 使能温度传感器
     GPIO_PinOutSet(TEMP_SENSOR_EN_PORT, TEMP_SENSOR_EN_PIN);
 

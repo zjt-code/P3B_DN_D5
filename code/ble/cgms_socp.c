@@ -126,7 +126,7 @@ static void socp_send(ble_event_info_t BleEventInfo,ble_socp_rsp_t SocpRspDatapa
 	// 编码数据包
 	ucLen = ble_socp_encode(&SocpRspDatapacket, EncodedRespDatapacketBuffer);
 	// 发送数据包
-	app_log_info("socp_send:");
+	log_i("socp_send:");
 	app_log_hexdump_info(EncodedRespDatapacketBuffer, ucLen);
 
 #ifdef CGMS_ENCRYPT_ENABLE
@@ -236,9 +236,9 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 	// 解码SOCP数据包并填充结构体
     ble_socp_decode(usLen, pData, &SocpDatapacket);
 
-    app_log_info("socp_rav:\r\n");
+    log_i("socp_rav:\r\n");
     app_log_hexdump_info(pData,usLen);
-    app_log_info("SocpDatapacket.opcode:%d\r\n", SocpDatapacket.ucOpCode);
+    log_i("SocpDatapacket.opcode:%d\r\n", SocpDatapacket.ucOpCode);
 
 	SocpResponseDatapcket.ucOpCode = SOCP_RESPONSE_CODE;
 	SocpResponseDatapcket.ucReqOpcode = SocpDatapacket.ucOpCode;

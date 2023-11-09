@@ -37,7 +37,7 @@
 #include "app_assert_config.h"
 #include "sl_status.h"
 #ifdef SL_CATALOG_APP_LOG_PRESENT
-#include "app_log.h"
+#include <elog.h>
 #endif
 
 #define APP_ASSERT_SEPARATOR   ": "

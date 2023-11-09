@@ -21,9 +21,9 @@ autogen \
 code/analog \
 code/app \
 code/ble \
+code/easy_logger \
 code/storage \
 code/utility \
-gecko_sdk_4.3.2/app/common/util/app_log \
 gecko_sdk_4.3.2/platform/Device/SiliconLabs/EFR32BG27/Source \
 gecko_sdk_4.3.2/platform/common/src \
 gecko_sdk_4.3.2/platform/common/toolchain/src \
