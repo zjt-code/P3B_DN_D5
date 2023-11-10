@@ -28,7 +28,7 @@
 #include "pin_config.h"
 #include "temp_sensor.h"
 /* Private variables ---------------------------------------------------------*/
-//sl_sleeptimer_timer_handle_t g_TestTimer;
+sl_sleeptimer_timer_handle_t g_TestTimer;
 
         
 /* Private function prototypes -----------------------------------------------*/
@@ -38,12 +38,13 @@
 /* Private functions ---------------------------------------------------------*/
 
 
-/*
+
 void test_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 {
-    temp_sensor_start_meas();
+  log_i("test");
+    //temp_sensor_start_meas();
 }
-*/
+
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-25
@@ -55,19 +56,18 @@ void test_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 *******************************************************************************/
 int main(void)
 {
+  // 初始化log
+   SEGGER_RTT_Init();
+   SEGGER_RTT_SetTerminal(0);
+   elog_init();
+   elog_set_fmt(ELOG_LVL_ASSERT, ELOG_FMT_ALL);
+   elog_set_fmt(ELOG_LVL_ERROR, ELOG_FMT_TAG|ELOG_FMT_LVL|ELOG_FMT_FUNC|ELOG_FMT_LINE);
+   elog_set_fmt(ELOG_LVL_WARN, ELOG_FMT_TAG|ELOG_FMT_LVL|ELOG_FMT_FUNC|ELOG_FMT_LINE);
+   elog_set_fmt(ELOG_LVL_INFO, ELOG_FMT_TAG|ELOG_FMT_LVL|ELOG_LVL_INFO);
+   elog_set_fmt(ELOG_LVL_DEBUG, ELOG_FMT_TAG|ELOG_FMT_LVL|ELOG_LVL_INFO);
+   elog_start();
     // 系统初始化
     sl_system_init();
-
-    // 初始化log
-    SEGGER_RTT_Init();
-    SEGGER_RTT_SetTerminal(0);
-    elog_init();
-    elog_set_fmt(ELOG_LVL_ASSERT, ELOG_FMT_ALL);
-    elog_set_fmt(ELOG_LVL_ERROR, ELOG_FMT_TAG|ELOG_FMT_LVL|ELOG_FMT_FUNC|ELOG_FMT_LINE);
-    elog_set_fmt(ELOG_LVL_WARN, ELOG_FMT_TAG|ELOG_FMT_LVL|ELOG_FMT_FUNC|ELOG_FMT_LINE);
-    elog_set_fmt(ELOG_LVL_INFO, ELOG_FMT_TAG|ELOG_FMT_LVL|ELOG_LVL_INFO);
-    elog_set_fmt(ELOG_LVL_DEBUG, ELOG_FMT_TAG|ELOG_FMT_LVL|ELOG_LVL_INFO);
-    elog_start();
 
     // 初始化GPIO的时钟
     CMU_ClockEnable(cmuClock_GPIO, true);

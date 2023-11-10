@@ -13,6 +13,7 @@
 #include "string.h"
 #include "app_global.h"
 #include <elog.h>
+#include "cgms_prm.h"
 /* Private variables ---------------------------------------------------------*/
 
 char g_cAdvSnStr[12];
@@ -25,20 +26,6 @@ char g_cAdvSnStr[12];
 /* Private functions ---------------------------------------------------------*/
 
 
-
-/*******************************************************************************
-*                           陈苏阳@2023-10-24
-* Function Name  :  ble_adv_set_sn
-* Description    :  设置广播中的SN字符串
-* Input          :  char * pSnStr
-* Output         :  None
-* Return         :  void
-*******************************************************************************/
-void ble_adv_set_sn(char* pSnStr)
-{
-    // 拷贝SN字符串
-    strncpy(g_cAdvSnStr, pSnStr, sizeof(g_cAdvSnStr));
-}
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-24
@@ -56,6 +43,8 @@ void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint8_t* pAdvDataLen)
     uint8_t ucDataIndex = 0;
     if (pAdvDataBuffer)
     {
+        // 获取存储的SN
+        cgms_prm_get_sn(g_cAdvSnStr);
 
         // 添加设备名
         pAdvDataBuffer[ucDataIndex++] = strlen(g_cAdvSnStr) + 1;

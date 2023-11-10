@@ -9,6 +9,12 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
+#if !defined(LOG_TAG)
+    #define LOG_TAG                    "app"
+#endif
+#undef LOG_LVL
+#define LOG_LVL                    ELOG_LVL_INFO
+
 
 #include "em_common.h"
 #include "app_assert.h"
@@ -50,6 +56,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         // BLE协议栈初始化完成事件
     case sl_bt_evt_system_boot_id:
     {
+        log_i("sl_bt_on_event:sl_bt_evt_system_boot_id");
         int16_t min_pwr, max_pwr;
         // 设置TX发射功率为0dB
         sc = sl_bt_system_set_tx_power(0, 0, &min_pwr, &max_pwr);
@@ -132,6 +139,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
     // 远程GATT客户端更改了本地GATT数据库中的属性值事件
     case sl_bt_evt_gatt_server_attribute_value_id:
     {
+        log_i("sl_bt_on_event:sl_bt_evt_gatt_server_attribute_value_id");
         // The value of the gattdb_led_control characteristic was changed.
         break;
     }
@@ -140,6 +148,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
     // 当远端设备启用或禁用通知事件
     case sl_bt_evt_gatt_server_characteristic_status_id:
     {
+        log_i("sl_bt_on_event:sl_bt_evt_gatt_server_characteristic_status_id");
         break;
     }
     case sl_bt_evt_system_external_signal_id:

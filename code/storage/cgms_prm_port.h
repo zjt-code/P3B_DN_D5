@@ -26,7 +26,7 @@
 
 /* Private function prototypes -----------------------------------------------*/
 uint8_t cgms_prm_flash_init(void);
-uint8_t cgms_prm_flash_erase(uint32_t uiAddr, uint32_t uiEraseSize);
+uint8_t cgms_prm_flash_erase_sector(uint32_t uiAddr);
 uint8_t cgms_prm_flash_write(uint32_t uiAddr, uint8_t* pWriteData, uint16_t usWriteLen);
 uint8_t cgms_prm_flash_read(uint32_t uiAddr, uint8_t* pReadData, uint16_t usReadLen);
 #endif /* __CGMS_PRM_PORT_H */

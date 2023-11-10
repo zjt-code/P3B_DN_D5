@@ -1,10 +1,20 @@
+#if !defined(LOG_TAG)
+    #define LOG_TAG                    "cgms_prm"
+#endif
+#undef LOG_LVL
+#define LOG_LVL                    ELOG_LVL_INFO
+
+
+
+
 #include <stdbool.h>
 #include "cgms_prm.h"
 #include "cgms_crc.h"
 //#include "simplegluco.h"
 #include "stdio.h"
 #include "cgms_prm_port.h"
-
+#include "string.h"
+#include <elog.h>
 uint8_t g_ucSn[11] = { 'J','N','-','X','X', 'X', '0', '0', '0', '0',0x00 };
 prm_t g_PrmDb;
 
@@ -45,23 +55,7 @@ ret_code_t cgms_prm_db_write_flash()
 *******************************************************************************/
 ret_code_t cgms_prm_get_sn(unsigned char* buff)
 {
-
-    uint32_t* pAddr;
-    uint32_t* pData;
-    uint16_t t_size;
     uint32_t uiFlag;
-    pAddr = (uint32_t*)PRM_DB_ADDR;
-    pData = (uint32_t*)(&g_PrmDb);
-
-
-    // 读取Flash中的SN
-    t_size = sizeof(g_PrmDb) / 4;
-    for (uint16_t i = 0; i < t_size; i++)
-    {
-        *pData = *pAddr;
-        pAddr++;
-        pData++;
-    }
 
     // 如果SN值非法,或者CRC错误,则恢复默认SN
     if ((0x00 != do_crc((uint8_t*)&g_PrmDb.P4, sizeof(P4_t))) || g_PrmDb.P4.prmWMY[0] == 0xFF)
@@ -70,7 +64,7 @@ ret_code_t cgms_prm_get_sn(unsigned char* buff)
         g_PrmDb.P4.prmWMY[1] = 66; //B
         g_PrmDb.P4.prmWMY[2] = 67; //C
         g_PrmDb.P4.prmWMY[3] = 0;  //null,end of string
-
+        log_e("can not read SN,use default SN");
         g_PrmDb.P4.SN = 0x0;
         uiFlag = RET_CODE_FAIL;
     }
@@ -78,9 +72,8 @@ ret_code_t cgms_prm_get_sn(unsigned char* buff)
     {
         uiFlag = RET_CODE_SUCCESS;
     }
-
     sprintf((char*)buff, "JN-%s%04d", (unsigned char*)g_PrmDb.P4.prmWMY, g_PrmDb.P4.SN);
-
+    log_e("SN:%s", buff);
     return uiFlag;
 }
 
@@ -97,10 +90,10 @@ ret_code_t cgms_prm_get_sn(unsigned char* buff)
 void cgms_prm_db_power_on_init(void)
 {
     // 读取参数
-    cgms_prm_flash_read(0, &g_PrmDb, sizeof(g_PrmDb));
+    cgms_prm_flash_read(0, (uint8_t*)&g_PrmDb, sizeof(g_PrmDb));
 
     memset(g_ucSn, 0, sizeof(g_ucSn));
-    //cgms_prm_get_sn(g_ucSn);
+    cgms_prm_get_sn(g_ucSn);
 }
 
 /*******************************************************************************
