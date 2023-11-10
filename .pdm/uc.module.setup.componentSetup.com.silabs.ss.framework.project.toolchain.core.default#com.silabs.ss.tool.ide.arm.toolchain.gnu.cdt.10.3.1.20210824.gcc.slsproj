@@ -283,11 +283,14 @@
         <folder name="iostream">
           <folder name="src">
             <file name="sl_iostream.c" linked="false" uri="studio:/sdk/platform/service/iostream/src/sl_iostream.c"/>
+            <file name="sl_iostream_retarget_stdio.c" linked="false" uri="studio:/sdk/platform/service/iostream/src/sl_iostream_retarget_stdio.c"/>
             <file name="sl_iostream_rtt.c" linked="false" uri="studio:/sdk/platform/service/iostream/src/sl_iostream_rtt.c"/>
+            <file name="sl_iostream_stdlib_config.c" linked="false" uri="studio:/sdk/platform/service/iostream/src/sl_iostream_stdlib_config.c"/>
           </folder>
           <folder name="inc">
             <file name="sl_iostream.h" linked="false" uri="studio:/sdk/platform/service/iostream/inc/sl_iostream.h"/>
             <file name="sl_iostream_rtt.h" linked="false" uri="studio:/sdk/platform/service/iostream/inc/sl_iostream_rtt.h"/>
+            <file name="sl_iostream_stdlib_config.h" linked="false" uri="studio:/sdk/platform/service/iostream/inc/sl_iostream_stdlib_config.h"/>
           </folder>
         </folder>
         <folder name="mpu">
@@ -509,6 +512,11 @@
           <folder name="app_assert">
             <file name="app_assert.h" linked="false" uri="studio:/sdk/app/common/util/app_assert/app_assert.h"/>
             <file name="sl_app_assert.h" linked="false" uri="studio:/sdk/app/common/util/app_assert/sl_app_assert.h"/>
+          </folder>
+          <folder name="app_log">
+            <file name="app_log.c" linked="false" uri="studio:/sdk/app/common/util/app_log/app_log.c"/>
+            <file name="app_log.h" linked="false" uri="studio:/sdk/app/common/util/app_log/app_log.h"/>
+            <file name="sl_app_log.h" linked="false" uri="studio:/sdk/app/common/util/app_log/sl_app_log.h"/>
           </folder>
         </folder>
       </folder>
@@ -749,6 +757,7 @@
   <includePath uri="studio:/project/"/>
   <includePath uri="studio:/project/gecko_sdk_4.3.2/platform/Device/SiliconLabs/EFR32BG27/Include"/>
   <includePath uri="studio:/project/gecko_sdk_4.3.2/app/common/util/app_assert"/>
+  <includePath uri="studio:/project/gecko_sdk_4.3.2/app/common/util/app_log"/>
   <includePath uri="studio:/project/gecko_sdk_4.3.2/platform/common/inc"/>
   <includePath uri="studio:/project/gecko_sdk_4.3.2/protocol/bluetooth/inc"/>
   <includePath uri="studio:/project/gecko_sdk_4.3.2/protocol/bluetooth/bgstack/ll/inc"/>

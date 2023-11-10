@@ -10,9 +10,11 @@
 #include "pa_conversions_efr32.h"
 #include "sl_rail_util_pti.h"
 #include "sl_sleeptimer.h"
+#include "app_log.h"
 #include "sl_bluetooth.h"
 #include "gpiointerrupt.h"
 #include "sl_iostream_rtt.h"
+#include "sl_iostream_stdlib_config.h"
 #include "sl_mbedtls.h"
 #include "sl_mpu.h"
 #include "nvm3_default.h"
@@ -45,6 +47,7 @@ void sl_driver_init(void)
 void sl_service_init(void)
 {
   sl_sleeptimer_init();
+  sl_iostream_stdlib_disable_buffering();
   sl_mbedtls_init();
   sl_mpu_disable_execute_from_ram();
   psa_crypto_init();
@@ -62,6 +65,7 @@ void sl_stack_init(void)
 
 void sl_internal_app_init(void)
 {
+  app_log_init();
 }
 
 void sl_platform_process_action(void)

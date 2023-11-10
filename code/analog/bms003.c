@@ -14,7 +14,7 @@
 #define LOG_TAG                "BMS0003"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                ELOG_LVL_WARN
+#define LOG_LVL                ELOG_LVL_INFO
 
 #include "spidrv.h"
 #include "sl_udelay.h"
@@ -264,8 +264,8 @@ void bms003_read_adc_data(void)
         {
             i_i = 3;
             ad = (buff - buff_we1) / 32768.0 * 1.165 * 100;
-            log_i("buff:%d,buff_we1:%d,%.5f\n",buff,buff_we1, ad);
-
+            log_d("buff:%d,buff_we1:%d",buff,buff_we1);
+            log_i("i:%.2f nA\n", ad);
             // 记录新数据,更新标志位
             g_fBms003CurrData = ad;
             g_ucBms003NewDataFlag = 1;

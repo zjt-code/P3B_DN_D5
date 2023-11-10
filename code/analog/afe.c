@@ -43,7 +43,7 @@
 void afe_init(void)
 {
     log_d("afe_init\n");
-#if 0
+#if 1
     // 初始化bms003
     bms003_init();
 
