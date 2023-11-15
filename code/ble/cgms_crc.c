@@ -38,13 +38,13 @@ const unsigned short crc16_ccitt_table[256] =
 };
 
 
-unsigned short do_crc(unsigned char *message, unsigned int len)
+unsigned short do_crc(void *message, unsigned int len)
 {
     unsigned short crc_reg = 0xFFFF;
     if(len <= 0)return crc_reg;
 	while (len--)
 	{
-		crc_reg = (crc_reg >> 8) ^ crc16_ccitt_table[(crc_reg ^ *message++) & 0xff];
+		crc_reg = (crc_reg >> 8) ^ crc16_ccitt_table[(crc_reg ^ *((unsigned char*)message++)) & 0xff];
 	}
     return crc_reg;
 }

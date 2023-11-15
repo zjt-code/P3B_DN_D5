@@ -49,13 +49,6 @@
 #define ELOG_NEWLINE_SIGN                        "\n"
 /*---------------------------------------------------------------------------*/
 /* enable log color */
-#define ELOG_COLOR_ENABLE
-/* change the some level logs to not default color if you want */
-#define ELOG_COLOR_ASSERT                        (F_MAGENTA B_NULL S_NORMAL)
-#define ELOG_COLOR_ERROR                         (F_RED B_NULL S_NORMAL)
-#define ELOG_COLOR_WARN                          (F_YELLOW B_NULL S_NORMAL)
-#define ELOG_COLOR_INFO                          (F_CYAN B_NULL S_NORMAL)
-#define ELOG_COLOR_DEBUG                         (F_GREEN B_NULL S_NORMAL)
-#define ELOG_COLOR_VERBOSE                       (F_BLUE B_NULL S_NORMAL)
+#define ELOG_COLOR_ENABLE                         1 
 /*---------------------------------------------------------------------------*/
 #endif /* _ELOG_CFG_H_ */

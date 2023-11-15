@@ -30,7 +30,7 @@
 #include "stdio.h"
 #include "string.h"
 #include <elog.h>
-
+#include "sl_sleeptimer.h"
 /**
  * EasyLogger port initialize
  *
@@ -90,7 +90,11 @@ void elog_port_output_unlock(void) {
  * @return current time
  */
 const char *elog_port_get_time(void) {
-  return NULL;
+    uint64_t ulms;
+    sl_sleeptimer_tick64_to_ms(sl_sleeptimer_get_tick_count64(),&ulms);
+    char cTimeStr[16];
+    sprintf(cTimeStr,"%u", (long unsigned int)ulms);
+  return cTimeStr;
 }
 
 /**

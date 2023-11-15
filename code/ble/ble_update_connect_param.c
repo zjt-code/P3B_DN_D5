@@ -12,12 +12,13 @@
 #include "sl_sleeptimer.h"
 #include "ble_update_connect_param.h"
 #include "app.h"
+#include "sl_bt_api.h"
 #include <elog.h>
 /* Private variables ---------------------------------------------------------*/
 
 
 /* Private function prototypes -----------------------------------------------*/
-
+bool ble_update_connect_param_is_pass(uint16_t usConnectionHandle);
 
 
 /* Private functions ---------------------------------------------------------*/

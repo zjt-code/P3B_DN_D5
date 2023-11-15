@@ -1,20 +1,20 @@
-/******************** (C) COPYRIGHT 2023 é™ˆè‹é˜³ ********************************
-* File Name          :  cgms_aes128.h
-* Author             :  é™ˆè‹é˜³
+/******************** (C) COPYRIGHT 2023 ³ÂËÕÑô ********************************
+* File Name          :  app_battery.h
+* Author             :  ³ÂËÕÑô
 * CPU Type         	 :  NRF52832
 * IDE                :  Keil
 * Version            :  V1.0
-* Date               :  24/10/2023
+* Date               :  15/11/2023
 * Description        :  
 *******************************************************************************/
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __CGMS_AES128_H
-#define __CGMS_AES128_H
+#ifndef __APP_BATTERY_H
+#define __APP_BATTERY_H
 
 /* Includes ------------------------------------------------------------------*/
-#include "mbedtls/aes.h"
-
+#include "stdint.h"
+#include "stdbool.h"
 
 /* Private define ------------------------------------------------------------*/
 
@@ -27,12 +27,9 @@
 
 
 /* Private function prototypes -----------------------------------------------*/
-uint8_t mbedtls_aes_pkcspadding(uint8_t * data, uint8_t data_len);
-void cgms_aes128_update_key(uint8_t* value);
-void cgms_aes128_encrpty(uint8_t* plain, uint8_t* cipher);
-void cgms_aes128_decrpty(uint8_t* cipher, uint8_t* plain_decrypt);
+uint32_t app_battery_get_run_time(void);
+void app_battery_timer_handler(uint16_t usInterval);
+#endif /* __APP_BATTERY_H */
 
-#endif /* __CGMS_AES128_H */
-
-/******************* (C) COPYRIGHT 2023 é™ˆè‹é˜³ **** END OF FILE ****************/
+/******************* (C) COPYRIGHT 2023 ³ÂËÕÑô **** END OF FILE ****************/
 

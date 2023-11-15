@@ -24,6 +24,10 @@
 #include "app.h"
 #include "app_global.h"
 #include "ble_adv.h"
+#include "cgms_socp.h"
+#include "cgms_racp.h"
+
+
 
 /* Private variables ---------------------------------------------------------*/
 static uint8_t g_ucAdvertisingSetHandle = 0xff;     // BLE广播集句柄
@@ -139,8 +143,43 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
     // 远程GATT客户端更改了本地GATT数据库中的属性值事件
     case sl_bt_evt_gatt_server_attribute_value_id:
     {
-        log_i("sl_bt_on_event:sl_bt_evt_gatt_server_attribute_value_id");
-        // The value of the gattdb_led_control characteristic was changed.
+        uint8_t ucDataRecvBuffer[20];
+        size_t ucDataRecvLen = 0;
+        uint16_t usAttributeHandle = evt->data.evt_gatt_server_attribute_value.attribute;
+
+        // Read characteristic value.
+        sc = sl_bt_gatt_server_read_attribute_value(usAttributeHandle,0,sizeof(ucDataRecvBuffer),&ucDataRecvLen, ucDataRecvBuffer);
+        log_i("weite char:%d", usAttributeHandle);
+        elog_hexdump("data", 10, ucDataRecvBuffer, ucDataRecvLen);
+        switch (usAttributeHandle)
+        {
+        // 写SOCP
+        case gattdb_cgm_specific_ops_control_point:
+        {
+            // 创建BLE事件信息结构体,并填充
+            ble_event_info_t BleEventInfo;
+            BleEventInfo.ucConidx = evt->data.evt_gatt_server_attribute_value.connection;
+            BleEventInfo.usHandle = evt->data.evt_gatt_server_attribute_value.attribute;
+            // 调用回调
+            on_socp_value_write(BleEventInfo, ucDataRecvBuffer, ucDataRecvLen);
+            break;
+        }
+        // 写RACP
+        case gattdb_record_access_control_point:
+        {
+            // 创建BLE事件信息结构体,并填充连接句柄
+            ble_event_info_t BleEventInfo;
+            BleEventInfo.ucConidx = evt->data.evt_gatt_server_attribute_value.connection;
+            BleEventInfo.usHandle = evt->data.evt_gatt_server_attribute_value.attribute;
+
+            // 调用回调
+            on_racp_value_write(BleEventInfo, ucDataRecvBuffer, ucDataRecvLen);
+            break;
+        }
+        default:
+            break;
+        }
+
         break;
     }
 
@@ -148,7 +187,58 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
     // 当远端设备启用或禁用通知事件
     case sl_bt_evt_gatt_server_characteristic_status_id:
     {
-        log_i("sl_bt_on_event:sl_bt_evt_gatt_server_characteristic_status_id");
+        uint16_t usCharacteristicHandle = evt->data.evt_gatt_server_characteristic_status.characteristic;
+        log_i("change char notify enable:%d,%d", usCharacteristicHandle, evt->data.evt_gatt_server_characteristic_status.client_config_flags);
+        switch (usCharacteristicHandle)
+        {
+        case gattdb_cgm_measurement:
+        {
+            // 如果notify被启用
+            if (evt->data.evt_gatt_server_characteristic_status.client_config_flags != sl_bt_gatt_disable)
+            {
+
+            }
+            else
+            {
+
+            }
+            break;
+        }
+        case gattdb_cgm_status:
+        {
+
+            break;
+        }
+        case gattdb_record_access_control_point:
+        {
+            // 如果notify被启用
+            if (evt->data.evt_gatt_server_characteristic_status.client_config_flags != sl_bt_gatt_disable)
+            {
+                ble_racp_notify_enable();
+            }
+            else
+            {
+                ble_racp_notify_disable();
+            }
+            break;
+        }
+        case gattdb_cgm_specific_ops_control_point:
+        {
+            // 如果notify被启用
+            if (evt->data.evt_gatt_server_characteristic_status.client_config_flags != sl_bt_gatt_disable)
+            {
+                ble_socp_notify_enable();
+            }
+            else
+            {
+                ble_socp_notify_disable();
+            }
+            break;
+        }
+        default:
+            break;
+        }
+        
         break;
     }
     case sl_bt_evt_system_external_signal_id:

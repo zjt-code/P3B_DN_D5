@@ -9,8 +9,17 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
+#if !defined(LOG_TAG)
+#define LOG_TAG                "CGMS_DB"
+#endif
+#undef LOG_LVL
+#define LOG_LVL                ELOG_LVL_INFO
+
+
 #include <stdbool.h>
 #include <stdint.h>
+#include "stdlib.h"
+#include <elog.h>
 #include <app.h>
 #include "cgms_db.h"
 #include "cgms_crc.h"
@@ -110,7 +119,7 @@ static void cgms_db_calculation_record_pos(uint32_t uiRecordIndex, uint16_t* pPa
 *******************************************************************************/
 void cgms_db_reset()
 {
-    swmLogInfo("cgms_db_reset\r\n");
+    log_i("cgms_db_reset\r\n");
 
     g_uiRecordsNum = 0;
     // 擦除全部数据

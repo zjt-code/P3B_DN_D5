@@ -27,10 +27,13 @@ typedef enum
  MAIN_LOOP_EVENT_NONE,                              // 无效事件
  MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER,                  // AFE周期唤醒定时器事件
  MAIN_LOOP_EVENT_AFE_MEASURE_TIMER,                 // AFE触发测量定时器事件
+ MAIN_LOOP_EVENT_AFE_CONFIG_AFTER_TIMER,            // AFE配置后处理定时器事件
  MAIN_LOOP_EVENT_AFE_IRQ,                           // AFE中断触发事件
- MAIN_lOOP_EVENT_TEMP_SENSOR_READ_START_TIMER,      // 温度传感器读取开始定时器事件
- MAIN_lOOP_EVENT_TEMP_SENSOR_READ_END_TIMER,        // 温度传感器读取结束定时器事件
-
+ MAIN_LOOP_EVENT_TEMP_SENSOR_READ_START_TIMER,      // 温度传感器读取开始定时器事件
+ MAIN_LOOP_EVENT_TEMP_SENSOR_READ_END_TIMER,        // 温度传感器读取结束定时器事件
+ MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_1S_TIMER,         // 应用层血糖测量1S定时器事件
+ MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_RECORD_SEND_TIMER,// 应用层血糖测量的记录发送定时器事件
+ MAIN_LOOP_EVENT_APP_BATTERY_MEAS_TIMER,            // 应用层电量测量定时器事件
 }main_Loop_event_t;
 /**********************************************************************/
 
@@ -163,7 +166,7 @@ typedef enum
 // BLE事件信息
 typedef struct
 {
-    uint8_t ucConidx;
+    uint8_t ucConidx;                               // BLE连接句柄
     uint16_t usHandle;
     uint16_t usOperation;
 }__attribute__((packed)) ble_event_info_t;
@@ -223,6 +226,7 @@ void event_init(void);
 uint8_t event_push(uint32_t uiEventId);
 uint8_t event_add(uint32_t uiEventId, event_callback_t CallBack);
 uint8_t event_handler(uint32_t uiEventId);
+uint32_t rtc_get_curr_time(void);
 /* Private function prototypes -----------------------------------------------*/
 
 #endif /* __APP_GLOBAL_H */

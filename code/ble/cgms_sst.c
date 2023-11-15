@@ -9,6 +9,14 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
+
+#if !defined(LOG_TAG)
+#define LOG_TAG                   "CGMS_SST"
+#endif
+#undef LOG_LVL
+#define LOG_LVL                    ELOG_LVL_INFO
+
+#include <elog.h>
 #include "cgms_sst.h"
 #include "cgms_crc.h"
 #include "app_util.h"

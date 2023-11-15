@@ -23,15 +23,19 @@
 #include <elog.h>
 #include "gpiointerrupt.h"
 #include "app_global.h"
+#include "fifo.h"
 /* Private variables ---------------------------------------------------------*/
 
 
-float g_fLtcgm1272CurrData = 0.0f;                  // LTCGM1272当前数据
-uint8_t g_ucLtcgm1272NewDataFlag = 0;               // LTCGM1272有新数据标志位
-uint32_t g_ucLtcgm1272IrqInterrupt;                 // LTCGM1272中断引脚的中断号
+float g_fLtcgm1272CurrData = 0.0f;                                     // LTCGM1272当前数据
+uint32_t g_ucLtcgm1272IrqInterrupt;                                    // LTCGM1272中断引脚的中断号
+ltcgm1272_irq_callback g_Ltcgm1272IrqCallbackFun = NULL;               // 中断回调函数
+fifo_t g_NewDataFifo;                                                  // 新数据fifo
+uint8_t g_ucNewDataFifoBuffer[9 * 2];                                  // 新数据fifo所使用的buffer
 
 sl_sleeptimer_timer_handle_t g_Ltcgm1272WakeupTimer;
 sl_sleeptimer_timer_handle_t g_Ltcgm1272MeasureTimer;
+
 #define SLEEP_TIMER_INTERVAL                        (20*1000)
         
 /* Private function prototypes -----------------------------------------------*/
@@ -39,8 +43,63 @@ void ltcgm1272_int_irq_handler(void);
 void ltcgm1272_int_irq_callback(uint8_t intNo, void* ctx);
 void ltcgm1272_write_reg(uint8_t ucAddr, uint8_t ucData);
 uint8_t ltcgm1272_read_reg(uint8_t ucAddr,uint8_t ucUseCsPin);
+
+
 /* Private functions ---------------------------------------------------------*/
 
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-15
+* Function Name  :  ltcgm1272_register_irq_callback
+* Description    :  注册中断回调
+* Input          :  ltcgm1272_irq_callback callback
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void ltcgm1272_register_irq_callback(ltcgm1272_irq_callback callback)
+{
+    g_Ltcgm1272IrqCallbackFun = callback;
+}
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-14
+* Function Name  :  ltcgm1272_new_data_is_ready
+* Description    :  是否有新数据
+* Input          :  void
+* Output         :  None
+* Return         :  bool
+*******************************************************************************/
+bool ltcgm1272_new_data_is_ready(void)
+{
+    return fifo_len(&g_NewDataFifo) ? true : false;
+}
+
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-15
+* Function Name  :  ltcgm1272_get_new_data
+* Description    :  获取新数据
+* Input          :  double* pNewData
+* Output         :  None
+* Return         :  bool
+*******************************************************************************/
+bool ltcgm1272_get_new_data(double* pNewData)
+{
+    uint16_t usData;
+    if (pNewData == NULL)return false;
+    if (fifo_out(&g_NewDataFifo, &usData, 1, 1))
+    {
+        double fVref = 1800;
+
+        // 计算电压
+        double fAdcVol = ((fVref / 4096.0) * ((double)usData)) - (0x4E * fVref / 255);
+
+        // 按10M电阻计算电流
+        *pNewData = fAdcVol / 10000000.0 * 1000.0 * 1000.0;
+        return true;
+    }
+    return false;
+}
 
 /*******************************************************************************
 *                           陈苏阳@2023-11-06
@@ -66,8 +125,9 @@ void ltcgm1272_init(void)
 
     // 添加事件
     event_add(MAIN_LOOP_EVENT_AFE_IRQ, ltcgm1272_int_irq_handler);
-    // 清空新数据标志位
-    g_ucLtcgm1272NewDataFlag = 0;
+
+    // 创建fifo
+    fifo_create(&g_NewDataFifo, g_ucNewDataFifoBuffer, 2, sizeof(g_ucNewDataFifoBuffer) / 2);
 }
 
 /*******************************************************************************
@@ -194,10 +254,6 @@ void ltcgm1272_stop(void)
 void ltcgm1272_int_irq_handler(void)
 {
     log_i("ltcgm1272_int_irq_handler");
-    uint16_t usDataArray[18];
-    uint8_t ucDataCnt = 0;
-
-
 
     // 唤醒
     for (uint8_t i = 0; i < 18; i++)
@@ -206,12 +262,14 @@ void ltcgm1272_int_irq_handler(void)
         sl_udelay_wait(250);
 
         // 读取数据数量
-        uint8_t ucDatanNum = ltcgm1272_read_reg(0x40,0);
+        uint8_t ucDatanNum = ltcgm1272_read_reg(0x40, 0);
         if (ucDatanNum)
         {
-            ucDataCnt++;
             // 读取FIFO数据
-            usDataArray[i] = (ltcgm1272_read_reg(0X42,0) << 8) + (ltcgm1272_read_reg(0X41,0) & 0xff);
+            uint16_t usData = (ltcgm1272_read_reg(0X42, 0) << 8) + (ltcgm1272_read_reg(0X41, 0) & 0xff);
+
+            // 数据推入fifo
+            fifo_in(&g_NewDataFifo, &usData, 1);
             GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
         }
         else
@@ -221,20 +279,18 @@ void ltcgm1272_int_irq_handler(void)
         }
     }
 
-    for (uint8_t i = 0; i < ucDataCnt; i++)
+
+    // 调用中断回调
+    if (g_Ltcgm1272IrqCallbackFun)
     {
-        double vref = 1800;
-        double adc_vol = ((vref / 4096.0) * ((double)usDataArray[i])) - (0x4E * vref / 255);
-        double electricity = adc_vol / 10000000.0 * 1000.0 * 1000.0;
-        log_i("No.%d Data:%d   I:%.2f nA", i, usDataArray[i], electricity);
+        g_Ltcgm1272IrqCallbackFun();
     }
-    log_i("\r\r");
 }
 
 
 
 
-/******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/
+/****double*************** (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/
 
 
 

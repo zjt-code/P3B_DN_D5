@@ -25,28 +25,34 @@
 #include <elog.h>
 #include "gpiointerrupt.h"
 #include "app_global.h"
+#include "fifo.h"
 /* Private variables ---------------------------------------------------------*/
 
 // 反馈
-uint8_t CH1_WE1_RFB_SEL = 0x39;
+#define CH1_WE1_RFB_SEL                             0x39
 // 增益
-uint8_t CH1_WE1_VGAIN_SEL = 0x0;
+#define CH1_WE1_VGAIN_SEL                           0x00
 // 偏置
-uint8_t CH1_DINWE_L8 =0x94;
-uint8_t CH1_DINWE_H2 =0x0;
+#define CH1_DINWE_L8                                0x94
+#define CH1_DINWE_H2                                0x00
 
 // 修改ICLK&PCLK&CIC
-uint8_t CLK = 0x26;
-uint8_t CIC = 0x61;
+#define CLK                                         0x26
+#define CIC                                         0x61
 
-uint16_t buff_we1 = 0;
-
-float g_fBms003CurrData = 0.0f;                     // BMS003当前数据
-uint8_t g_ucBms003NewDataFlag = 0;                  // BMS003有新数据标志位
-uint32_t g_Bms003IrqInterrupt;                      // BMS003中断引脚的中断号
-
+static uint8_t g_ucBms003NewDataFlag = 0;                              // BMS003有新数据标志位
+static uint32_t g_Bms003IrqInterrupt;                                  // BMS003中断引脚的中断号
+static bms003_irq_callback g_Bms003IrqCallbackFun = NULL;           // 中断回调函数
+static fifo_t g_NewDataFifo;                                           // 新数据fifo
+static uint8_t g_ucNewDataFifoBuffer[9 * 4];                           // 新数据fifo所使用的buffer
+static uint32_t g_uiChipEnTime = 0;                                    // 芯片使能时间
+static bool g_bWakeupFlag = false;                                     // 唤醒标志位
+static uint16_t ucIrqCnt = 0;                                          // 中断计数
+static uint16_t ucOnePeriodSampCnt = 0;                                // 单周期采样次数计数
+static uint16_t g_BaseWeVol = 0;                                       // WE1校准电压
 sl_sleeptimer_timer_handle_t g_Bms003WakeupTimer;
 sl_sleeptimer_timer_handle_t g_Bms003MeasureTimer;
+sl_sleeptimer_timer_handle_t g_Bms003ConfigAfterTimer;
 #define SLEEP_TIMER_INTERVAL    (20*1000)
 
 
@@ -57,8 +63,75 @@ void bms003_write_burst(uint8_t ucRegAddr, uint8_t* pData,uint8_t ucLen, uint32_
 void bms003_write_cycle(uint8_t ucRegAddr, uint8_t ucData, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs);
 void bms003_int_irq_callback(uint8_t intNo, void* ctx);
 void bms003_read_adc_data(void);
-
+void bms003_measure_timer_handler(void);
+void bms003_wakeup_timer_handler(void);
+void bms003_start(void);
+void bms003_stop(void);
+void bms003_wakeup(void);
+void bms003_sleep(void);
+void bms003_int_irq_handler(void);
+void bms003_config(bool bIsWakeup);
+void bms003_config_after_handler(void);
+void bms003_wakeup_config(void);
 /* Private functions ---------------------------------------------------------*/
+
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-15
+* Function Name  :  bms003_get_new_data
+* Description    :  获取新数据
+* Input          :  double * pNewData
+* Output         :  None
+* Return         :  bool
+*******************************************************************************/
+bool bms003_get_new_data(double* pNewData)
+{
+    uint32_t uiData;
+    if (pNewData == NULL)return false;
+    if (fifo_out(&g_NewDataFifo, &uiData, 1, 1))
+    {
+        *pNewData = uiData / 32768.0 * 1.165 * 100;
+        return true;
+    }
+    return false;
+}
+
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-15
+* Function Name  :  bms003_register_irq_callback
+* Description    :  注册中断回调
+* Input          :  bms003_irq_callback callback
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void bms003_register_irq_callback(bms003_irq_callback callback)
+{
+    g_Bms003IrqCallbackFun = callback;
+}
+
+
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-14
+* Function Name  :  bms003_new_data_is_ready
+* Description    :  是否有新数据
+* Input          :  void
+* Output         :  None
+* Return         :  bool
+*******************************************************************************/
+bool bms003_new_data_is_ready(void)
+{
+    // 如果当前注册了中断回调,则直接判断
+    if (g_Bms003IrqCallbackFun)
+    {
+        return fifo_len(&g_NewDataFifo) ? true : false;
+    }
+    else
+    {
+
+    }
+}
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-26
@@ -151,7 +224,7 @@ void bms003_disable(void)
 *******************************************************************************/
 void bms003_wakeup_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 {
-    log_d("bms003_wakeup_timer_callback\n");
+    log_d("bms003_wakeup_timer_callback");
     // 发送事件
     event_push(MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER);
 }
@@ -167,9 +240,27 @@ void bms003_wakeup_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* da
 *******************************************************************************/
 void bms003_measure_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 {
-    log_d("bms003_measure_timer_callback\n");
+    log_d("bms003_measure_timer_callback");
     // 发送事件
     event_push(MAIN_LOOP_EVENT_AFE_MEASURE_TIMER);
+}
+
+
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-15
+* Function Name  :  bms003_config_after_timer_callback
+* Description    :  bms003配置后处理定时器
+* Input          :  sl_sleeptimer_timer_handle_t * handle
+* Input          :  void * data
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void bms003_config_after_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
+{
+    log_d("bms003_config_after_timer_callback");
+    // 发送事件
+    event_push(MAIN_LOOP_EVENT_AFE_CONFIG_AFTER_TIMER);
 }
 
 
@@ -184,7 +275,7 @@ void bms003_measure_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* d
 *******************************************************************************/
 void bms003_init(void)
 {
-    log_d("bms003_init\n");
+    log_d("bms003_init");
     // 设置CS引脚为推挽输出
     GPIO_PinModeSet(SPI_CS_PORT, SPI_CS_PIN, gpioModePushPull, 1);
 
@@ -199,14 +290,19 @@ void bms003_init(void)
 
     // 配置中断处理函数
     g_Bms003IrqInterrupt = GPIOINT_CallbackRegisterExt(AFE_INT_PIN, bms003_int_irq_callback, NULL);
-    log_d("g_Bms003IrqInterrupt:%d\n", g_Bms003IrqInterrupt);
+    log_d("g_Bms003IrqInterrupt:%d", g_Bms003IrqInterrupt);
     // 添加事件
     event_add(MAIN_LOOP_EVENT_AFE_MEASURE_TIMER, bms003_measure_timer_handler);
     event_add(MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER, bms003_wakeup_timer_handler);
     event_add(MAIN_LOOP_EVENT_AFE_IRQ, bms003_int_irq_handler);
+    event_add(MAIN_LOOP_EVENT_AFE_CONFIG_AFTER_TIMER, bms003_config_after_handler);
+    // 创建fifo
+    fifo_create(&g_NewDataFifo, g_ucNewDataFifoBuffer, 4, sizeof(g_ucNewDataFifoBuffer) / 4);
 
-    // 清空新数据标志位
-    g_ucBms003NewDataFlag = 0;
+    // 使能BMS003
+    bms003_enable();
+
+    g_uiChipEnTime = rtc_get_curr_time();
 
 }
 
@@ -220,55 +316,41 @@ void bms003_init(void)
 *******************************************************************************/
 void bms003_read_adc_data(void)
 {
-
-    static uint16_t i = 0;
-    static uint16_t i_i = 0;
-    static uint16_t a = 0;
-    static uint16_t buff_we1 = 0;
-    uint16_t buff1 = 0;     //地址值
-    uint16_t buff2 = 0;     //AD值
-    uint16_t buff3 = 0;     //AD值
     int buff = 0;      //AD中转存储值
-    float ad = 0.0;    //AD转换后的电流测量值?
-
-
-
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
-
     bms003_delay_us(2);
-    //////8  addr 0x05
     bms003_write_cycle(IMEAS_REG_SEQ, 0x01, 0, 1);
-
-    //////9   0x7 数据低8位
     bms003_delay_us(2);
 
-    buff2 = bms003_read_cycle(IMEAS_CH0DATA_0, 0, 1);
-    buff = buff2;
-
-    //////9   0x8 数据高8位
+    buff = bms003_read_cycle(IMEAS_CH0DATA_0, 0, 1);
     bms003_delay_us(2);
-    buff2 = bms003_read_cycle(IMEAS_CH0DATA_1, 0, 1);
-    buff = (buff2 << 8) + buff;
+    buff = (bms003_read_cycle(IMEAS_CH0DATA_1, 0, 1) << 8) + buff;
 
-    i++;
+    // 累计中断次数
+    ucIrqCnt++;
 
-    if (i == 14)
+    // 在第14次周期时记录WE1
+    if (ucIrqCnt == 14)
     {
-        buff_we1 = buff;
+        g_BaseWeVol = buff;
     }
-    if (i >= 15)
+
+    // 开始正常采集
+    if (ucIrqCnt >= 15)
     {
-        i = 15;
-        i_i++;
-        if (i_i >= 3)
+        ucIrqCnt = 15;
+
+        // 累计本周期的采样次数
+        ucOnePeriodSampCnt++;
+
+        // 如果是本周期的第三次采样,则作为正式数据
+        if (ucOnePeriodSampCnt >= 3)
         {
-            i_i = 3;
-            ad = (buff - buff_we1) / 32768.0 * 1.165 * 100;
-            log_d("buff:%d,buff_we1:%d",buff,buff_we1);
-            log_i("i:%.2f nA\n", ad);
-            // 记录新数据,更新标志位
-            g_fBms003CurrData = ad;
-            g_ucBms003NewDataFlag = 1;
+            ucOnePeriodSampCnt = 3;
+
+            // 数据推入FIFO
+            uint32_t uiData = buff - g_BaseWeVol;
+            fifo_in(&g_NewDataFifo, &uiData, 1);
             GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, false, false, false);
         }
     }
@@ -277,12 +359,13 @@ void bms003_read_adc_data(void)
     bms003_delay_us(3);
     bms003_write_cycle(IMEAS_INT, 0x01, 0, 6);
 
-    if ((i == 15) && (i_i == 3))
+    if ((ucIrqCnt == 15) && (ucOnePeriodSampCnt == 3))
     {
-        i_i = 0;
+        ucOnePeriodSampCnt = 0;
         bms003_delay_us(3);
 
-        bms003_write_burst(0x3A, &CLK, 1, 15, 30);
+        uint8_t ucTmpData = CLK;
+        bms003_write_burst(0x3A, &ucTmpData, 1, 15, 30);
 
 
         //使能BG,DAC  关闭BG
@@ -312,7 +395,7 @@ void bms003_read_adc_data(void)
 *******************************************************************************/
 void bms003_measure_timer_handler(void)
 {
-    log_d("bms003_measure_timer_handler\n");
+    log_d("bms003_measure_timer_handler");
     // 设置AFE的INT引脚中断
     GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
 
@@ -330,7 +413,7 @@ void bms003_measure_timer_handler(void)
 void bms003_wakeup_timer_handler(void)
 {
     sl_status_t status;
-   log_d("bms003_wakeup_timer_handler\n");
+   log_d("bms003_wakeup_timer_handler");
     // 唤醒BMS003
     bms003_wakeup();
 
@@ -338,7 +421,7 @@ void bms003_wakeup_timer_handler(void)
     status = sl_sleeptimer_start_timer(&g_Bms003MeasureTimer, sl_sleeptimer_ms_to_tick(1000), bms003_measure_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
     {
-        log_e("sl_sleeptimer_start_timer failed\n");
+        log_e("sl_sleeptimer_start_timer failed");
         return;
     }
 }
@@ -355,14 +438,14 @@ void bms003_start(void)
 {
     sl_status_t status;
 
-    // 使能BMS003
-    bms003_enable();
-
     // 唤醒bms003
     bms003_wakeup();
 
-    // 等待BMS003启动
-    bms003_delay_us(1000 * 1000);
+    // 获取当前时间与启动时间的时间差
+    uint32_t uiTimeDiff = rtc_get_curr_time() - g_uiChipEnTime;
+
+    // 如果BMS003启动时间少于1S,则等待BMS003启动
+    if (uiTimeDiff < 1000)bms003_delay_us((1000 - uiTimeDiff) * 1000);
 
     // 设置AFE的INT引脚中断
     GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
@@ -370,9 +453,14 @@ void bms003_start(void)
     status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, sl_sleeptimer_ms_to_tick(SLEEP_TIMER_INTERVAL), bms003_wakeup_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
     {
-        log_e("sl_sleeptimer_start_periodic_timer failed\n");
+        log_e("sl_sleeptimer_start_periodic_timer failed");
         return;
     }
+    // 按初次配置来进行
+    g_bWakeupFlag = false;
+
+    // bms003配置
+    bms003_config(g_bWakeupFlag);
 }
 
 
@@ -444,9 +532,12 @@ void bms003_sleep(void)
 *******************************************************************************/
 void bms003_int_irq_handler(void)
 {
-    log_d("bms003_int_irq_handler\n");
+    log_d("bms003_int_irq_handler");
     // 读取数据
     bms003_read_adc_data();
+
+    // 调用中断回调
+    if (g_Bms003IrqCallbackFun)g_Bms003IrqCallbackFun();
 }
 
 /*******************************************************************************
@@ -553,25 +644,84 @@ uint8_t bms003_read_cycle(uint8_t ucRegAddr, uint32_t uiStartDelayUs, uint32_t u
 
 
 /*******************************************************************************
-*                           陈苏阳@2023-10-27
-* Function Name  :  bms003_config
-* Description    :  BMS003配置
-* Input          :  void
+*                           陈苏阳@2023-11-15
+* Function Name  :  bms003_config_after_handler
+* Description    :  BMS003配置后处理
+* Input          :  None
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void bms003_config(void)
+void bms003_config_after_handler(void)
+{
+    uint8_t ucBufferIndex = 0;
+    uint8_t ucWriteBuffer[32];
+
+    if (g_bWakeupFlag)
+    {
+        ucBufferIndex = 0;
+        ucWriteBuffer[ucBufferIndex++] = 0x0D;
+        ucWriteBuffer[ucBufferIndex++] = 0x01;
+        bms003_write_burst(0x61, ucWriteBuffer, ucBufferIndex, 0, 30);
+    }
+    else
+    {
+
+        ucBufferIndex = 0;
+        ucWriteBuffer[ucBufferIndex++] = ELE_BUF;
+        ucWriteBuffer[ucBufferIndex++] = 0x1;
+        bms003_write_burst(0x61, ucWriteBuffer, ucBufferIndex, 0, 30);
+
+        // 标志位置位,后续按唤醒配置
+        g_bWakeupFlag = true;
+    }
+
+    //第7位置1  3E|80
+    bms003_delay_us(3);
+
+    bms003_write_cycle(0x3A, CLK | 0x80, 0, 30);
+
+    bms003_delay_us(3);
+
+    ucBufferIndex = 0;
+    ucWriteBuffer[ucBufferIndex++] = CIC;       //1CIC2048 
+    ucWriteBuffer[ucBufferIndex++] = 0x00;      //2默认0
+    ucWriteBuffer[ucBufferIndex++] = CHA_NUM;   //3通道加模式配置
+    bms003_write_burst(0x01, ucWriteBuffer, ucBufferIndex, 15, 30);
+
+    bms003_delay_us(3);
+
+    bms003_write_cycle(IMEAS_REG_SEQ, 0x0, 0, 31);
+
+    bms003_delay_us(3);
+
+    ucBufferIndex = 0;
+    ucWriteBuffer[ucBufferIndex++] = 0x1;      //17INPUT_FORMAT
+    ucWriteBuffer[ucBufferIndex++] = 0x1;      //18使能IMEAS_EN
+    bms003_write_burst(0x17, ucWriteBuffer, ucBufferIndex, 17, 30);
+
+    bms003_delay_us(1);
+}
+
+/*******************************************************************************
+*                           陈苏阳@2023-10-27
+* Function Name  :  bms003_config
+* Description    :  BMS003配置
+* Input          :  bool bIsWakeup
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void bms003_config(bool bIsWakeup)
 {
     uint8_t ucWriteBuffer[32];
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
-    bms003_delay_us(300);
+    bms003_delay_us(5);
     uint8_t ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = CLK;
     ucWriteBuffer[ucBufferIndex++] = 0xb;
     ucWriteBuffer[ucBufferIndex++] = 0x7;
     bms003_write_burst(0x3A, ucWriteBuffer, ucBufferIndex, 15, 30);
 
-    bms003_delay_us(300);
+    bms003_delay_us(5);
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = 0x03;          // addr:0x50 使能BG,DAC[0:1]   // 模拟保持状态关闭BG,DCDC分频
@@ -590,107 +740,12 @@ void bms003_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5D 配置CE[8:9]
     bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex, 15, 30);
 
-    bms003_delay_us(10 * 1000);
-
-    ucBufferIndex = 0;
-    ucWriteBuffer[ucBufferIndex++] = ELE_BUF;
-    ucWriteBuffer[ucBufferIndex++] = 0x1;
-    bms003_write_burst(0x61, ucWriteBuffer, ucBufferIndex, 0, 30);
-
-    bms003_delay_us(300);
-
-    bms003_write_cycle(0x3A, (CLK | 0x80), 0, 30);
-
-
-    log_d("CFG_BURST_ANA FINISH!\r\n");
-
-    bms003_delay_us(300);
-
-    ucBufferIndex = 0;
-    ucWriteBuffer[ucBufferIndex++] = CIC;
-    ucWriteBuffer[ucBufferIndex++] = 0x00;
-    ucWriteBuffer[ucBufferIndex++] = CHA_NUM;
-    bms003_write_burst(0x01, ucWriteBuffer, ucBufferIndex, 15, 30);
-
-    ////////////////////////
-    //SD16RST
-    //address:0x05
-    //cmd:0x80
-    //data:0x0
-    ////////////////////////
-    bms003_delay_us(300);
-
-    bms003_write_cycle(IMEAS_REG_SEQ, 0x00, 0, 31);
-
-    bms003_delay_us(300);
-
-    ucBufferIndex = 0;
-    ucWriteBuffer[ucBufferIndex++] = 0x1;
-    ucWriteBuffer[ucBufferIndex++] = 0x1;
-    bms003_write_burst(0x17, ucWriteBuffer, ucBufferIndex, 17, 30);
-
-
-    log_d("CFG BURST IMEAS FINISH!\r\n");
-    // 读寄存器
-    bms003_delay_us(300);
-
-    uint8_t ucReadData = bms003_read_cycle(0x73, 0, 1);
-    log_d("addr:%x\n", 0x73);
-    log_d("check data write:%x\n", ucReadData);
-
-    bms003_delay_us(300);
-
-    ucReadData = bms003_read_cycle(0x53, 0, 1);
-    log_d("addr:%x\n", 0x53);
-    log_d("FB res:%x\n", ucReadData);
-
-    bms003_delay_us(300);
-
-    ucReadData = bms003_read_cycle(0x54, 0, 1);
-    log_d("addr:%x\n", 0x54);
-    log_d("DDA:%x\n", ucReadData);
-
-    bms003_delay_us(300);
-
-    ucReadData = bms003_read_cycle(0x59, 0, 1);
-    log_d("addr:%x\n", 0x59);
-    log_d("diff vol low 8bit:%x\n", ucReadData);
-
-    bms003_delay_us(300);
-
-    ucReadData = bms003_read_cycle(0x5A, 0, 1);
-    log_d("addr:%x\n", 0x5A);
-    log_d("diff vol high 2bit:%x\n", ucReadData);
-
-    bms003_delay_us(300);
-
-    ucReadData = bms003_read_cycle(0x3A, 0, 1);
-    log_d("addr:%x\n", 0x3A);
-    log_d("PCLK&ICK:%x\n", ucReadData);
-
-    bms003_delay_us(300);
-
-    ucReadData = bms003_read_cycle(0x01, 0, 1);
-    log_d("addr:%x\n", 0x01);
-    log_d("CIC enable state:%x\n", ucReadData);
-
-    bms003_delay_us(300);
-
-    ucReadData = bms003_read_cycle(0x50, 0, 1);
-    log_d("addr:%x\n", 0x50);
-    log_d("BG,DAC enable state:%x\n", ucReadData);
-
-    bms003_delay_us(300);
-
-    ucReadData = bms003_read_cycle(0x3B, 0, 1);
-    log_d("addr:%x\n", 0x3B);
-    log_d("0X3B:%x\n", ucReadData);
-
-    bms003_delay_us(300);
-
-    ucReadData = bms003_read_cycle(0x55, 0, 1);
-    log_d("addr:%x\n", 0x55);
-    log_d("0X55:%x\n", ucReadData);
+    // 启动一个1S后的单次定时器
+    sl_status_t status = sl_sleeptimer_start_timer(&g_Bms003ConfigAfterTimer, sl_sleeptimer_ms_to_tick(1000), bms003_config_after_timer_callback, (void*)NULL, 0, 0);
+    if (status != SL_STATUS_OK)
+    {
+        log_e("sl_sleeptimer_start_timer fail:%d",status);
+    }
 }
 
 
@@ -710,14 +765,6 @@ void bms003_wakeup_config(void)
     uint8_t ucWriteBuffer[32];
     int buf1 = 0;
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
-    //CLK_CTRL_REG
-    //address:0x3A
-    //cmd:0x80
-    //data:0x1
-    //16   1E    26   2E   36    3E   
-    //32K  16K   8k   4K   2K    1K
-    ////////////////////////配置ICLK[3:5] PCLK[1:2] 分频 FCLK使能[0]
-    //0x3B写B & 0x3A[0]置0
     bms003_delay_us(3);
 
     ucBufferIndex = 0;
@@ -745,45 +792,14 @@ void bms003_wakeup_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5C配置CE[8:9]
     bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex, 15, 30);
 
-    bms003_delay_us(10 * 1000);
-
-    ucBufferIndex = 0;
-    ucWriteBuffer[ucBufferIndex++] = 0x0D;
-    ucWriteBuffer[ucBufferIndex++] = 0x01;
-    bms003_write_burst(0x61, ucWriteBuffer, ucBufferIndex, 0, 30);
-
-    //第7位置1  3E|80
-    bms003_delay_us(3);
-
-    bms003_write_cycle(0x3A, CLK | 0x80, 0, 30);
-
-    bms003_delay_us(3);
-
-    ucBufferIndex = 0;
-    ucWriteBuffer[ucBufferIndex++] = CIC;       //1CIC2048 
-    ucWriteBuffer[ucBufferIndex++] = 0x00;      //2默认0
-    ucWriteBuffer[ucBufferIndex++] = CHA_NUM;   //3通道加模式配置
-    bms003_write_burst(0x01, ucWriteBuffer, ucBufferIndex, 15, 30);
-
-    ////////////////////////
-    //SD16RST
-    //address:0x05
-    //cmd:0x80
-    //data:0x0
-    ////////////////////////
-    bms003_delay_us(3);
-
-    bms003_write_cycle(IMEAS_REG_SEQ, 0x0, 0, 31);
-
-    bms003_delay_us(3);
-
-    ucBufferIndex = 0;
-    ucWriteBuffer[ucBufferIndex++] = 0x1;      //17INPUT_FORMAT
-    ucWriteBuffer[ucBufferIndex++] = 0x1;      //18使能IMEAS_EN
-    bms003_write_burst(0x17, ucWriteBuffer, ucBufferIndex, 17, 30);
-
-    bms003_delay_us(1);
+    // 启动一个1S后的单次定时器
+    sl_status_t status = sl_sleeptimer_start_timer(&g_Bms003ConfigAfterTimer, sl_sleeptimer_ms_to_tick(1000), bms003_config_after_timer_callback, (void*)NULL, 0, 0);
+    if (status != SL_STATUS_OK)
+    {
+        log_e("sl_sleeptimer_start_timer fail:%d", status);
+    }
 }
+
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/
 

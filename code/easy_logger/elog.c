@@ -27,7 +27,7 @@
  */
 
 #define LOG_TAG      "elog"
-
+#include "SEGGER_RTT.h"
 #include <elog.h>
 #include <string.h>
 #include <stdarg.h>
@@ -67,32 +67,32 @@
  * CSI(Control Sequence Introducer/Initiator) sign
  * more information on https://en.wikipedia.org/wiki/ANSI_escape_code
  */
-#define CSI_START                      "\033["
-#define CSI_END                        "\033[0m"
+#define CSI_START                      " "
+#define CSI_END                        RTT_CTRL_RESET
 /* output log front color */
-#define F_BLACK                        "30;"
-#define F_RED                          "31;"
-#define F_GREEN                        "32;"
-#define F_YELLOW                       "33;"
-#define F_BLUE                         "34;"
-#define F_MAGENTA                      "35;"
-#define F_CYAN                         "36;"
-#define F_WHITE                        "37;"
+#define F_BLACK                        RTT_CTRL_TEXT_BRIGHT_BLACK
+#define F_RED                          RTT_CTRL_TEXT_BRIGHT_RED
+#define F_GREEN                        RTT_CTRL_TEXT_BRIGHT_GREEN
+#define F_YELLOW                       RTT_CTRL_TEXT_BRIGHT_YELLOW
+#define F_BLUE                         RTT_CTRL_TEXT_BRIGHT_BLUE
+#define F_MAGENTA                      RTT_CTRL_TEXT_BRIGHT_MAGENTA
+#define F_CYAN                         RTT_CTRL_TEXT_BRIGHT_CYAN
+#define F_WHITE                        RTT_CTRL_TEXT_BRIGHT_WHITE
 /* output log background color */
 #define B_NULL
-#define B_BLACK                        "40;"
-#define B_RED                          "41;"
-#define B_GREEN                        "42;"
-#define B_YELLOW                       "43;"
-#define B_BLUE                         "44;"
-#define B_MAGENTA                      "45;"
-#define B_CYAN                         "46;"
-#define B_WHITE                        "47;"
+#define B_BLACK                        RTT_CTRL_BG_BLACK
+#define B_RED                          RTT_CTRL_BG_RED
+#define B_GREEN                        RTT_CTRL_BG_GREEN
+#define B_YELLOW                       RTT_CTRL_BG_YELLOW
+#define B_BLUE                         RTT_CTRL_BG_BLUE
+#define B_MAGENTA                      RTT_CTRL_BG_MAGENTA
+#define B_CYAN                         RTT_CTRL_BG_CYAN
+#define B_WHITE                        RTT_CTRL_BG_WHITE
 /* output log fonts style */
-#define S_BOLD                         "1m"
-#define S_UNDERLINE                    "4m"
-#define S_BLINK                        "5m"
-#define S_NORMAL                       "22m"
+#define S_BOLD                          
+#define S_UNDERLINE                     
+#define S_BLINK                         
+#define S_NORMAL                        
 /* output log default color definition: [front color] + [background color] + [show style] */
 #ifndef ELOG_COLOR_ASSERT
 #define ELOG_COLOR_ASSERT              (F_MAGENTA B_NULL S_NORMAL)

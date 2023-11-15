@@ -62,8 +62,10 @@ typedef struct
 
 /* Private variables ---------------------------------------------------------*/
 
+
 /* Private function prototypes -----------------------------------------------*/
-void racp_response_code_send(ble_event_info_t BleEventInfo, uint8_t ucOpcode, uint8_t ucValue);
+void ble_racp_notify_enable(void);
+void ble_racp_notify_disable(void);
 void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t* pData);
 
 

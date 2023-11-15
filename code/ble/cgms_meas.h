@@ -61,10 +61,11 @@ typedef struct
 
 /* Private variables ---------------------------------------------------------*/
 
-
 /* Private function prototypes -----------------------------------------------*/
-ret_code_t cgms_meas_send_raw(ble_event_info_t BleEventInfo, uint8_t* pData, uint8_t ucLen);
 ret_code_t cgms_meas_send(ble_event_info_t BleEventInfo, cgms_meas_t Rec);
+
+ret_code_t cgms_meas_special_send(ble_event_info_t BleEventInfo, cgms_history_special_datapcket_t CgmsHistorySpecialDatapcket);
+
 
 
 #endif /* __CGMS_MEAS_H */

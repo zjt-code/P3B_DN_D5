@@ -41,9 +41,11 @@ component:
 - {id: rail_util_pti}
 - {id: EFR32BG27C140F768IM40}
 - {id: udelay}
+- {id: mbedtls_nist_kw}
 - {id: app_log}
 - {id: bt_post_build}
 - {id: bluetooth_feature_connection}
+- {id: psa_builtin_key_support_cryptoacc}
 - {id: bluetooth_feature_system}
 - {id: component_catalog}
 - {id: app_assert}

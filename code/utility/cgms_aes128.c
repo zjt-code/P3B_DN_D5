@@ -37,8 +37,8 @@ void cgms_aes128_encrpty(uint8_t* plain, uint8_t* cipher)
 {
 
 
-    mbedtls_aes_setkey_enc(&aes, aes_ecb_128_key, 128);	//���ü�����Կ
-    mbedtls_aes_crypt_ecb(&aes, MBEDTLS_AES_ENCRYPT, plain, cipher);//ECB����
+    mbedtls_aes_setkey_enc(&aes, aes_ecb_128_key, 128);
+    mbedtls_aes_crypt_ecb(&aes, MBEDTLS_AES_ENCRYPT, plain, cipher);
 
 }
 
@@ -46,8 +46,8 @@ void cgms_aes128_decrpty(uint8_t* cipher, uint8_t* plain_decrypt)
 {
 
 
-    mbedtls_aes_setkey_dec(&aes, aes_ecb_128_key, 128);//���ý�����Կ
-    mbedtls_aes_crypt_ecb(&aes, MBEDTLS_AES_DECRYPT, cipher, plain_decrypt);//ECB����
+    mbedtls_aes_setkey_dec(&aes, aes_ecb_128_key, 128);
+    mbedtls_aes_crypt_ecb(&aes, MBEDTLS_AES_DECRYPT, cipher, plain_decrypt);
 
 
 

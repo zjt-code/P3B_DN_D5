@@ -376,6 +376,23 @@ uint8_t event_handler(uint32_t uiEventId)
 }
 
 
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-15
+* Function Name  :  rtc_get_curr_time
+* Description    :  获取当前时间(单位ms)
+* Input          :  void
+* Output         :  None
+* Return         :  uint32_t
+*******************************************************************************/
+uint32_t rtc_get_curr_time(void)
+{
+    uint64_t ulms;
+    sl_sleeptimer_tick64_to_ms(sl_sleeptimer_get_tick_count64(), &ulms);
+    return (uint32_t)ulms;
+}
+
+
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/
 
 

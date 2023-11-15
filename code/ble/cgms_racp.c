@@ -15,11 +15,14 @@
 #include <app.h>
 #include "cgms_racp.h"
 #include "app_util.h"
-//#include "cgms_db.h"
+#include "cgms_db.h"
+#include "cgms_aes128.h"
+#include "sl_bt_api.h"
 #include "cgms_crc.h"
+#include "app_glucose_meas.h"
 //#include "app_glucose_meas.h"
 /* Private variables ---------------------------------------------------------*/
-
+static bool g_bBleRacpNotifyIsEnableFlag = false;						// BLE SOCP通知使能标志位
 /* Private function prototypes -----------------------------------------------*/
 uint8_t ble_racp_encode(ble_cgms_racp_datapacket_t* pRacpDatapacket, uint8_t* pData);
 void ble_racp_decode(uint8_t ucDataLen, uint8_t* pData, ble_cgms_racp_datapacket_t* pRacpDatapacket);
@@ -27,6 +30,44 @@ void ble_racp_decode(uint8_t ucDataLen, uint8_t* pData, ble_cgms_racp_datapacket
 /* Private functions ---------------------------------------------------------*/
 
 
+/*******************************************************************************
+*                           陈苏阳@2023-11-14
+* Function Name  :  ble_racp_notify_enable
+* Description    :  通知被使能
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void ble_racp_notify_enable(void)
+{
+	g_bBleRacpNotifyIsEnableFlag = true;
+}
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-14
+* Function Name  :  ble_racp_notify_disable
+* Description    :  通知被失能
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void ble_racp_notify_disable(void)
+{
+	g_bBleRacpNotifyIsEnableFlag = false;
+}
+
+/*******************************************************************************
+*                           陈苏阳@2023-11-14
+* Function Name  :  ble_racp_notify_is_enable
+* Description    :  判断当前是否使能通知
+* Input          :  void
+* Output         :  None
+* Return         :  bool
+*******************************************************************************/
+bool ble_racp_notify_is_enable(void)
+{
+    return g_bBleRacpNotifyIsEnableFlag;
+}
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-24
@@ -115,11 +156,11 @@ void racp_response_code_send(ble_event_info_t BleEventInfo, uint8_t ucOpcode, ui
     memcpy(ucEncodedRacp, cipher, 16);
 #endif
 
-    if ((is_racp_notify()) && (app_global_get_app_state()->bRecordSendFlag == true) && (app_global_get_app_state()->bBleConnected == true))
+    if ((ble_racp_notify_is_enable()) && (app_global_get_app_state()->bRecordSendFlag == true) && (app_global_get_app_state()->bBleConnected == true))
     {
-
+        sl_status_t sc;
+        sc = sl_bt_gatt_server_send_indication(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucEncodedRacp);
 		app_global_get_app_state()->bRecordSendFlag = false;
-        GATTC_SendEvtCmd(BleEventInfo.ucConidx, BleEventInfo.usOperation, CGMS_RACP_SEQUM, BleEventInfo.usHandle, ucLen, ucEncodedRacp);
     }
 
 }

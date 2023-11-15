@@ -67,8 +67,8 @@ void temp_sensor_init(void)
     GPIO->TIMERROUTE[0].ROUTEEN = GPIO_TIMER_ROUTEEN_CC1PEN;
 
     // 添加事件
-    event_add(MAIN_lOOP_EVENT_TEMP_SENSOR_READ_START_TIMER, temp_sensor_read_timer_handler);
-    event_add(MAIN_lOOP_EVENT_TEMP_SENSOR_READ_END_TIMER, temp_sensor_read_end_timer_handler);
+    event_add(MAIN_LOOP_EVENT_TEMP_SENSOR_READ_START_TIMER, temp_sensor_read_timer_handler);
+    event_add(MAIN_LOOP_EVENT_TEMP_SENSOR_READ_END_TIMER, temp_sensor_read_end_timer_handler);
 
     // 初始化TIMER0
     TIMER_Init_TypeDef timerInit = TIMER_INIT_DEFAULT;
@@ -97,7 +97,7 @@ void temp_sensor_read_timer_callback(sl_sleeptimer_timer_handle_t* handle, void*
 {
     log_d("temp_sensor_read_timer_callback\n");
     // 事件推送
-    event_push(MAIN_lOOP_EVENT_TEMP_SENSOR_READ_START_TIMER);
+    event_push(MAIN_LOOP_EVENT_TEMP_SENSOR_READ_START_TIMER);
 }
 
 
@@ -114,7 +114,7 @@ void temp_sensor_read_end_timer_callback(sl_sleeptimer_timer_handle_t* handle, v
 {   
     log_d("temp_sensor_read_end_timer_callback\n");
     // 事件推送
-    event_push(MAIN_lOOP_EVENT_TEMP_SENSOR_READ_END_TIMER);
+    event_push(MAIN_LOOP_EVENT_TEMP_SENSOR_READ_END_TIMER);
 }
 
 

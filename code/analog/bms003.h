@@ -14,7 +14,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stdint.h"
-
+#include "stdbool.h"
 /* Private define ------------------------------------------------------------*/
 
 
@@ -188,54 +188,25 @@
 #define	 RD_BURST_REG_CMD                           0x20
 
 #define	 PAD                                        0x0
-
-////ANA参数
-////配置反馈电阻   (2:5) 3     13    1B   23    27    2B   2f   33   37   3B   3f       39 
-////(0:1)WE1&DDA_EN     50K   500K  1M   3M    4M    5M   6M   7M   8M   10M  无穷大   10M关闭DDA(第1位使能DDA)
-//#define CH1_WE1_RFB_SEL  0x1B
-extern uint8_t CH1_WE1_RFB_SEL;
-////配置DDA增益倍数  0 8 10 18 20 28 30 38    
-//// (3:5)          1 2  3  4  8 15 22 29
-//#define CH1_WE1_VGAIN_SEL  0x0
-extern uint8_t CH1_WE1_VGAIN_SEL;
-////配置偏置电压 (0:7) (8:11)
-////0  0.3  3f 0.4  7f 0.511  ff 0.724
-////1+3f  0.83V  1+8f 0.963  1+df 1.096  1+ff  1.149   2+f 1.176   2+3f 1.256
-////2+7f 1.363   2+ff  1.489   3+ff  1.496    
-
-//#define CH1_DINWE_L8  0xff
-//#define CH1_DINWE_H2  0x3
-extern uint8_t CH1_DINWE_L8;
-extern uint8_t CH1_DINWE_H2;
-////ELE_BUF使能+模式	  we1 f工作电极1之电压  we1out d 工作电极1之运放输出电压   通道:101(5): 缓冲器(ELE_BUFFER_OUT) 之输出   (1:3)
 #define ELE_BUF  0xf
-
-////IMEAS参数
-////55555555555555   模式配置  0单次 1连续       (0:1)
-////通道1正常DDA采集 通道5关闭DDA开启ELE采集 (4:7)
 #define CHA_NUM  0x54
-
-extern uint8_t CLK;
-extern uint8_t CIC;
 
 
 /* Private typedef -----------------------------------------------------------*/
+typedef void (*bms003_irq_callback)(void);
 
 
 /* Private variables ---------------------------------------------------------*/
 
 
+
 /* Private function prototypes -----------------------------------------------*/
 void bms003_init(void);
-void bms003_measure_timer_handler(void);
-void bms003_wakeup_timer_handler(void);
+bool bms003_new_data_is_ready(void);
+bool bms003_get_new_data(double* pNewData);
+void bms003_register_irq_callback(bms003_irq_callback callback);
 void bms003_start(void);
 void bms003_stop(void);
-void bms003_wakeup(void);
-void bms003_sleep(void);
-void bms003_int_irq_handler(void);
-void bms003_config(void);
-void bms003_wakeup_config(void);
 #endif /* __BMS003_H */
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/

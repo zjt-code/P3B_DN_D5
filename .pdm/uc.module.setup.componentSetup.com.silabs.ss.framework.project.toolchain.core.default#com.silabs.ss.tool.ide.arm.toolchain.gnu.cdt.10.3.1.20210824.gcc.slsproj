@@ -586,6 +586,10 @@
       <folder name="third_party">
         <folder name="mbedtls">
           <folder name="library">
+            <file name="aes.c" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/aes.c"/>
+            <file name="cipher.c" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/cipher.c"/>
+            <file name="cipher_wrap.c" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/cipher_wrap.c"/>
+            <file name="nist_kw.c" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/nist_kw.c"/>
             <file name="constant_time.c" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/constant_time.c"/>
             <file name="threading.c" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/threading.c"/>
             <file name="platform.c" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/platform.c"/>
@@ -614,8 +618,6 @@
             <file name="ssl_tls13_invasive.h" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/ssl_tls13_invasive.h"/>
             <file name="ssl_tls13_keys.h" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/ssl_tls13_keys.h"/>
             <file name="psa_crypto_client.c" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/psa_crypto_client.c"/>
-            <file name="cipher.c" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/cipher.c"/>
-            <file name="cipher_wrap.c" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/cipher_wrap.c"/>
             <file name="psa_crypto.c" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/psa_crypto.c"/>
             <file name="psa_crypto_aead.c" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/psa_crypto_aead.c"/>
             <file name="psa_crypto_cipher.c" linked="false" uri="studio:/sdk/util/third_party/mbedtls/library/psa_crypto_cipher.c"/>
