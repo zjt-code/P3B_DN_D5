@@ -155,9 +155,9 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         // 调用应用层的回调
         app_event_ble_disconnect_callback(evt->data.evt_connection_closed.connection);
 
-        // 生成广播数据包
-        sc = sl_bt_legacy_advertiser_generate_data(g_ucAdvertisingSetHandle,
-            sl_bt_advertiser_general_discoverable);
+        // 设置广播数据
+        sc = sl_bt_legacy_advertiser_set_data(g_ucAdvertisingSetHandle, 0, g_ucAdvDataLen, (uint8_t*)g_ucAdvDataBuffer);
+        //sc = sl_bt_advertiser_set_data(g_ucAdvertisingSetHandle, sl_bt_advertiser_scan_response_packet, g_ucAdvDataLen, g_ucAdvDataBuffer);
         app_assert_status(sc);
 
         // 重新开始广播
