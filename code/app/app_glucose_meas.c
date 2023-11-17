@@ -242,9 +242,9 @@ static void app_glucose_handle(void)
     ret_code_t err_code = cgms_db_record_add(&rec);
     // 通过BLE发送本次的测量记录
 
-	if((is_measurement_notify())&&(app_global_get_app_state()->bSentSuccess==true)&&(app_global_get_app_state()->bBleConnected==true))
+	if((is_measurement_notify())&&(app_global_get_app_state()->bSentMeasSuccess==true)&&(app_global_get_app_state()->bBleConnected==true))
 	{
-		app_global_get_app_state()->bSentSuccess=false;
+		app_global_get_app_state()->bSentMeasSuccess=false;
 
 		for(uint8_t i=0;i<BLE_MAX_CONNECTED_NUM;i++)
 		{

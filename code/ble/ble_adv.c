@@ -46,11 +46,16 @@ void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint8_t* pAdvDataLen)
         // 获取存储的SN
         cgms_prm_get_sn(g_cAdvSnStr);
 
+        // 添加Flag
+        pAdvDataBuffer[ucDataIndex++] = 0x02;
+        pAdvDataBuffer[ucDataIndex++] = 0x01;
+        pAdvDataBuffer[ucDataIndex++] = 0x06;
+
         // 添加设备名
-        pAdvDataBuffer[ucDataIndex++] = strlen(g_cAdvSnStr) + 1;
+        pAdvDataBuffer[ucDataIndex++] = 10 + 1;
         pAdvDataBuffer[ucDataIndex++] = 0x09;
-        memcpy(&pAdvDataBuffer[ucDataIndex], g_cAdvSnStr, strlen(g_cAdvSnStr));
-        ucDataIndex += strlen(g_cAdvSnStr);
+        memcpy(&pAdvDataBuffer[ucDataIndex], g_cAdvSnStr, 10);
+        ucDataIndex += 10;
 
         // 添加16bit UUID
         pAdvDataBuffer[ucDataIndex++] = sizeof(usAppCompleteList16BitUuid) + 1;
@@ -63,6 +68,9 @@ void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint8_t* pAdvDataLen)
         pAdvDataBuffer[ucDataIndex++] = 0xFF;
         memcpy(&pAdvDataBuffer[ucDataIndex], &usCompanyID, sizeof(usCompanyID));
         ucDataIndex += sizeof(usCompanyID);
+
+        log_i("ble_adv_generate_adv_data");
+        elog_hexdump("adv_Data", 8, pAdvDataBuffer, ucDataIndex);
         if (pAdvDataLen)*pAdvDataLen = ucDataIndex;
     }
 }

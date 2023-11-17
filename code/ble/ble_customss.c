@@ -10,7 +10,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 
-
+#include "gatt_db.h"
 #include <string.h>
 #include <ble_customss.h>
 #include <stdio.h>
@@ -112,6 +112,8 @@ void att_update_start_time_char_data_crc(void)
     uint16_t usCrc16 = do_crc(&(cs_att_db.CgmSessionStartTimeValue), sizeof(cs_att_db.CgmSessionStartTimeValue) - sizeof(cs_att_db.CgmSessionStartTimeValue.usCrc16));
     // 赋值CRC
     cs_att_db.CgmSessionStartTimeValue.usCrc16 = usCrc16;
+
+    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_session_start_time, 0, sizeof(cs_att_db.CgmSessionStartTimeValue), &(cs_att_db.CgmSessionStartTimeValue));
 }
 
 
@@ -143,6 +145,8 @@ void att_update_cgm_status_char_data_crc(void)
     uint16_t usCrc16 = do_crc(&(cs_att_db.CgmStatusValue), sizeof(cs_att_db.CgmStatusValue) - sizeof(cs_att_db.CgmStatusValue.usCrc16));
     // 赋值CRC
     cs_att_db.CgmStatusValue.usCrc16 = usCrc16;
+
+    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_status, 0, sizeof(cs_att_db.CgmStatusValue), &(cs_att_db.CgmStatusValue));
 }
 
 
@@ -160,6 +164,7 @@ cgm_feature_char_data_t* att_get_feature(void)
     return &(cs_att_db.CgmFeatureValue);
 }
 
+
 /*******************************************************************************
 *                           陈苏阳@2023-10-19
 * Function Name  :  att_update_feature_char_data_crc
@@ -174,6 +179,8 @@ void att_update_feature_char_data_crc(void)
     uint16_t usCrc16 = do_crc(&(cs_att_db.CgmFeatureValue), sizeof(cs_att_db.CgmFeatureValue) - sizeof(cs_att_db.CgmFeatureValue.usCrc16));
     // 赋值CRC
     cs_att_db.CgmFeatureValue.usCrc16 = usCrc16;
+
+    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_feature, 0, sizeof(cs_att_db.CgmFeatureValue), &(cs_att_db.CgmFeatureValue));
 }
 
 

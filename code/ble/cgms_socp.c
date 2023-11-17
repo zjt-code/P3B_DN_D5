@@ -14,7 +14,7 @@
 #define LOG_TAG                   "CGMS_SOCP"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                    ELOG_LVL_INFO
+#define LOG_LVL                    ELOG_LVL_DEBUG
 
 
 #include <stdint.h>
@@ -186,6 +186,9 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
 		mbedtls_aes_pkcspadding(EncodedRespDatapacketBuffer, 16);
 		cgms_aes128_encrpty(EncodedRespDatapacketBuffer, ucCipher);
 		memcpy(EncodedRespDatapacketBuffer, ucCipher, 16);
+
+		// 如果加密就是需要凑足16个字节
+		ucLen = 16;
 	}
 #endif
 
@@ -197,6 +200,21 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
 		{
 			app_global_get_app_state()->bSentSocpSuccess = false;
 			return RET_CODE_SUCCESS;
+		}
+	}
+	else
+	{
+		if (ble_socp_notify_is_enable() == false)
+		{
+			log_w("ble socp notify not enable");
+		}
+		if (app_global_get_app_state()->bSentSocpSuccess == false)
+		{
+			log_w("sent socp success is false");
+		}
+		if (app_global_get_app_state()->bBleConnected == false)
+		{
+			log_w("ble connected is false");
 		}
 	}
 	return RET_CODE_FAIL;
@@ -216,83 +234,88 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
 *******************************************************************************/
 void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t* pData)
 {
-    uint8_t ucTempDatapacketBuffer[16];
+	uint8_t ucTempDatapacketBuffer[16];
 	ble_socp_rsp_t SocpResponseDatapcket;
 
-    // 如果当前是生产命令,生产标志位置位
-    if (cgms_socp_check_production_cmd(pData, usLen))
-    {
-        g_bProduction = true;
-    }
-    else
-    {
-        // 如果不是生产测试命令
+	// 如果当前是生产命令,生产标志位置位
+	if (cgms_socp_check_production_cmd(pData, usLen))
+	{
+		log_d("check production cmd.");
+		g_bProduction = true;
+	}
+	else
+	{
+		// 如果不是生产测试命令
 
-    // 如果设置了密码
-        if (att_get_feature()->ucPasswordExist)
-        {
-            // 走解密流程
+	// 如果设置了密码
+		if (att_get_feature()->ucPasswordExist)
+		{
+			log_d("password is seted.");
+			// 走解密流程
 #ifdef CGMS_ENCRYPT_ENABLE
-            cgms_aes128_decrpty(pData, ucTempDatapacketBuffer);
-            memcpy(pData, ucTempDatapacketBuffer, 16);
+			cgms_aes128_decrpty(pData, ucTempDatapacketBuffer);
+			memcpy(pData, ucTempDatapacketBuffer, 16);
 #endif
 
-            // 如果当前的命令不是密码验证命令,且当前密码还未验证成功
-            if ((pData[0] != SOCP_VERIFY_PWD) && (app_global_get_app_state()->bCgmsPwdVerifyOk == false))
-            {
-                // 返回操作非法回应包
-                SocpResponseDatapcket.ucOpCode = SOCP_RESPONSE_ILLEGAL_CODE;
-                SocpResponseDatapcket.ucReqOpcode = 0X00;
-                SocpResponseDatapcket.ucRspCode = 0X00;
-                SocpResponseDatapcket.ucSizeVal = 0;
-                socp_send(BleEventInfo, SocpResponseDatapcket);
-                return;
-            }
-        }
-        // 如果还没设置密码
-        else
-        {
-            // 如果也不是设置密码命令
-            if ((pData[0] != SOCP_SET_PASSWORD))
-            {
-                SocpResponseDatapcket.ucOpCode = SOCP_RESPONSE_ILLEGAL_CODE;
-                SocpResponseDatapcket.ucReqOpcode = 0X00;
-                SocpResponseDatapcket.ucRspCode = 0X00;
-                SocpResponseDatapcket.ucSizeVal = 0;
-                socp_send(BleEventInfo, SocpResponseDatapcket);
-                return;
-            }
-            else
-            {
-                // 如果是设置密码命令
+			// 如果当前的命令不是密码验证命令,且当前密码还未验证成功
+			if ((pData[0] != SOCP_VERIFY_PWD) && (app_global_get_app_state()->bCgmsPwdVerifyOk == false))
+			{
+				// 返回操作非法回应包
+				SocpResponseDatapcket.ucOpCode = SOCP_RESPONSE_ILLEGAL_CODE;
+				SocpResponseDatapcket.ucReqOpcode = 0X00;
+				SocpResponseDatapcket.ucRspCode = 0X00;
+				SocpResponseDatapcket.ucSizeVal = 0;
+				socp_send(BleEventInfo, SocpResponseDatapcket);
+				return;
+			}
+		}
+		// 如果还没设置密码
+		else
+		{
+			log_d("no valid password");
+				// 如果也不是设置密码命令
+				if ((pData[0] != SOCP_SET_PASSWORD))
+				{
+					SocpResponseDatapcket.ucOpCode = SOCP_RESPONSE_ILLEGAL_CODE;
+					SocpResponseDatapcket.ucReqOpcode = 0X00;
+					SocpResponseDatapcket.ucRspCode = 0X00;
+					SocpResponseDatapcket.ucSizeVal = 0;
+					socp_send(BleEventInfo, SocpResponseDatapcket);
+					return;
+				}
+				else
+				{
+					// 如果是设置密码命令
 #ifdef CGMS_ENCRYPT_ENABLE
 
-                // 长度不正确,返回报错
-                if (usLen != 17)
-                {
-                    SocpResponseDatapcket.ucOpCode = SOCP_RESPONSE_CODE;
-                    SocpResponseDatapcket.ucReqOpcode = SOCP_SET_PASSWORD;
-                    SocpResponseDatapcket.ucRspCode = 0X03;
-                    SocpResponseDatapcket.ucSizeVal = 0;
-                    socp_send(BleEventInfo, SocpResponseDatapcket);
-                    return;
-                }
-                else
-                {
-                    cgms_aes128_decrpty(&pData[1], ucTempDatapacketBuffer);
-                    memcpy(&pData[1], ucTempDatapacketBuffer, 16);
-                }
+				// 长度不正确,返回报错
+					if (usLen != 17)
+					{
+						log_d("Len is Err");
+						SocpResponseDatapcket.ucOpCode = SOCP_RESPONSE_CODE;
+						SocpResponseDatapcket.ucReqOpcode = SOCP_SET_PASSWORD;
+						SocpResponseDatapcket.ucRspCode = 0X03;
+						SocpResponseDatapcket.ucSizeVal = 0;
+						socp_send(BleEventInfo, SocpResponseDatapcket);
+						return;
+					}
+					else
+					{
+						cgms_aes128_decrpty(&pData[1], ucTempDatapacketBuffer);
+						memcpy(&pData[1], ucTempDatapacketBuffer, 16);
+						elog_hexdump("datapacket decode", 10, pData, 16);
+					}
 #endif
-            }
-        }
-    }
+				}
+		}
+	}
 
-    ble_cgms_socp_datapacket_t SocpDatapacket;
+	ble_cgms_socp_datapacket_t SocpDatapacket;
 	// 解码SOCP数据包并填充结构体
-    ble_socp_decode(usLen, pData, &SocpDatapacket);
+	ble_socp_decode(usLen, pData, &SocpDatapacket);
 
-    elog_hexdump("socp_rav",16,pData,usLen);
-    log_i("SocpDatapacket.opcode:%d\r\n", SocpDatapacket.ucOpCode);
+	elog_hexdump("socp_rav", 16, pData, usLen);
+	log_i("SocpDatapacket.opcode:%d\r\n", SocpDatapacket.ucOpCode);
 
 	SocpResponseDatapcket.ucOpCode = SOCP_RESPONSE_CODE;
 	SocpResponseDatapcket.ucReqOpcode = SocpDatapacket.ucOpCode;
@@ -304,7 +327,6 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 	// 根据操作码执行不同命令
 	switch (SocpDatapacket.ucOpCode)
 	{
-
 		// 如果是写入CGM通讯间隔命令
 	case SOCP_WRITE_CGM_COMMUNICATION_INTERVAL:
 	{
@@ -322,25 +344,25 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 		}
 		else
 		{
-/*
-			// 如果写入间隔为0xFF
-			if (p_cgms->comm_interval == 0xFF)
-			{
-				// 改回1
-				p_cgms->comm_interval = 1;
-			}
-			// 如果当前CGM已经启动
-			if (p_cgms->is_session_started)
-			{
-				//softStop(SENSOR_MANUAL_STOP);
-			}
-			// 如果当前要设置的通讯间隔不为0
-			if (p_cgms->comm_interval != 0)
-			{
-				// todo:待重构后实现
-				//app_env_cs.glucoseCommInterval = p_cgms->comm_interval;
-			}
-			*/
+			/*
+						// 如果写入间隔为0xFF
+						if (p_cgms->comm_interval == 0xFF)
+						{
+							// 改回1
+							p_cgms->comm_interval = 1;
+						}
+						// 如果当前CGM已经启动
+						if (p_cgms->is_session_started)
+						{
+							//softStop(SENSOR_MANUAL_STOP);
+						}
+						// 如果当前要设置的通讯间隔不为0
+						if (p_cgms->comm_interval != 0)
+						{
+							// todo:待重构后实现
+							//app_env_cs.glucoseCommInterval = p_cgms->comm_interval;
+						}
+						*/
 		}
 		break;
 	}
@@ -434,8 +456,8 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 			// 更新启动时间
 			cgms_update_sst_and_time_zone(SocpStartTheSessionDatapacket.uiStartTime, SocpStartTheSessionDatapacket.ucTimeZone);
 
-            // 更新record_index中的SST
-            cgms_db_record_index_update_sst(g_mSST);
+			// 更新record_index中的SST
+			cgms_db_record_index_update_sst(g_mSST);
 
 
 			// 开始应用层血糖测量
@@ -557,7 +579,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 		*/
 		SocpResponseDatapcket.ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_SUCCESS;
 
-	break;
+		break;
 	}
 	// 如果是写入参数命令
 	case SOCP_WRITE_PRM:
@@ -573,10 +595,10 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 			switch (ucPrmNo)
 			{
 			case BLE_CGMS_SOCP_WRITE_PRM_TYPE_1:
-            {
-                // 填充结构体
+			{
+				// 填充结构体
 				ble_cgms_socp_write_prm_type_1_t BleCgmsSocpWritePrmType1Datapacket;
-                memcpy(&BleCgmsSocpWritePrmType1Datapacket, pData, sizeof(BleCgmsSocpWritePrmType1Datapacket));
+				memcpy(&BleCgmsSocpWritePrmType1Datapacket, pData, sizeof(BleCgmsSocpWritePrmType1Datapacket));
 
 				g_PrmDb.Pone.prmVD1 = (int32_t)BleCgmsSocpWritePrmType1Datapacket.sPrmVD1;
 				g_PrmDb.Pone.prmRL1 = (int32_t)BleCgmsSocpWritePrmType1Datapacket.sPrmRL1;
@@ -588,49 +610,49 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 
 				// 计算CRC
 				g_PrmDb.Pone.prmCrc1 = do_crc((uint8_t*)&g_PrmDb.Pone, sizeof(P1_t) - 2);
-                
-                SocpResponseDatapcket.ucRspCode = SOCP_GENERAL_RSP_SUCCESS;
+
+				SocpResponseDatapcket.ucRspCode = SOCP_GENERAL_RSP_SUCCESS;
 				break;
 			}
 			case BLE_CGMS_SOCP_WRITE_PRM_TYPE_3:
 			{
-                // 填充结构体
-                ble_cgms_socp_write_prm_type_3_t BleCgmsSocpWritePrmType3Datapacket;
-                memcpy(&BleCgmsSocpWritePrmType3Datapacket, pData, sizeof(BleCgmsSocpWritePrmType3Datapacket));
-                
-                g_PrmDb.P3.prmDX0 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX0;
-                g_PrmDb.P3.prmDX1 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX1;
-                g_PrmDb.P3.prmDX2 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX2;
+				// 填充结构体
+				ble_cgms_socp_write_prm_type_3_t BleCgmsSocpWritePrmType3Datapacket;
+				memcpy(&BleCgmsSocpWritePrmType3Datapacket, pData, sizeof(BleCgmsSocpWritePrmType3Datapacket));
+
+				g_PrmDb.P3.prmDX0 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX0;
+				g_PrmDb.P3.prmDX1 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX1;
+				g_PrmDb.P3.prmDX2 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX2;
 				g_PrmDb.P3.prmDX3 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX3;
-                g_PrmDb.P3.prmDX4 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX4;
-                g_PrmDb.P3.prmDX5 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX5;
-                g_PrmDb.P3.prmDX6 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX6;
-                g_PrmDb.P3.prmDX7 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX7;
-                g_PrmDb.P3.prmDX8 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX8;
-                g_PrmDb.P3.prmDX9 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX9;
-                g_PrmDb.P3.prmDXA = BleCgmsSocpWritePrmType3Datapacket.ucPrmDXA;
-                g_PrmDb.P3.prmDXB = BleCgmsSocpWritePrmType3Datapacket.ucPrmDXB;
+				g_PrmDb.P3.prmDX4 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX4;
+				g_PrmDb.P3.prmDX5 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX5;
+				g_PrmDb.P3.prmDX6 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX6;
+				g_PrmDb.P3.prmDX7 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX7;
+				g_PrmDb.P3.prmDX8 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX8;
+				g_PrmDb.P3.prmDX9 = BleCgmsSocpWritePrmType3Datapacket.ucPrmDX9;
+				g_PrmDb.P3.prmDXA = BleCgmsSocpWritePrmType3Datapacket.ucPrmDXA;
+				g_PrmDb.P3.prmDXB = BleCgmsSocpWritePrmType3Datapacket.ucPrmDXB;
 				g_PrmDb.P3.prmDXC = BleCgmsSocpWritePrmType3Datapacket.usPrmDXC;
 
-                g_PrmDb.P3.prmCrc3 = do_crc((uint8_t*)&g_PrmDb.P3, sizeof(P3_t) - 2);
-                
-                SocpResponseDatapcket.ucRspCode = SOCP_GENERAL_RSP_SUCCESS;
+				g_PrmDb.P3.prmCrc3 = do_crc((uint8_t*)&g_PrmDb.P3, sizeof(P3_t) - 2);
+
+				SocpResponseDatapcket.ucRspCode = SOCP_GENERAL_RSP_SUCCESS;
 				break;
 			}
-            case BLE_CGMS_SOCP_WRITE_PRM_TYPE_4:
+			case BLE_CGMS_SOCP_WRITE_PRM_TYPE_4:
 			{
 				// 填充结构体
 				ble_cgms_socp_write_prm_type_4_t BleCgmsSocpWritePrmType4Datapacket;
 				memcpy(&BleCgmsSocpWritePrmType4Datapacket, pData, sizeof(BleCgmsSocpWritePrmType4Datapacket));
 
-                g_PrmDb.P4.prmWMY[0] = BleCgmsSocpWritePrmType4Datapacket.ucPrmWMY[0];
-                g_PrmDb.P4.prmWMY[1] = BleCgmsSocpWritePrmType4Datapacket.ucPrmWMY[1];
-                g_PrmDb.P4.prmWMY[2] = BleCgmsSocpWritePrmType4Datapacket.ucPrmWMY[2];
-                g_PrmDb.P4.prmWMY[3] = 0;
-                g_PrmDb.P4.SN = BleCgmsSocpWritePrmType4Datapacket.usSN;
+				g_PrmDb.P4.prmWMY[0] = BleCgmsSocpWritePrmType4Datapacket.ucPrmWMY[0];
+				g_PrmDb.P4.prmWMY[1] = BleCgmsSocpWritePrmType4Datapacket.ucPrmWMY[1];
+				g_PrmDb.P4.prmWMY[2] = BleCgmsSocpWritePrmType4Datapacket.ucPrmWMY[2];
+				g_PrmDb.P4.prmWMY[3] = 0;
+				g_PrmDb.P4.SN = BleCgmsSocpWritePrmType4Datapacket.usSN;
 
-                g_PrmDb.P4.prmCrc4 = do_crc((uint8_t*)&g_PrmDb.P4, sizeof(P4_t) - 2);
-                
+				g_PrmDb.P4.prmCrc4 = do_crc((uint8_t*)&g_PrmDb.P4, sizeof(P4_t) - 2);
+
 				SocpResponseDatapcket.ucRspCode = SOCP_GENERAL_RSP_SUCCESS;
 				break;
 			}
@@ -660,15 +682,15 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 			case BLE_CGMS_SOCP_WRITE_PRM_TYPE_1:
 			{
 				ble_cgms_socp_write_prm_type_1_t BleCgmsSocpWritePrmType1Datapacket;
-				  /*
+
 				BleCgmsSocpWritePrmType1Datapacket.ucPrmNo = ucPrmNo;
-				BleCgmsSocpWritePrmType1Datapacket.sPrmVD1 = m_prm_db.Pone.prmVD1;
-				BleCgmsSocpWritePrmType1Datapacket.sPrmRL1 = m_prm_db.Pone.prmRL1;
-				BleCgmsSocpWritePrmType1Datapacket.sPrmOffset = m_prm_db.Pone.prmOffset;
-				BleCgmsSocpWritePrmType1Datapacket.sPrmAD1 = m_prm_db.Pone.prmAD1;
-				BleCgmsSocpWritePrmType1Datapacket.sPrmRL2 = m_prm_db.Pone.prmRL2;
-				BleCgmsSocpWritePrmType1Datapacket.sPrmAD2 = m_prm_db.Pone.prmAD2;
-*/
+				BleCgmsSocpWritePrmType1Datapacket.sPrmVD1 = g_PrmDb.Pone.prmVD1;
+				BleCgmsSocpWritePrmType1Datapacket.sPrmRL1 = g_PrmDb.Pone.prmRL1;
+				BleCgmsSocpWritePrmType1Datapacket.sPrmOffset = g_PrmDb.Pone.prmOffset;
+				BleCgmsSocpWritePrmType1Datapacket.sPrmAD1 = g_PrmDb.Pone.prmAD1;
+				BleCgmsSocpWritePrmType1Datapacket.sPrmRL2 = g_PrmDb.Pone.prmRL2;
+				BleCgmsSocpWritePrmType1Datapacket.sPrmAD2 = g_PrmDb.Pone.prmAD2;
+
 				// 结构体内容填充到回应包数据buffer中
 				memcpy(SocpResponseDatapcket.ucRespVal, &BleCgmsSocpWritePrmType1Datapacket, sizeof(BleCgmsSocpWritePrmType1Datapacket));
 				SocpResponseDatapcket.ucOpCode = SOCP_READ_PRM_RESPONSE;
@@ -680,21 +702,21 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 				ble_cgms_socp_write_prm_type_3_t BleCgmsSocpWritePrmType3Datapacket;
 
 				BleCgmsSocpWritePrmType3Datapacket.ucPrmNo = ucPrmNo;
-/*
-				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX0 = m_prm_db.P3.prmDX0;
-				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX1 = m_prm_db.P3.prmDX1;
-				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX2 = m_prm_db.P3.prmDX2;
-				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX3 = m_prm_db.P3.prmDX3;
-				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX4 = m_prm_db.P3.prmDX4;
-				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX5 = m_prm_db.P3.prmDX5;
-				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX6 = m_prm_db.P3.prmDX6;
-				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX7 = m_prm_db.P3.prmDX7;
-				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX8 = m_prm_db.P3.prmDX8;
-				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX9 = m_prm_db.P3.prmDX9;
-				BleCgmsSocpWritePrmType3Datapacket.ucPrmDXA = m_prm_db.P3.prmDXA;
-				BleCgmsSocpWritePrmType3Datapacket.ucPrmDXB = m_prm_db.P3.prmDXB;
-				BleCgmsSocpWritePrmType3Datapacket.usPrmDXC = m_prm_db.P3.prmDXC;
-*/
+
+				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX0 = g_PrmDb.P3.prmDX0;
+				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX1 = g_PrmDb.P3.prmDX1;
+				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX2 = g_PrmDb.P3.prmDX2;
+				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX3 = g_PrmDb.P3.prmDX3;
+				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX4 = g_PrmDb.P3.prmDX4;
+				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX5 = g_PrmDb.P3.prmDX5;
+				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX6 = g_PrmDb.P3.prmDX6;
+				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX7 = g_PrmDb.P3.prmDX7;
+				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX8 = g_PrmDb.P3.prmDX8;
+				BleCgmsSocpWritePrmType3Datapacket.ucPrmDX9 = g_PrmDb.P3.prmDX9;
+				BleCgmsSocpWritePrmType3Datapacket.ucPrmDXA = g_PrmDb.P3.prmDXA;
+				BleCgmsSocpWritePrmType3Datapacket.ucPrmDXB = g_PrmDb.P3.prmDXB;
+				BleCgmsSocpWritePrmType3Datapacket.usPrmDXC = g_PrmDb.P3.prmDXC;
+
 				// 结构体内容填充到回应包数据buffer中
 				memcpy(SocpResponseDatapcket.ucRespVal, &BleCgmsSocpWritePrmType3Datapacket, sizeof(BleCgmsSocpWritePrmType3Datapacket));
 				SocpResponseDatapcket.ucOpCode = SOCP_READ_PRM_RESPONSE;
@@ -709,10 +731,11 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 		}
 		break;
 	}
-	
+
 	// 如果是设置密码命令
 	case SOCP_SET_PASSWORD:
 	{
+		log_d("SOCP_SET_PASSWORD");
 		// 如果当前已经被设置过密码
 		if (att_get_feature()->ucPasswordExist)
 		{
@@ -729,21 +752,26 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 			// 更新CRC
 			att_update_feature_char_data_crc();
 
-            // 填充结构体
+			// 填充结构体
 			ble_cgms_socp_set_password_datapacket_t SocpSetPasswordDatapacket;
-            memcpy(&SocpSetPasswordDatapacket, pData, sizeof(SocpSetPasswordDatapacket));
+			memcpy(&SocpSetPasswordDatapacket, pData, sizeof(SocpSetPasswordDatapacket));
 
+            SocpResponseDatapcket.ucOpCode = SOCP_RESPONSE_CODE;
+            SocpResponseDatapcket.ucReqOpcode = SocpDatapacket.ucOpCode;
+            SocpResponseDatapcket.ucRspCode = SOCP_VERIFY_PASSWORD_RSP_CODE_SUCCESS;
+            SocpResponseDatapcket.ucSizeVal = 0;
+
+			// 发送回复包
+            socp_send(BleEventInfo, SocpResponseDatapcket);
 
 			// 更新秘钥
-            cgms_aes128_update_key((uint8_t*)&(SocpSetPasswordDatapacket.usPassword));
+			cgms_aes128_update_key((uint8_t*)&(SocpSetPasswordDatapacket.usPassword));
 
 			// 保存密码
-            app_global_get_app_state()->usPasswordSaved = SocpSetPasswordDatapacket.usPassword;
+			app_global_get_app_state()->usPasswordSaved = SocpSetPasswordDatapacket.usPassword;
 
-			SocpResponseDatapcket.ucOpCode = SOCP_RESPONSE_CODE;
-			SocpResponseDatapcket.ucReqOpcode = SocpDatapacket.ucOpCode;
-			SocpResponseDatapcket.ucRspCode = SOCP_VERIFY_PASSWORD_RSP_CODE_SUCCESS;
-			SocpResponseDatapcket.ucSizeVal = 0;
+			// 直接返回,不发函数末尾的回复包
+			return;
 		}
 		break;
 	}
@@ -792,8 +820,8 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 		SocpResponseDatapcket.ucRspCode = SOCP_GENERAL_RSP_OP_CODE_NOT_SUPPORTED;
 		break;
 	}
-	}
-	socp_send(BleEventInfo,SocpResponseDatapcket);
+    }
+	socp_send(BleEventInfo, SocpResponseDatapcket);
 }
 
 

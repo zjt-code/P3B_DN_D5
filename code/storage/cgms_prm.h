@@ -6,7 +6,7 @@
 typedef struct
 {
     uint16_t          rsvd; //for 4 byte alignment
-    int16_t		    prmOffset;
+    int16_t		        prmOffset;
     uint16_t          prmVD1;
     uint16_t          prmRL1;
     int16_t         	prmAD1;

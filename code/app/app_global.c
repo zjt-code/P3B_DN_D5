@@ -166,6 +166,10 @@ void app_event_ble_connected_callback(uint16_t usConnectionHandle)
     // 设置当前全局BLE连接状态为已连接
     app_global_get_app_state()->bBleConnected = true;
 
+    app_global_get_app_state()->bSentRacpSuccess = true;
+
+    app_global_get_app_state()->bSentSocpSuccess = true;
+
     // 添加一个新连接
     app_add_new_ble_connect(usConnectionHandle);
 

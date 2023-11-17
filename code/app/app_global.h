@@ -202,7 +202,7 @@ typedef struct
     uint16_t usPasswordSaved;                                          // 保存的密码
     bool bSentRacpSuccess;                                             // RACP发送完成标志位
     bool bSentSocpSuccess;                                             // COAP发送完成标志位
-    bool bSentSuccess;                                                 // 发送完成标志位
+    bool bSentMeasSuccess;                                             // MEAS发送完成标志位
     bool bBleConnected;                                                // BLE已连接标志位
     bool bRecordSendFlag;                                              // 当前是否正在发送历史数据标志位
     RecordOptInfo_t RecordOptInfo;                                     // 当前正在运行的历史数据操作信息
