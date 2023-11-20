@@ -27,6 +27,7 @@
 #include "afe.h"
 #include "pin_config.h"
 #include "temp_sensor.h"
+#include "app_glucose_meas.h"
 /* Private variables ---------------------------------------------------------*/
 sl_sleeptimer_timer_handle_t g_TestTimer;
 
@@ -56,22 +57,25 @@ void test_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 *******************************************************************************/
 int main(void)
 {
-  // 初始化log
-   SEGGER_RTT_Init();
-   SEGGER_RTT_SetTerminal(0);
-   elog_init();
-   elog_set_fmt(ELOG_LVL_ASSERT, ELOG_FMT_ALL);
-   elog_set_fmt(ELOG_LVL_ERROR, ELOG_FMT_TAG|ELOG_FMT_LVL|ELOG_FMT_FUNC|ELOG_FMT_LINE);
-   elog_set_fmt(ELOG_LVL_WARN, ELOG_FMT_TAG|ELOG_FMT_LVL|ELOG_FMT_FUNC|ELOG_FMT_LINE);
-   elog_set_fmt(ELOG_LVL_INFO, ELOG_FMT_TAG|ELOG_FMT_LVL|ELOG_LVL_INFO);
-   elog_set_fmt(ELOG_LVL_DEBUG, ELOG_FMT_TAG|ELOG_FMT_LVL|ELOG_LVL_INFO);
-   elog_start();
     // 系统初始化
     sl_system_init();
 
     // 初始化GPIO的时钟
     CMU_ClockEnable(cmuClock_GPIO, true);
 
+    // 初始化log
+    SEGGER_RTT_Init();
+    SEGGER_RTT_SetTerminal(0);
+
+    elog_init();
+    elog_set_fmt(ELOG_LVL_ASSERT, ELOG_FMT_ALL);
+    elog_set_fmt(ELOG_LVL_ERROR, ELOG_FMT_TIME | ELOG_FMT_TAG | ELOG_FMT_LVL | ELOG_FMT_FUNC | ELOG_FMT_LINE);
+    elog_set_fmt(ELOG_LVL_WARN, ELOG_FMT_TIME | ELOG_FMT_TAG | ELOG_FMT_LVL | ELOG_FMT_FUNC | ELOG_FMT_LINE);
+    elog_set_fmt(ELOG_LVL_INFO, ELOG_FMT_TIME | ELOG_FMT_TAG | ELOG_FMT_LVL | ELOG_LVL_INFO);
+    elog_set_fmt(ELOG_LVL_DEBUG, ELOG_FMT_TIME | ELOG_FMT_TAG | ELOG_FMT_LVL | ELOG_LVL_INFO);
+
+
+    elog_start();
     log_i("sys init");
 
     // 应用层初始化
@@ -83,9 +87,12 @@ int main(void)
     // 初始化温度传感器
     //temp_sensor_init();
 
+    // 应用层血糖测量初始化
+    app_glucose_meas_init();
+
     //sl_sleeptimer_start_periodic_timer(&g_TestTimer, sl_sleeptimer_ms_to_tick(10*1000), test_timer_callback, (void*)NULL, 0, 0);
 
-    while (1) 
+    while (1)
     {
         sl_system_process_action();
         sl_power_manager_sleep();

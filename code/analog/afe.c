@@ -14,7 +14,7 @@
 #define LOG_TAG                "AFE"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                ELOG_LVL_INFO
+#define LOG_LVL                ELOG_LVL_DEBUG
 
 #include "afe.h"
 #include "bms003.h"

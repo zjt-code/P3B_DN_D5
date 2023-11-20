@@ -24,12 +24,13 @@ extern const sli_bt_gattdb_t gattdb;
 #define gattdb_cgm_measurement                27
 #define gattdb_cgm_feature                    30
 #define gattdb_cgm_status                     32
-#define gattdb_cgm_session_start_time         35
-#define gattdb_record_access_control_point    37
-#define gattdb_cgm_specific_ops_control_point 40
-#define gattdb_battery_service_0              42
-#define gattdb_battery_level                  44
-#define gattdb_characteristic_presentation_format 45
+#define gattdb_record_access_control_point    35
+#define gattdb_cgm_session_start_time         38
+#define gattdb_cgm_session_run_time           40
+#define gattdb_cgm_specific_ops_control_point 42
+#define gattdb_battery_service_0              44
+#define gattdb_battery_level                  46
+#define gattdb_characteristic_presentation_format 47
 
 
 #endif // __GATT_DB_H

@@ -28,7 +28,8 @@
 #include "cgms_racp.h"
 #include "cgms_prm.h"
 #include "ble_customss.h"
-
+#include "app_glucose_meas.h"
+#include "cgms_meas.h"
 /* Private variables ---------------------------------------------------------*/
 static uint8_t g_ucAdvertisingSetHandle = 0xff;     // BLE广播集句柄
 static uint8_t g_ucAdvDataBuffer[31];               // BLE广播内容
@@ -54,7 +55,7 @@ static uint8_t g_ucAdvDataLen;                      // BLE广播内容长度
 void sl_bt_on_event(sl_bt_msg_t* evt)
 {
     sl_status_t sc;
-    log_i("sl_bt_on_event:%d", SL_BT_MSG_ID(evt->header));
+    //log_i("sl_bt_on_event:0x%X", SL_BT_MSG_ID(evt->header));
     switch (SL_BT_MSG_ID(evt->header))
     {
         // BLE协议栈初始化完成事件
@@ -178,7 +179,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         // Read characteristic value.
         sc = sl_bt_gatt_server_read_attribute_value(usAttributeHandle, 0, sizeof(ucDataRecvBuffer), &ucDataRecvLen, ucDataRecvBuffer);
         log_i("weite char:%d", usAttributeHandle);
-        elog_hexdump("data", 10, ucDataRecvBuffer, ucDataRecvLen);
+        elog_hexdump("data", 8, ucDataRecvBuffer, ucDataRecvLen);
         switch (usAttributeHandle)
         {
             // 写SOCP
@@ -236,17 +237,17 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
                 // 如果notify被启用
                 if (evt->data.evt_gatt_server_characteristic_status.client_config_flags != sl_bt_gatt_disable)
                 {
-
+                    ble_meas_notify_enable();
                 }
                 else
                 {
-                    app_global_get_app_state()->bSentMeasSuccess = true;
+                    ble_meas_notify_disable();
                 }
             }
             // 如果是接收确认
             else if (evt->data.evt_gatt_server_characteristic_status.status_flags == sl_bt_gatt_server_confirmation)
             {
-
+                app_global_get_app_state()->bSentMeasSuccess = true;
             }
             break;
         }

@@ -119,7 +119,7 @@ static void cgms_db_calculation_record_pos(uint32_t uiRecordIndex, uint16_t* pPa
 *******************************************************************************/
 void cgms_db_reset()
 {
-    log_i("cgms_db_reset\r\n");
+    log_i("cgms_db_reset");
 
     g_uiRecordsNum = 0;
     // 擦除全部数据
@@ -364,11 +364,11 @@ ret_code_t cgms_db_set_flash_record_index(record_index_storage_unit_t* pRecordIn
                     // 擦除下一个扇区,为后续写入RecordIndex做准备
                     if (cgms_db_flash_erase(MEAS_RECORD_INDEX_ADDR + ((i + 1) * usRecordIndexStorageUnitSize), cgm_db_flash_get_info()->usSectorByteSize))
                     {
-                        swmLogInfo("Flash_EraseSector %x error\r\n", MEAS_RECORD_INDEX_ADDR + ((i + 1) * usRecordIndexStorageUnitSize));
+                        log_e("Flash_EraseSector %x error", MEAS_RECORD_INDEX_ADDR + ((i + 1) * usRecordIndexStorageUnitSize));
                     }
                     else
                     {
-                        swmLogInfo("Flash_EraseSector %x ok\r\n", MEAS_RECORD_INDEX_ADDR + ((i + 1) * usRecordIndexStorageUnitSize));
+                        log_d("Flash_EraseSector %x ok", MEAS_RECORD_INDEX_ADDR + ((i + 1) * usRecordIndexStorageUnitSize));
                     }
 
                 }
@@ -378,18 +378,18 @@ ret_code_t cgms_db_set_flash_record_index(record_index_storage_unit_t* pRecordIn
                     // 擦除第一个扇区,为后续写入RecordIndex做准备
                     if (cgms_db_flash_erase(MEAS_RECORD_INDEX_ADDR, cgm_db_flash_get_info()->usSectorByteSize))
                     {
-                        swmLogInfo("Flash_EraseSector %x error\r\n", MEAS_RECORD_INDEX_ADDR);
+                        log_e("Flash_EraseSector %x error", MEAS_RECORD_INDEX_ADDR);
                     }
                     else
                     {
-                        swmLogInfo("Flash_EraseSector %x ok\r\n", MEAS_RECORD_INDEX_ADDR);
+                        log_d("Flash_EraseSector %x ok", MEAS_RECORD_INDEX_ADDR);
                     }
                 }
                 }
 
                 if (cgms_db_flash_write(MEAS_RECORD_INDEX_ADDR + (i * usRecordIndexStorageUnitSize), (uint8_t*)&TmpRecordIndex, sizeof(TmpRecordIndex)))
                 {
-                    swmLogInfo("Flash_WriteBuffer 0x%x ok\r\n", MEAS_RECORD_INDEX_ADDR + (i * usRecordIndexStorageUnitSize));
+                    log_d("Flash_WriteBuffer 0x%x ok", MEAS_RECORD_INDEX_ADDR + (i * usRecordIndexStorageUnitSize));
 
                     if (i != 0)
                     {
@@ -410,11 +410,11 @@ ret_code_t cgms_db_set_flash_record_index(record_index_storage_unit_t* pRecordIn
                         // 将历史数据标记为无效
                         if (cgms_db_flash_write(uiWriteAddr, (uint8_t*)&EmptyRecordIndex, sizeof(EmptyRecordIndex)))
                         {
-                            swmLogInfo("Flash_WriteBuffer 0x%x error\r\n", MEAS_RECORD_INDEX_ADDR + ((i - 1) * usRecordIndexStorageUnitSize));
+                            log_e("Flash_WriteBuffer 0x%x error", MEAS_RECORD_INDEX_ADDR + ((i - 1) * usRecordIndexStorageUnitSize));
                         }
                         else
                         {
-                            swmLogInfo("Invalid Mark-Flash_WriteBuffer 0x%x ok\r\n", MEAS_RECORD_INDEX_ADDR + ((i - 1) * usRecordIndexStorageUnitSize));
+                            log_d("Invalid Mark-Flash_WriteBuffer 0x%x ok", MEAS_RECORD_INDEX_ADDR + ((i - 1) * usRecordIndexStorageUnitSize));
                         }
                     }
 
@@ -423,7 +423,7 @@ ret_code_t cgms_db_set_flash_record_index(record_index_storage_unit_t* pRecordIn
                 }
                 else
                 {
-                    swmLogInfo("Flash_WriteBuffer 0x%x error\r\n", MEAS_RECORD_INDEX_ADDR + (i * usRecordIndexStorageUnitSize));
+                    log_e("Flash_WriteBuffer 0x%x error", MEAS_RECORD_INDEX_ADDR + (i * usRecordIndexStorageUnitSize));
                     return RET_CODE_FAIL;
                 }
 
@@ -454,7 +454,7 @@ static ret_code_t cgms_db_record_read_and_check(one_record_storage_unit_t* pRecS
     }
     else
     {
-        swmLogInfo("cgms_db_record_read_and_check crc error\r\n");
+        log_e("cgms_db_record_read_and_check crc error");
 
         return RET_CODE_FAIL;
     }
@@ -494,8 +494,8 @@ static ret_code_t cgms_db_record_get_raw_data(uint16_t usRecordIndex, cgms_meas_
         uint32_t uiReadAddr = MEAS_RECORD_ADDR + (usPageIndex * cgm_db_flash_get_info()->usSectorByteSize) + (usPosInPage * usOneRecordStorageUnitSize);
 
         cgms_db_flash_read(uiReadAddr, (uint8_t *)&TmpRecord, sizeof(one_record_storage_unit_t));
-        log_i("cgms_db_record_get_raw_data1  0x%x\r\n", uiReadAddr);
-        app_log_hexdump_info((uint8_t*)(&TmpRecord), sizeof(one_record_storage_unit_t));
+        log_i("cgms_db_record_get_raw_data1  0x%x", uiReadAddr);
+        elog_hexdump("data", 8,(uint8_t*)(&TmpRecord), sizeof(one_record_storage_unit_t));
     }
     // 如果当前有历史数据在RAM中
     else
@@ -511,8 +511,8 @@ static ret_code_t cgms_db_record_get_raw_data(uint16_t usRecordIndex, cgms_meas_
 
             memcpy(&TmpRecord, (void*)uiReadAddr,sizeof(one_record_storage_unit_t));
 
-            log_i("cgms_db_record_get_raw_data2  0x%x\r\n", uiReadAddr);
-            app_log_hexdump_info((uint8_t*)&TmpRecord, sizeof(one_record_storage_unit_t));
+            log_i("cgms_db_record_get_raw_data2  0x%x", uiReadAddr);
+            elog_hexdump("data", 8,(uint8_t*)&TmpRecord, sizeof(one_record_storage_unit_t));
         }
         else
         {
@@ -522,8 +522,8 @@ static ret_code_t cgms_db_record_get_raw_data(uint16_t usRecordIndex, cgms_meas_
             uint32_t uiReadAddr = MEAS_RECORD_ADDR + (usPageIndex * cgm_db_flash_get_info()->usSectorByteSize) + (usPosInPage * usOneRecordStorageUnitSize);
             memcpy(&TmpRecord, (void*)uiReadAddr, sizeof(one_record_storage_unit_t));
 
-            log_i("cgms_db_record_get_raw_data3  0x%x\r\n", uiReadAddr);
-            app_log_hexdump_info((uint8_t*)uiReadAddr, sizeof(one_record_storage_unit_t));
+            log_i("cgms_db_record_get_raw_data3  0x%x", uiReadAddr);
+            elog_hexdump("data", 8, (uint8_t*)uiReadAddr, sizeof(one_record_storage_unit_t));
         }
     }
 
@@ -542,7 +542,7 @@ static ret_code_t cgms_db_record_get_raw_data(uint16_t usRecordIndex, cgms_meas_
 *******************************************************************************/
 ret_code_t cgms_db_record_get(uint16_t usRecordIndex, cgms_meas_t* pRec)
 {
-  log_i("cgms_db_record_get %d\r\n", usRecordIndex);
+  log_i("cgms_db_record_get %d", usRecordIndex);
     if (cgms_db_record_get_raw_data(usRecordIndex, pRec) == 0)
     {
         // 设置最高位为1,用于标识本条数据为历史数据而不是实时数据.
@@ -587,8 +587,8 @@ ret_code_t cgms_db_record_add(cgms_meas_t* pRec)
     uint16_t usPageIndex, usPosInPage;
     cgms_db_calculation_record_pos(g_uiRecordsNum, &usPageIndex, &usPosInPage);
 
-    log_i("cgms_db_record_add %d , %d , %d\r\n", g_uiRecordsNum, usPageIndex, usPosInPage);
-    app_log_hexdump_info((uint8_t*)&TmpBuffer, sizeof(TmpBuffer));
+    log_i("cgms_db_record_add %d , %d , %d", g_uiRecordsNum, usPageIndex, usPosInPage);
+    elog_hexdump("data", 8,(uint8_t*)&TmpBuffer, sizeof(TmpBuffer));
 
 
     // 如果当前要写入的是这个page中第一个数据,清空整个buffer
@@ -599,7 +599,7 @@ ret_code_t cgms_db_record_add(cgms_meas_t* pRec)
     // 拷贝历史数据
     memcpy((uint8_t*)uiWriteAddr, &TmpBuffer, sizeof(one_record_storage_unit_t));
 
-    log_i("memcpy %x\r\n", uiWriteAddr);
+    log_i("memcpy %x", uiWriteAddr);
 
     // 如果当前要写入的是这个page中最后一个数据
     if (usPosInPage == usOnePageRecNum - 1)
@@ -609,30 +609,30 @@ ret_code_t cgms_db_record_add(cgms_meas_t* pRec)
         // 擦除目标page
         if (cgms_db_flash_erase(uiWriteAddr, cgm_db_flash_get_info()->usSectorByteSize))
         {
-            swmLogInfo("Flash_EraseSector %x error\r\n", uiWriteAddr);
+            log_e("Flash_EraseSector %x error", uiWriteAddr);
         }
         else
         {
-            swmLogInfo("Flash_EraseSector %x ok\r\n", uiWriteAddr);
+            log_d("Flash_EraseSector %x ok", uiWriteAddr);
         }
         // 写入历史数据
         if (cgms_db_flash_write(uiWriteAddr, g_pSavedMeas, cgm_db_flash_get_info()->usSectorByteSize))
         {
-            swmLogInfo("Flash_WriteBuffer %x error\r\n", uiWriteAddr);
+            log_e("Flash_WriteBuffer %x error", uiWriteAddr);
         }
         else
         {
-            swmLogInfo("Flash_WriteBuffer %x ok\r\n", uiWriteAddr);
+            log_d("Flash_WriteBuffer %x ok", uiWriteAddr);
         }
 
         // 写入RecordIndex
         if (cgms_db_set_flash_record_index(&g_mRecordIndex) != 0)
         {
-            swmLogInfo("cgms_db_set_flash_record_index fail\r\n");
+            log_e("cgms_db_set_flash_record_index fail");
         }
         else
         {
-            swmLogInfo("cgms_db_set_flash_record_index ok\r\n");
+            log_d("cgms_db_set_flash_record_index ok");
         }
     }
     // 如果这是最后一条数据,则也写一次record_index
@@ -641,11 +641,11 @@ ret_code_t cgms_db_record_add(cgms_meas_t* pRec)
         // 写入RecordIndex
         if (cgms_db_set_flash_record_index(&g_mRecordIndex) != 0)
         {
-            swmLogInfo("cgms_db_set_flash_record_index fail\r\n");
+            log_e("cgms_db_set_flash_record_index fail");
         }
         else
         {
-            swmLogInfo("cgms_db_set_flash_record_index ok\r\n");
+            log_d("cgms_db_set_flash_record_index ok");
         }
     }
 
@@ -669,7 +669,7 @@ ret_code_t cgms_db_record_add(cgms_meas_t* pRec)
 *******************************************************************************/
 void cmgs_db_force_write_flash(void)
 {
-    swmLogInfo("cmgs_db_force_write_flash\r\n");
+    log_d("cmgs_db_force_write_flash");
     // 计算当前历史数据的位置
     uint16_t usPageIndex, usPosInPage;
     cgms_db_calculation_record_pos(g_uiRecordsNum - 1, &usPageIndex, &usPosInPage);
@@ -690,11 +690,11 @@ void cmgs_db_force_write_flash(void)
         uint32_t uiWriteAddr = MEAS_RECORD_ADDR + (usPageIndex * cgm_db_flash_get_info()->usSectorByteSize);
         if (cgms_db_flash_write(uiWriteAddr, g_pSavedMeas, cgm_db_flash_get_info()->usSectorByteSize))
         {
-            log_i("Flash_WriteBuffer %x error\r\n", uiWriteAddr);
+            log_e("Flash_WriteBuffer %x error", uiWriteAddr);
         }
         else
         {
-            log_i("Flash_WriteBuffer %x ok\r\n", uiWriteAddr);
+            log_d("Flash_WriteBuffer %x ok", uiWriteAddr);
         }
     }
     else

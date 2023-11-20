@@ -22,7 +22,7 @@
 #include "app_glucose_meas.h"
 //#include "app_glucose_meas.h"
 /* Private variables ---------------------------------------------------------*/
-static bool g_bBleRacpNotifyIsEnableFlag = false;						// BLE SOCP通知使能标志位
+static bool g_bBleRacpNotifyIsEnableFlag = false;						// BLE ROCP通知使能标志位
 /* Private function prototypes -----------------------------------------------*/
 uint8_t ble_racp_encode(ble_cgms_racp_datapacket_t* pRacpDatapacket, uint8_t* pData);
 void ble_racp_decode(uint8_t ucDataLen, uint8_t* pData, ble_cgms_racp_datapacket_t* pRacpDatapacket);

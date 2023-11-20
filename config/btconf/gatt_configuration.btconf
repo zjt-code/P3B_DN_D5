@@ -109,6 +109,19 @@ Summary: The CGM Status allows the Collector to actively request the current sta
       </properties>
     </characteristic>
 
+    <!--Record Access Control Point-->
+    <characteristic const="false" id="record_access_control_point" name="Record Access Control Point" sourceId="org.bluetooth.characteristic.record_access_control_point" uuid="2A52">
+      <informativeText>
+Summary: This control point is used with a service to provide basic management functionality for the Glucose Sensor patient record database. This enables functions including counting records, transmitting records and clearing records based on filter criterion. The filter criterion in the Operand field is defined by the service that references this characteristic as is the format of a record (which may be comprised of one or more characteristics) and the sequence of transferred records.</informativeText>
+      <value length="20" type="hex" variable_length="true"/>
+      <properties>
+        <write authenticated="false" bonded="false" encrypted="false"/>
+        <write_no_response authenticated="false" bonded="false" encrypted="false"/>
+        <indicate authenticated="false" bonded="false" encrypted="false"/>
+        <notify authenticated="false" bonded="false" encrypted="false"/>
+      </properties>
+    </characteristic>
+
     <!--CGM Session Start Time-->
     <characteristic const="false" id="cgm_session_start_time" name="CGM Session Start Time" sourceId="org.bluetooth.characteristic.cgm_session_start_time" uuid="2AAA">
       <value length="11" type="hex" variable_length="false"/>
@@ -117,14 +130,11 @@ Summary: The CGM Status allows the Collector to actively request the current sta
       </properties>
     </characteristic>
 
-    <!--Record Access Control Point-->
-    <characteristic const="false" id="record_access_control_point" name="Record Access Control Point" sourceId="org.bluetooth.characteristic.record_access_control_point" uuid="2A52">
-      <informativeText>
-Summary: This control point is used with a service to provide basic management functionality for the Glucose Sensor patient record database. This enables functions including counting records, transmitting records and clearing records based on filter criterion. The filter criterion in the Operand field is defined by the service that references this characteristic as is the format of a record (which may be comprised of one or more characteristics) and the sequence of transferred records.</informativeText>
-      <value length="20" type="hex" variable_length="true"/>
+    <!--CGM Session Run Time-->
+    <characteristic const="false" id="cgm_session_run_time" name="CGM Session Run Time" sourceId="org.bluetooth.characteristic.cgm_session_run_time" uuid="2AAB">
+      <value length="4" type="hex" variable_length="false"/>
       <properties>
-        <write authenticated="false" bonded="false" encrypted="false"/>
-        <indicate authenticated="false" bonded="false" encrypted="false"/>
+        <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>
     </characteristic>
 
@@ -136,7 +146,8 @@ Summary: The CGM Specific Ops Control Point encapsulates all functionality and m
       <value length="20" type="hex" variable_length="true"/>
       <properties>
         <write authenticated="false" bonded="false" encrypted="false"/>
-        <indicate authenticated="false" bonded="false" encrypted="false"/>
+        <write_no_response authenticated="false" bonded="false" encrypted="false"/>
+        <notify authenticated="false" bonded="false" encrypted="false"/>
       </properties>
     </characteristic>
   </service>

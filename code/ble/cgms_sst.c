@@ -57,7 +57,7 @@ void cgms_update_sst_and_time_zone(uint32_t uiStartTime, uint8_t ucTimeZone)
 
     g_mSST.time_zone = ucTimeZone;
 
-    log_i("cgm_update_sst %04d/%02d/%02d  %02d:%02d:%02d\r\n", g_mSST.date_time.time_info.year, g_mSST.date_time.time_info.month, g_mSST.date_time.time_info.day, g_mSST.date_time.time_info.hour, g_mSST.date_time.time_info.minute, g_mSST.date_time.time_info.sec);
+    log_i("cgm_update_sst %04d/%02d/%02d  %02d:%02d:%02d", g_mSST.date_time.time_info.year, g_mSST.date_time.time_info.month, g_mSST.date_time.time_info.day, g_mSST.date_time.time_info.hour, g_mSST.date_time.time_info.minute, g_mSST.date_time.time_info.sec);
 }
 
 /*******************************************************************************

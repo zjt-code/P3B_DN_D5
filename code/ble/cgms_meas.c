@@ -84,7 +84,7 @@ bool ble_meas_notify_is_enable(void)
 *******************************************************************************/
 ret_code_t cgms_meas_special_send(ble_event_info_t BleEventInfo, cgms_history_special_datapcket_t CgmsHistorySpecialDatapcket)
 {
-    if ((is_measurement_notify()) && (app_global_get_app_state()->bSentSocpSuccess == true) && (app_global_get_app_state()->bBleConnected == true))
+    if ((ble_meas_notify_is_enable()) && (app_global_get_app_state()->bSentSocpSuccess == true) && (app_global_get_app_state()->bBleConnected == true))
     {
         uint8_t ucLen = sizeof(CgmsHistorySpecialDatapcket);
         uint8_t ucDatapacketBuffer[20];
@@ -128,7 +128,7 @@ ret_code_t cgms_meas_special_send(ble_event_info_t BleEventInfo, cgms_history_sp
 *******************************************************************************/
 ret_code_t cgms_meas_send(ble_event_info_t BleEventInfo, cgms_meas_t Rec)
 {
-    if ((is_measurement_notify()) && (app_global_get_app_state()->bSentSocpSuccess == true) && (app_global_get_app_state()->bBleConnected == true))
+    if ((ble_meas_notify_is_enable()) && (app_global_get_app_state()->bSentSocpSuccess == true) && (app_global_get_app_state()->bBleConnected == true))
     {
         uint8_t ucLen = sizeof(Rec);
         uint8_t ucDatapacketBuffer[20];

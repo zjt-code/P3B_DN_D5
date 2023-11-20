@@ -60,12 +60,12 @@ ret_code_t cgms_prm_get_sn(unsigned char* buff)
     // 如果SN值非法,或者CRC错误,则恢复默认SN
     if ((0x00 != do_crc((uint8_t*)&g_PrmDb.P4, sizeof(P4_t))) || g_PrmDb.P4.prmWMY[0] == 0xFF)
     {
-        g_PrmDb.P4.prmWMY[0] = 'A'; //A
-        g_PrmDb.P4.prmWMY[1] = 'B'; //B
-        g_PrmDb.P4.prmWMY[2] = 'C'; //C
+        g_PrmDb.P4.prmWMY[0] = 'Z'; //A
+        g_PrmDb.P4.prmWMY[1] = 'H'; //B
+        g_PrmDb.P4.prmWMY[2] = 'T'; //C
         g_PrmDb.P4.prmWMY[3] = 0;  //null,end of string
         log_e("can not read SN,use default SN");
-        g_PrmDb.P4.SN = 0;
+        g_PrmDb.P4.SN = 2;
         uiFlag = RET_CODE_FAIL;
     }
     else

@@ -176,7 +176,7 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
 	// 编码数据包
 	ucLen = ble_socp_encode(&SocpRspDatapacket, EncodedRespDatapacketBuffer);
 	// 发送数据包
-	elog_hexdump("socp_send", 16, EncodedRespDatapacketBuffer, ucLen);
+	elog_hexdump("socp_send", 8, EncodedRespDatapacketBuffer, ucLen);
 
 #ifdef CGMS_ENCRYPT_ENABLE
 	uint8_t ucCipher[16];
@@ -191,15 +191,21 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
 		ucLen = 16;
 	}
 #endif
+    // 发送数据包
+    elog_hexdump("socp_send(encrpty)", 8, EncodedRespDatapacketBuffer, ucLen);
 
-	if ((ble_socp_notify_is_enable()) && (app_global_get_app_state()->bSentSocpSuccess == true) && (app_global_get_app_state()->bBleConnected == true))
+	if ((ble_socp_notify_is_enable()) && (app_global_get_app_state()->bBleConnected == true))
 	{
 		sl_status_t sc;
-		sc = sl_bt_gatt_server_send_indication(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, EncodedRespDatapacketBuffer);
+		sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, EncodedRespDatapacketBuffer);
 		if (sc == SL_STATUS_OK)
 		{
-			app_global_get_app_state()->bSentSocpSuccess = false;
+			//app_global_get_app_state()->bSentSocpSuccess = false;
 			return RET_CODE_SUCCESS;
+		}
+		else
+		{
+			log_w("sl_bt_gatt_server_send_notification fail:%d", sc);
 		}
 	}
 	else
@@ -207,10 +213,6 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
 		if (ble_socp_notify_is_enable() == false)
 		{
 			log_w("ble socp notify not enable");
-		}
-		if (app_global_get_app_state()->bSentSocpSuccess == false)
-		{
-			log_w("sent socp success is false");
 		}
 		if (app_global_get_app_state()->bBleConnected == false)
 		{
@@ -303,7 +305,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 					{
 						cgms_aes128_decrpty(&pData[1], ucTempDatapacketBuffer);
 						memcpy(&pData[1], ucTempDatapacketBuffer, 16);
-						elog_hexdump("datapacket decode", 10, pData, 16);
+						elog_hexdump("datapacket decode", 8, pData, 16);
 					}
 #endif
 				}
@@ -314,8 +316,8 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 	// 解码SOCP数据包并填充结构体
 	ble_socp_decode(usLen, pData, &SocpDatapacket);
 
-	elog_hexdump("socp_rav", 16, pData, usLen);
-	log_i("SocpDatapacket.opcode:%d\r\n", SocpDatapacket.ucOpCode);
+	elog_hexdump("socp_rav", 8, pData, usLen);
+	log_i("SocpDatapacket.opcode:%d", SocpDatapacket.ucOpCode);
 
 	SocpResponseDatapcket.ucOpCode = SOCP_RESPONSE_CODE;
 	SocpResponseDatapcket.ucReqOpcode = SocpDatapacket.ucOpCode;
@@ -330,6 +332,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 		// 如果是写入CGM通讯间隔命令
 	case SOCP_WRITE_CGM_COMMUNICATION_INTERVAL:
 	{
+		log_d("SOCP_WRITE_CGM_COMMUNICATION_INTERVAL");
 		// 给回应包添加默认的回应码
 		SocpResponseDatapcket.ucRspCode = SOCP_GENERAL_RSP_SUCCESS;
 
@@ -369,6 +372,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 	// 如果是读取CGM通讯间隔命令
 	case SOCP_READ_CGM_COMMUNICATION_INTERVAL:
 	{
+		log_d("SOCP_READ_CGM_COMMUNICATION_INTERVAL");
 		SocpResponseDatapcket.ucOpCode = SOCP_READ_CGM_COMMUNICATION_INTERVAL_RESPONSE;
 		// todo:待重构后实现
 		//SocpResponseDatapcket.ucRespVal[0] = p_cgms->comm_interval;
@@ -378,6 +382,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 	// 如果是开始CGM命令
 	case SOCP_START_THE_SESSION:
 	{
+		log_d("SOCP_START_THE_SESSION");
 		// 效验命令的CRC
 		if (do_crc(pData, 15) != 0)
 		{
@@ -415,11 +420,12 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 			}
 
 			// 计算工厂校准码
-			float fTmpSensorK = (float)SocpStartTheSessionDatapacket.usFactoryCode / 1000;
-
+			float fTmpSensorK = (float)SocpStartTheSessionDatapacket.usFactoryCode / 1000.0f;
+			log_d("SensorK:%f", fTmpSensorK);
 			// 如果工厂校准码不合法
 			if ((fTmpSensorK < SOCP_SET_SENSOR_CODE_MIN_ERR_VAL) || (fTmpSensorK > SOCP_SET_SENSOR_CODE_MAX_ERR_VAL))
 			{
+				log_w("SensorK err");
 				// 返回错误码
 				SocpResponseDatapcket.ucRspCode = SOCP_START_THE_SESSION_RSP_CODE_SENSOR_CODE_ERR;
 				break;
@@ -432,6 +438,10 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 				// 更新CGM Status中的工厂校准码
 				att_get_cgm_status()->usFactoryCode = SocpStartTheSessionDatapacket.usFactoryCode;
 			}
+
+            // 设置返回结果
+			SocpResponseDatapcket.ucRspCode = SOCP_START_THE_SESSION_RSP_CODE_SUCCESS;
+
 			// 更新feature char中的启动来源
 			att_get_feature()->ucStartBy = SocpStartTheSessionDatapacket.ucFrom;
 
@@ -442,7 +452,8 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 			att_get_start_time()->ucTimeZone = SocpStartTheSessionDatapacket.ucTimeZone;
 
 			// 更新CGM Status中的运行状态为极化中
-			att_get_cgm_status()->ucRunStatus = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP;
+			app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP;
+			att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->status;
 
 			// 更新Feature char的CRC
 			att_update_feature_char_data_crc();
@@ -459,18 +470,18 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 			// 更新record_index中的SST
 			cgms_db_record_index_update_sst(g_mSST);
 
+            // 清空历史数据
+            cgms_db_reset();
 
 			// 开始应用层血糖测量
 			app_glucose_meas_start();
-
-			// 清空历史数据
-			cgms_db_reset();
 		}
 		break;
 	}
 	// 如果是停止CGM命令
 	case SOCP_STOP_THE_SESSION:
 	{
+		log_d("SOCP_STOP_THE_SESSION");
 		uint8_t ucIsStopedFlag = 0;
 		// 判断发射器当前是否已经处于停止状态
 		switch (att_get_cgm_status()->ucRunStatus)
@@ -521,6 +532,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 	// 如果是写入血糖校准值命令
 	case SOCP_WRITE_GLUCOSE_CALIBRATION_VALUE:
 	{
+		log_d("SOCP_WRITE_GLUCOSE_CALIBRATION_VALUE");
 		// 判断长度是否正确
 		if (usLen < 13)
 		{
@@ -584,6 +596,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 	// 如果是写入参数命令
 	case SOCP_WRITE_PRM:
 	{
+		log_d("SOCP_WRITE_PRM");
 		if (SocpDatapacket.ucDataLen > 16)
 		{
 			SocpResponseDatapcket.ucRspCode = SOCP_GENERAL_RSP_INVALID_OPERAND;
@@ -669,6 +682,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 	// 如果是读取参数命令
 	case SOCP_READ_PRM:
 	{
+		log_d("SOCP_READ_PRM");
 		if (SocpDatapacket.ucDataLen > 4)
 		{
 			SocpResponseDatapcket.ucRspCode = SOCP_GENERAL_RSP_INVALID_OPERAND;
@@ -779,6 +793,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 	// 如果是验证密码命令
 	case SOCP_VERIFY_PWD:
 	{
+		log_d("SOCP_VERIFY_PWD");
 		SocpResponseDatapcket.ucSizeVal = 0;
 
 		// 验证CRC

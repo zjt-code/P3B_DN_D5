@@ -49,6 +49,7 @@ static uint32_t g_UiListRtcTime = 0;                                   // 最后
 sl_sleeptimer_timer_handle_t g_AppGlucoseMeasTimer;                    // 应用层血糖测量定时器
 sl_sleeptimer_timer_handle_t g_AppGlucoseMeasRecordSendTimer;          // 应用层血糖测量记录发送定时器
 sl_sleeptimer_timer_handle_t g_AppBatteryMeasTimer;                    // 应用层电量测量定时器
+
 /* Private function prototypes -----------------------------------------------*/
 void app_battery_meas_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data);
 /* Private functions ---------------------------------------------------------*/
@@ -242,7 +243,7 @@ static void app_glucose_handle(void)
     ret_code_t err_code = cgms_db_record_add(&rec);
     // 通过BLE发送本次的测量记录
 
-	if((is_measurement_notify())&&(app_global_get_app_state()->bSentMeasSuccess==true)&&(app_global_get_app_state()->bBleConnected==true))
+	if((ble_meas_notify_is_enable())&&(app_global_get_app_state()->bSentMeasSuccess==true)&&(app_global_get_app_state()->bBleConnected==true))
 	{
 		app_global_get_app_state()->bSentMeasSuccess=false;
 
@@ -388,8 +389,10 @@ void app_glucose_meas_handler(void)
 {
     // 获取当前RTC时间
     uint32_t ucNowRtcTime = rtc_get_curr_time();
+
     // 计算当前RTC时间差值
     int32_t uiRtcTimeDiff = ucNowRtcTime - g_UiListRtcTime;
+
     // 判断当前是否需要执行1S一次的数据采集
     if (uiRtcTimeDiff >= 1000)
     {
@@ -411,6 +414,7 @@ void app_glucose_meas_handler(void)
             app_glucose_meas_stop();
         }
 
+        log_d("app_global_is_session_runing:%d", app_global_is_session_runing()?1:0);
         // 如果当前已经开始了一次血糖测量周期
         if (app_global_is_session_runing())
         {
@@ -457,7 +461,7 @@ void app_glucose_meas_timer_callback(sl_sleeptimer_timer_handle_t* handle, void*
 *******************************************************************************/
 void app_glucose_meas_start(void)
 {
-    log_d("app glucose meas stop");
+    log_d("app glucose meas start");
     // 启动一个1S的循环定时器
     sl_status_t status = sl_sleeptimer_start_periodic_timer(&g_AppGlucoseMeasTimer, sl_sleeptimer_ms_to_tick(1000), app_glucose_meas_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
@@ -553,7 +557,7 @@ void app_glucose_meas_record_send_handelr(void)
             }
 
             // 100ms后继续发送血糖数据记录
-            if ((is_measurement_notify()) && (app_global_get_app_state()->bSentSocpSuccess == true) && (app_global_get_app_state()->bBleConnected == true))
+            if ((ble_meas_notify_is_enable()) && (app_global_get_app_state()->bSentSocpSuccess == true) && (app_global_get_app_state()->bBleConnected == true))
             {
                 // 发送计数累计(只有在发送成功时才累计)
                 if (bSendSuccessFlag)
