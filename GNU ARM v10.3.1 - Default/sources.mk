@@ -36,6 +36,7 @@ gecko_sdk_4.3.2/platform/emlib/src \
 gecko_sdk_4.3.2/platform/radio/rail_lib/plugin/pa-conversions \
 gecko_sdk_4.3.2/platform/radio/rail_lib/plugin/rail_util_power_manager_init \
 gecko_sdk_4.3.2/platform/radio/rail_lib/plugin/rail_util_pti \
+gecko_sdk_4.3.2/platform/radio/rail_lib/plugin/rail_util_rf_path \
 gecko_sdk_4.3.2/platform/security/sl_component/se_manager/src \
 gecko_sdk_4.3.2/platform/security/sl_component/sl_cryptoacc_library/src \
 gecko_sdk_4.3.2/platform/security/sl_component/sl_mbedtls_support/src \

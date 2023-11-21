@@ -128,12 +128,12 @@ ret_code_t cgms_meas_special_send(ble_event_info_t BleEventInfo, cgms_history_sp
 *******************************************************************************/
 ret_code_t cgms_meas_send(ble_event_info_t BleEventInfo, cgms_meas_t Rec)
 {
-    if ((ble_meas_notify_is_enable()) && (app_global_get_app_state()->bSentSocpSuccess == true) && (app_global_get_app_state()->bBleConnected == true))
+    if (ble_meas_notify_is_enable()  && (app_global_get_app_state()->bBleConnected == true))
     {
         uint8_t ucLen = sizeof(Rec);
         uint8_t ucDatapacketBuffer[20];
         memcpy(ucDatapacketBuffer, &Rec, ucLen);
-        elog_hexdump("cgms_meas_send", 16, ucDatapacketBuffer, ucLen);
+        elog_hexdump("cgms_meas_send", 8, ucDatapacketBuffer, ucLen);
 
 #ifdef CGMS_ENCRYPT_ENABLE
 
@@ -143,15 +143,21 @@ ret_code_t cgms_meas_send(ble_event_info_t BleEventInfo, cgms_meas_t Rec)
         cgms_aes128_encrpty(ucDatapacketBuffer, cipher);
         memcpy(ucDatapacketBuffer, cipher, 16);
 #endif
+        elog_hexdump("cgms_meas_send(encrpty)", 8, ucDatapacketBuffer, ucLen);
 
         // 发送数据
         sl_status_t sc;
-        sc = sl_bt_gatt_server_send_indication(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucDatapacketBuffer);
+        sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucDatapacketBuffer);
         if (sc == RET_CODE_SUCCESS)
         {
+            log_i("send OK");
             app_global_get_app_state()->bRecordSendFlag = false;
             app_global_get_app_state()->bSentSocpSuccess = false;
             return RET_CODE_SUCCESS;
+        }
+        else
+        {
+            log_e("sl_bt_gatt_server_send_notification fail:%d", sc);
         }
     }
     return RET_CODE_FAIL;

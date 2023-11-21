@@ -54,25 +54,16 @@ bool afe_is_working(void)
 *******************************************************************************/
 void afe_init(void)
 {
-    log_d("afe_init\n");
+    log_d("afe_init");
 
     g_bAfeisWorking = false;
 #if 0
     // 初始化bms003
     bms003_init();
 
-    // bms003开始工作
-    bms003_start();
-    
-    // bms003配置
-    bms003_config();
-
 #else
     // 初始化LTCGM1272
     ltcgm1272_init();
-
-    // LTCGM1272开始工作
-    ltcgm1272_start();
 #endif
 }
 
@@ -87,7 +78,7 @@ void afe_init(void)
 *******************************************************************************/
 void afe_stop(void)
 {
-    log_d("afe_stop\n");
+    log_d("afe_stop");
 #if 0
     // bms003停止工作
     bms003_stop();
@@ -108,7 +99,7 @@ void afe_stop(void)
 *******************************************************************************/
 void afe_start(void)
 {
-    log_d("afe_start\n");
+    log_d("afe_start");
 #if 0
     // bms003开始工作
     bms003_start();

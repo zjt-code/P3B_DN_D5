@@ -27,10 +27,9 @@
 
 /* Private function prototypes -----------------------------------------------*/
 bool ble_update_connect_param_is_pass(uint16_t usConnectionHandle);
-void ble_update_connect_param_stop(uint16_t usConnectionHandle);
-void ble_update_connect_param_all_stop(void);
-void ble_update_connect_param_start(uint16_t usConnectionHandle);
-void ble_update_connect_param_timer_handle(uint16_t usConnectionHandle);
+void ble_update_connect_param_handle(void);
+void ble_update_connect_param_stop(void);
+void ble_update_connect_param_start(void);
 #endif /* __BLE_UPDATE_CONNECT_PARAM_H */
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/

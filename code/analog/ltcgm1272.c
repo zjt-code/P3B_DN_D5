@@ -13,7 +13,7 @@
     #define LOG_TAG                "LTCGM1272"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                    ELOG_LVL_DEBUG
+#define LOG_LVL                    ELOG_LVL_INFO
 
 #include "ltcgm1272.h"
 #include "spidrv.h"
@@ -118,6 +118,9 @@ void ltcgm1272_init(void)
     // 设置AFE的INT引脚下拉输入
     GPIO_PinModeSet(AFE_INT_PORT, AFE_INT_PIN, gpioModeInputPull, 0);
 
+    // AFE触发软件复位
+    ltcgm1272_write_reg(CGM1272_SOFT_RESET_CLR,0X01);
+
     // 配置中断处理函数
     g_ucLtcgm1272IrqInterrupt = GPIOINT_CallbackRegisterExt(AFE_INT_PIN, ltcgm1272_int_irq_callback, NULL);
 
@@ -208,7 +211,7 @@ void ltcgm1272_int_irq_callback(uint8_t intNo, void* ctx)
 *******************************************************************************/
 void ltcgm1272_start(void)
 {
-    //log_d("ltcgm1272_start");
+    log_d("ltcgm1272_start");
 
     ltcgm1272_write_reg(0x13, 0x01);	//open oprtia
     ltcgm1272_write_reg(0x14, 0x07);	//set Rtia

@@ -159,7 +159,7 @@ void racp_response_code_send(ble_event_info_t BleEventInfo, uint8_t ucOpcode, ui
     if ((ble_racp_notify_is_enable()) && (app_global_get_app_state()->bRecordSendFlag == true) && (app_global_get_app_state()->bBleConnected == true))
     {
         sl_status_t sc;
-        sc = sl_bt_gatt_server_send_indication(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucEncodedRacp);
+        sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucEncodedRacp);
 		app_global_get_app_state()->bRecordSendFlag = false;
     }
 

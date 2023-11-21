@@ -40,6 +40,7 @@ void app_glucose_meas_handler(void);
 void app_glucose_meas_start(void);
 void app_glucose_meas_stop(void);
 void app_glucose_meas_record_send_start(void);
+void app_glucose_meas_record_send_stop(void);
 void app_glucose_meas_init(void);
 uint16_t app_glucose_get_records_current_offset(void);
 #endif /* __APP_GLUCOSE_MEAS_H */

@@ -502,6 +502,10 @@
               <file name="sl_rail_util_pti.c" linked="false" uri="studio:/sdk/platform/radio/rail_lib/plugin/rail_util_pti/sl_rail_util_pti.c"/>
               <file name="sl_rail_util_pti.h" linked="false" uri="studio:/sdk/platform/radio/rail_lib/plugin/rail_util_pti/sl_rail_util_pti.h"/>
             </folder>
+            <folder name="rail_util_rf_path">
+              <file name="sl_rail_util_rf_path.c" linked="false" uri="studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rf_path/sl_rail_util_rf_path.c"/>
+              <file name="sl_rail_util_rf_path.h" linked="false" uri="studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rf_path/sl_rail_util_rf_path.h"/>
+            </folder>
           </folder>
         </folder>
       </folder>
@@ -793,6 +797,7 @@
   <includePath uri="studio:/project/gecko_sdk_4.3.2/platform/radio/rail_lib/plugin/pa-conversions/efr32xg27"/>
   <includePath uri="studio:/project/gecko_sdk_4.3.2/platform/radio/rail_lib/plugin/rail_util_power_manager_init"/>
   <includePath uri="studio:/project/gecko_sdk_4.3.2/platform/radio/rail_lib/plugin/rail_util_pti"/>
+  <includePath uri="studio:/project/gecko_sdk_4.3.2/platform/radio/rail_lib/plugin/rail_util_rf_path"/>
   <includePath uri="studio:/project/gecko_sdk_4.3.2/platform/security/sl_component/se_manager/inc"/>
   <includePath uri="studio:/project/gecko_sdk_4.3.2/platform/security/sl_component/se_manager/src"/>
   <includePath uri="studio:/project/gecko_sdk_4.3.2/util/third_party/segger/systemview/SEGGER"/>

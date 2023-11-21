@@ -9,6 +9,7 @@
 #include "sl_device_init_emu.h"
 #include "pa_conversions_efr32.h"
 #include "sl_rail_util_pti.h"
+#include "sl_rail_util_rf_path.h"
 #include "sl_sleeptimer.h"
 #include "app_log.h"
 #include "sl_bluetooth.h"
@@ -59,6 +60,7 @@ void sl_stack_init(void)
 {
   sl_rail_util_pa_init();
   sl_rail_util_pti_init();
+  sl_rail_util_rf_path_init();
   sl_bt_init();
   sl_rail_util_power_manager_init();
 }

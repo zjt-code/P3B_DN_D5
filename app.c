@@ -82,8 +82,8 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         // 设置广播的时间参数
         sc = sl_bt_advertiser_set_timing(
             g_ucAdvertisingSetHandle,
-            160, // min. adv. interval (milliseconds * 1.6)
-            160, // max. adv. interval (milliseconds * 1.6)
+            1600, // min. adv. interval (milliseconds * 1.6)
+            1600, // max. adv. interval (milliseconds * 1.6)
             0,   // adv. duration
             0);  // max. num. adv. events
         app_assert_status(sc);
@@ -144,6 +144,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         // 调用APP层的连接参数更新回调
         app_event_ble_param_updated_callback(connection, interval, latency, timeout);
         log_i("Connection parameter update.:%d,latency:%d,timeout:%d", interval, latency, timeout);
+
         break;
     }
 

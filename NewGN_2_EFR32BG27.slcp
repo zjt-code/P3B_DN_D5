@@ -48,6 +48,7 @@ component:
 - {id: psa_builtin_key_support_cryptoacc}
 - {id: bluetooth_feature_system}
 - {id: component_catalog}
+- {id: rail_util_rf_path}
 - {id: app_assert}
 other_file:
 - {path: image/readme_img0.png}

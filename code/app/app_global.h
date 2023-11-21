@@ -25,6 +25,7 @@
 typedef enum
 {
  MAIN_LOOP_EVENT_NONE,                              // 无效事件
+ MAIN_LOOP_EVENT_BLE_UPDATE_CONNECT_PARAMETERS,     // 更新BLE连接参数事件
  MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER,                  // AFE周期唤醒定时器事件
  MAIN_LOOP_EVENT_AFE_MEASURE_TIMER,                 // AFE触发测量定时器事件
  MAIN_LOOP_EVENT_AFE_CONFIG_AFTER_TIMER,            // AFE配置后处理定时器事件
@@ -192,7 +193,7 @@ typedef struct
     uint16_t usConnectInterval;                     // 连接间隔
     uint16_t usConnectLatency;                      // 可跳过的包数
     uint16_t usConnectTimeout;                      // 连接超时时间
-    sl_sleeptimer_timer_handle_t BleUpdateConnectParamTimer;// BLE更新连接参数定时器
+    uint64_t ulConenctedTimeCnt;                    // 连接建立时长(S)
 }BleConnectInfo_t;
 
 typedef struct

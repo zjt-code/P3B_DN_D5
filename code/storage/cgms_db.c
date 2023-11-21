@@ -194,24 +194,33 @@ ret_code_t cgms_db_init(void)
 {
     g_uiRecordsNum = 0;
     g_pSavedMeas = NULL;
+
+    // 初始化历史数据的flash接口
+    cgms_db_flash_init();
+
     // 申请一段扇区字节数+对齐字节数的RAM空间
     uint8_t* pTmpMalloc = malloc(cgm_db_flash_get_info()->usSectorByteSize + cgm_db_flash_get_info()->ucAlignAtNByte);
 
     // 如果申请成功
     if (pTmpMalloc)
     {
+        log_d("AlignAtNByte:%d", cgm_db_flash_get_info()->ucAlignAtNByte);
         for (uint8_t i = 0; i < cgm_db_flash_get_info()->ucAlignAtNByte; i++)
         {
             // 判断是否对齐,如果对齐则按这个地址输出buffer指针
             if (((uint32_t)pTmpMalloc) % cgm_db_flash_get_info()->ucAlignAtNByte == 0)
             {
                 g_pSavedMeas = (uint8_t*)((uint32_t)pTmpMalloc + i);
+
+                log_d("g_pSavedMeas:0x%X",(uint32_t)g_pSavedMeas);
                 break;
             }
         }
+
     }
     else
     {
+        log_e("g_pSavedMeas malloc fail");
         return RET_CODE_FAIL;
     }
     if (g_pSavedMeas == NULL)return RET_CODE_FAIL;
@@ -219,7 +228,7 @@ ret_code_t cgms_db_init(void)
     // 清空buffer
     memset(g_pSavedMeas, 0x00, cgm_db_flash_get_info()->usSectorByteSize);
 
-    swmLogInfo("cgms_db_init  start:0x%x,size:%ds\r\n", MEAS_RECORD_ADDR, MEAS_RECORD_FLASH_SIZE);
+    log_d("cgms_db_init  start:0x%x,size:%d", MEAS_RECORD_ADDR, MEAS_RECORD_FLASH_SIZE);
 
     // 获取Flash中存储的RecordIndex
     if (cgms_db_get_flash_record_index(&g_mRecordIndex) == 0)
@@ -231,9 +240,9 @@ ret_code_t cgms_db_init(void)
         cgms_sst_recover(g_mRecordIndex.sst);
 
 
-        swmLogInfo("cgms_db_get_flash_record_index g_uiRecordsNum:%d\r\n", g_uiRecordsNum);
-        swmLogInfo("cgms_db_get_flash_record_index sst_time_zone:%d\r\n", g_mRecordIndex.sst.time_zone);
-        swmLogInfo("cgms_db_get_flash_record_index sst:%d/%d/%d   %d:%d:%d\r\n", g_mRecordIndex.sst.date_time.time_info.year,\
+        log_d("cgms_db_get_flash_record_index g_uiRecordsNum:%d", g_uiRecordsNum);
+        log_d("cgms_db_get_flash_record_index sst_time_zone:%d", g_mRecordIndex.sst.time_zone);
+        log_d("cgms_db_get_flash_record_index sst:%d/%d/%d   %d:%d:%d", g_mRecordIndex.sst.date_time.time_info.year,\
             g_mRecordIndex.sst.date_time.time_info.month, \
             g_mRecordIndex.sst.date_time.time_info.day, \
             g_mRecordIndex.sst.date_time.time_info.hour, \
@@ -242,7 +251,7 @@ ret_code_t cgms_db_init(void)
     }
     else
     {
-        swmLogInfo("cgms_db_get_flash_record_index fail\r\n");
+        log_e("cgms_db_get_flash_record_index fail");
     }
     return RET_CODE_SUCCESS;
 }
@@ -293,7 +302,7 @@ ret_code_t cgms_db_get_flash_record_index(record_index_storage_unit_t* pRecordIn
             // 如果校验和正确,且参数指针合法,则对外输出RecordIndex
             if (TmpRecordIndex.usDataSum == usDataSum && pRecordIndex)
             {
-                swmLogInfo("cgms_db_get_flash_record_index index:%d\r\n", i);
+                log_d("cgms_db_get_flash_record_index index:%d", i);
                 *pRecordIndex = TmpRecordIndex;
                 return RET_CODE_SUCCESS;
             }

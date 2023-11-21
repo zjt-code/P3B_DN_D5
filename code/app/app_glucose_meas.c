@@ -32,6 +32,7 @@
 #include "afe.h"
 #include "math.h"
 #include <elog.h>
+#include "gatt_db.h"
 /* Private variables ---------------------------------------------------------*/
 
 static uint8_t g_ucGlucoseMeasInterval = 0;                            // 血糖测量间隔(ADC测量间隔,默认10S)
@@ -43,8 +44,8 @@ static uint8_t g_ucAvgElectricCurrentCalTempArrayCnt = 0;              // 当前
 static float g_dAvgElectricCurrentCalTempArray[APP_GLUCOSE_MEAS_AVG_ELECTRIC_CURRENT_CAL_TEMP_ARRAY_SIZE];                   // 用于计算平均电流的临时数据数组
 static uint16_t g_usAppBatteryTimeDiv = 0;	                            // 电量检测定时任务分频计数
 static uint8_t g_ucAppBatteryInitMeasDoneFlag = 0;                     // 电量初始转换完成标志位
-static uint32_t g_UiListRtcTime = 0;                                   // 最后一次的RTC时间
-
+static uint32_t g_uiListRtcTime = 0;                                   // 最后一次的RTC时间
+static uint32_t g_uiCgmWorkTimeCnt = 0;                                // CGM运行时间(单位秒)
 
 sl_sleeptimer_timer_handle_t g_AppGlucoseMeasTimer;                    // 应用层血糖测量定时器
 sl_sleeptimer_timer_handle_t g_AppGlucoseMeasRecordSendTimer;          // 应用层血糖测量记录发送定时器
@@ -217,7 +218,8 @@ static void app_glucose_handle(void)
     {
         log_i("index:%d,%f", i, pAvgElectricCurrentCalTempArray[i]);
     }
-    
+
+
     /*
     // 提供下标
     usSampleCnt = g_usGlucoseRecordsCurrentOffset;
@@ -228,22 +230,24 @@ static void app_glucose_handle(void)
     // 计算并输出血糖结果
     simpleGlucoCalc(&g_fGlucoseConcentration);
     */
-    g_usGlucoseElectricCurrent = 10;
-    g_fGlucoseConcentration = 11.1f;
+    g_usGlucoseElectricCurrent = app_glucose_avg_electric_current_cal_get();
+    g_fGlucoseConcentration = app_glucose_avg_electric_current_cal_get();
 
     cgms_meas_t rec;
     memset(&rec, 0, sizeof(cgms_meas_t));
-
-    rec.usGlucose = (uint16_t)((double)g_fGlucoseConcentration * 100.0);
+    rec.ucDatapacketLen = 14;
+    rec.usGlucose = (uint16_t)((double)g_fGlucoseConcentration * 10.0);
     rec.usCurrent = (uint16_t)((double)g_usGlucoseElectricCurrent * 100.0);
     rec.usOffset = g_usGlucoseRecordsCurrentOffset;
-    log_i("nrf_ble_cgms_meas_create  %d,%d,%d", rec.usOffset, rec.usGlucose, rec.usCurrent);
+    rec.usCRC16 = do_crc(&rec, sizeof(cgms_meas_t) - 2);
+
+    log_i("cgms_meas_create  %d,%d,%d", rec.usOffset, rec.usGlucose, rec.usCurrent);
 
     // 存储历史记录
     ret_code_t err_code = cgms_db_record_add(&rec);
     // 通过BLE发送本次的测量记录
 
-	if((ble_meas_notify_is_enable())&&(app_global_get_app_state()->bSentMeasSuccess==true)&&(app_global_get_app_state()->bBleConnected==true))
+	if((ble_meas_notify_is_enable()) &&(app_global_get_app_state()->bBleConnected==true))
 	{
 		app_global_get_app_state()->bSentMeasSuccess=false;
 
@@ -254,10 +258,22 @@ static void app_glucose_handle(void)
 			{
 				ble_event_info_t BleEventInfo;
 				BleEventInfo.ucConidx = app_global_get_app_state()->BleConnectInfo[i].usBleConidx;
+                BleEventInfo.usHandle = gattdb_cgm_measurement;
 			    err_code = cgms_meas_send(BleEventInfo, rec);
 			}
 		}
 	}
+    else
+    {
+        if (!ble_meas_notify_is_enable())
+        {
+            log_w("ble_meas_notify_is_disable");
+        }
+        if (app_global_get_app_state()->bBleConnected != true)
+        {
+            log_w("ble is disconnecded");
+        }
+    }
     
     app_global_get_app_state()->time_offset = g_usGlucoseRecordsCurrentOffset;
 
@@ -391,13 +407,13 @@ void app_glucose_meas_handler(void)
     uint32_t ucNowRtcTime = rtc_get_curr_time();
 
     // 计算当前RTC时间差值
-    int32_t uiRtcTimeDiff = ucNowRtcTime - g_UiListRtcTime;
+    int32_t uiRtcTimeDiff = ucNowRtcTime - g_uiListRtcTime;
 
     // 判断当前是否需要执行1S一次的数据采集
     if (uiRtcTimeDiff >= 1000)
     {
         // 更新RTC时间
-    	g_UiListRtcTime = ucNowRtcTime;
+    	g_uiListRtcTime = ucNowRtcTime;
 
         // 测量电量
         app_glucose_meas_battery_sub_handler();
@@ -418,6 +434,15 @@ void app_glucose_meas_handler(void)
         // 如果当前已经开始了一次血糖测量周期
         if (app_global_is_session_runing())
         {
+            // 增加运行时间
+            g_uiCgmWorkTimeCnt++;
+            log_d("g_uiCgmWorkTimeCnt:%d", g_uiCgmWorkTimeCnt);
+            // 更新运行时间
+            att_get_start_time()->uiRunTime = g_uiCgmWorkTimeCnt;
+
+            // 更新运行时间CRC
+            att_update_start_time_char_data_crc();
+
             // 如果AFE还未开始工作,则启动AFE
             if (afe_is_working() == false)
             {
@@ -521,6 +546,19 @@ void app_glucose_meas_record_send_start(void)
     
 }
 
+/*******************************************************************************
+*                           陈苏阳@2023-11-21
+* Function Name  :  app_glucose_meas_record_send_stop
+* Description    :  停止发送血糖测量记录
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void app_glucose_meas_record_send_stop(void)
+{
+    sl_sleeptimer_stop_timer(&g_AppGlucoseMeasRecordSendTimer);
+}
+
 
 /*******************************************************************************
 *                           陈苏阳@2022-12-15
@@ -547,8 +585,12 @@ void app_glucose_meas_record_send_handelr(void)
             // 读取待发送的历史数据
             if (RET_CODE_SUCCESS == cgms_db_record_get(app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex, &HistoryRec))
             {
+                ble_event_info_t BleEventInfo;
+                BleEventInfo = app_global_get_app_state()->RecordOptInfo.BleEventInfo;
+                BleEventInfo.usHandle = gattdb_cgm_measurement;
+
                 // 发送历史数据
-                cgms_meas_send(app_global_get_app_state()->RecordOptInfo.BleEventInfo, HistoryRec);
+                cgms_meas_send(BleEventInfo, HistoryRec);
             }
             else
             {
@@ -579,8 +621,13 @@ void app_glucose_meas_record_send_handelr(void)
             // 计算CRC
             CgmsHistorySpecialDatapcket.usCRC16 = do_crc(&CgmsHistorySpecialDatapcket, sizeof(CgmsHistorySpecialDatapcket) - 2);
 
+
+            ble_event_info_t BleEventInfo;
+            BleEventInfo = app_global_get_app_state()->RecordOptInfo.BleEventInfo;
+            BleEventInfo.usHandle = gattdb_cgm_measurement;
+
             // 发送特殊血糖数据
-            if (cgms_meas_special_send(app_global_get_app_state()->RecordOptInfo.BleEventInfo, CgmsHistorySpecialDatapcket) != RET_CODE_SUCCESS)
+            if (cgms_meas_special_send(BleEventInfo, CgmsHistorySpecialDatapcket) != RET_CODE_SUCCESS)
             {
                 bSendSuccessFlag = false;
             }

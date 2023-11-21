@@ -12,6 +12,7 @@
 #include "app_global.h"
 #include "app.h"
 #include "ble_update_connect_param.h"
+#include "app_glucose_meas.h"
 #include "string.h"
 #include "ble_adv.h"
 #include <elog.h>
@@ -82,7 +83,7 @@ void app_ble_connect_info_init(BleConnectInfo_t* p)
         p->usConnectInterval = 0;
         p->usConnectLatency = 0;
         p->usConnectTimeout = 0;
-        memset(&(p->BleUpdateConnectParamTimer), 0x00, sizeof(p->BleUpdateConnectParamTimer));
+        p->ulConenctedTimeCnt = 0;
     }
 }
 
@@ -174,7 +175,7 @@ void app_event_ble_connected_callback(uint16_t usConnectionHandle)
     app_add_new_ble_connect(usConnectionHandle);
 
     // 启动连接参数更新定时器
-    ble_update_connect_param_start(usConnectionHandle);
+    ble_update_connect_param_start();
 
 }
 
@@ -209,7 +210,7 @@ void app_event_ble_param_updated_callback(uint16_t usConnectionHandle, uint16_t 
             else
             {
                 // 如果不符合要求,启动连接参数更新定时器
-                ble_update_connect_param_start(usConnectionHandle);
+                ble_update_connect_param_start();
             }
         }
     }
@@ -228,8 +229,6 @@ void app_event_ble_param_updated_callback(uint16_t usConnectionHandle, uint16_t 
 *******************************************************************************/
 void app_event_ble_disconnect_callback(uint16_t usConnectionHandle)
 {
-    // 停止连接参数更新
-    ble_update_connect_param_stop(usConnectionHandle);
 
     // 删除连接
     app_remove_ble_connect(usConnectionHandle);
@@ -237,9 +236,10 @@ void app_event_ble_disconnect_callback(uint16_t usConnectionHandle)
     // 历史数据发送标志位取消 todo:这边会有冲突问题,待完善
     app_global_get_app_state()->bRecordSendFlag = 0;
 
-    // 关闭相关定时器  todo:这边会有冲突问题,待完善
-    //ke_timer_clear(APP_TIME2_RECORD_SEND, TASK_APP);
-    ble_update_connect_param_all_stop();
+    // 关闭发送历史数据定时器
+    app_glucose_meas_record_send_stop();
+
+    ble_update_connect_param_stop();
 
     if (app_have_a_active_ble_connect() == false)
     {
@@ -272,6 +272,9 @@ void app_init(void)
     // 初始化事件处理
     event_init();
 
+    // 添加更新ble连接参数事件
+    event_add(MAIN_LOOP_EVENT_BLE_UPDATE_CONNECT_PARAMETERS, ble_update_connect_param_handle);
+
     // 参数存储上电初始化
     cgms_prm_db_power_on_init();
 
@@ -279,16 +282,13 @@ void app_init(void)
     //simpleGlucoInit();
 
     // 初始化启动时间
-    //cgms_sst_init();
+    cgms_sst_init();
 
     // 设置CGM状态为由于MCU复位导致的停止
     app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_M3RESET_STOPPED;
 
-    // 设置血糖测量间隔初始值为10S
-    //app_glucose_meas_set_glucose_meas_interval(10); //10s
-
     // 初始化历史数据存储部分
-    //cgms_db_init();
+    cgms_db_init();
 }
 
 
