@@ -260,6 +260,7 @@ typedef enum
 void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t* pData);
 void ble_socp_notify_enable(void);
 void ble_socp_notify_disable(void);
+bool ble_socp_notify_is_enable(void);
 #endif /* __CGMS_SOCP_H */
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/

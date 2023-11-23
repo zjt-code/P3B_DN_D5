@@ -552,7 +552,7 @@ static ret_code_t cgms_db_record_get_raw_data(uint16_t usRecordIndex, cgms_meas_
 ret_code_t cgms_db_record_get(uint16_t usRecordIndex, cgms_meas_t* pRec)
 {
   log_i("cgms_db_record_get %d", usRecordIndex);
-    if (cgms_db_record_get_raw_data(usRecordIndex, pRec) == 0)
+    if (cgms_db_record_get_raw_data(usRecordIndex, pRec) == RET_CODE_SUCCESS)
     {
         // 设置最高位为1,用于标识本条数据为历史数据而不是实时数据.
         pRec->usIsHistory = CGMS_MEAS_HISTORY_FLAG_HISTORY;

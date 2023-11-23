@@ -84,7 +84,7 @@ bool ble_meas_notify_is_enable(void)
 *******************************************************************************/
 ret_code_t cgms_meas_special_send(ble_event_info_t BleEventInfo, cgms_history_special_datapcket_t CgmsHistorySpecialDatapcket)
 {
-    if ((ble_meas_notify_is_enable()) && (app_global_get_app_state()->bSentSocpSuccess == true) && (app_global_get_app_state()->bBleConnected == true))
+    if (ble_meas_notify_is_enable() && app_global_get_app_state()->bBleConnected == true)
     {
         uint8_t ucLen = sizeof(CgmsHistorySpecialDatapcket);
         uint8_t ucDatapacketBuffer[20];
@@ -102,13 +102,25 @@ ret_code_t cgms_meas_special_send(ble_event_info_t BleEventInfo, cgms_history_sp
 
         // 发送数据
         sl_status_t sc;
-        sc = sl_bt_gatt_server_send_indication(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucDatapacketBuffer);
+        sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucDatapacketBuffer);
         if (sc == RET_CODE_SUCCESS)
         {
             app_global_get_app_state()->bRecordSendFlag = false;
             app_global_get_app_state()->bSentSocpSuccess = false;
             return RET_CODE_SUCCESS;
         }
+        else
+        {
+            log_e("sl_bt_gatt_server_send_notification fail:%d,%d,,%d", sc, BleEventInfo.ucConidx, BleEventInfo.usHandle);
+        }
+    }
+    else if(ble_meas_notify_is_enable()==false)
+    {
+        log_e("ble_meas_notify_is_disable");
+    }
+    else if (app_global_get_app_state()->bBleConnected == false)
+    {
+        log_e("ble is disconneced.");
     }
     return RET_CODE_FAIL;
 }
@@ -151,7 +163,6 @@ ret_code_t cgms_meas_send(ble_event_info_t BleEventInfo, cgms_meas_t Rec)
         if (sc == RET_CODE_SUCCESS)
         {
             log_i("send OK");
-            app_global_get_app_state()->bRecordSendFlag = false;
             app_global_get_app_state()->bSentSocpSuccess = false;
             return RET_CODE_SUCCESS;
         }

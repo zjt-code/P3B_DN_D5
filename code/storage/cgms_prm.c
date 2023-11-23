@@ -65,7 +65,7 @@ ret_code_t cgms_prm_get_sn(unsigned char* buff)
         g_PrmDb.P4.prmWMY[2] = 'T'; //C
         g_PrmDb.P4.prmWMY[3] = 0;  //null,end of string
         log_e("can not read SN,use default SN");
-        g_PrmDb.P4.SN = 2;
+        g_PrmDb.P4.SN = 3;
         uiFlag = RET_CODE_FAIL;
     }
     else

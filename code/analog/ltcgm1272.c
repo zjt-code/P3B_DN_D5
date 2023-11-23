@@ -13,7 +13,7 @@
     #define LOG_TAG                "LTCGM1272"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                    ELOG_LVL_INFO
+#define LOG_LVL                    ELOG_LVL_WARN
 
 #include "ltcgm1272.h"
 #include "spidrv.h"

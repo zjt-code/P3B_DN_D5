@@ -119,8 +119,6 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
     // BLE连接事件
     case sl_bt_evt_connection_opened_id:
     {
-        log_i("Connection opened.");
-
         // 更新GATT中的设备名称
         static char cSn[14];
         memset(cSn, 0x00, sizeof(cSn));
@@ -143,8 +141,6 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
 
         // 调用APP层的连接参数更新回调
         app_event_ble_param_updated_callback(connection, interval, latency, timeout);
-        log_i("Connection parameter update.:%d,latency:%d,timeout:%d", interval, latency, timeout);
-
         break;
     }
 
@@ -152,8 +148,6 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
     // BLE断开连接事件
     case sl_bt_evt_connection_closed_id:
     {
-        log_i("Connection closed.");
-
         // 调用应用层的回调
         app_event_ble_disconnect_callback(evt->data.evt_connection_closed.connection);
 

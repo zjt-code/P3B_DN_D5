@@ -112,6 +112,8 @@ void app_add_new_ble_connect(uint16_t usConnectionHandle)
             app_global_get_app_state()->BleConnectInfo[i].bIsConnected = true;
             app_global_get_app_state()->BleConnectInfo[i].usBleConidx = usConnectionHandle;
             app_global_get_app_state()->BleConnectInfo[i].bIsUpdateConnectParameter = false;
+
+            break;
         }
     }
 }
@@ -164,6 +166,8 @@ bool app_have_a_active_ble_connect(void)
 *******************************************************************************/
 void app_event_ble_connected_callback(uint16_t usConnectionHandle)
 {
+    log_i("app_event_ble_connected_callback:%d",usConnectionHandle);
+
     // 设置当前全局BLE连接状态为已连接
     app_global_get_app_state()->bBleConnected = true;
 
@@ -192,6 +196,8 @@ void app_event_ble_connected_callback(uint16_t usConnectionHandle)
 *******************************************************************************/
 void app_event_ble_param_updated_callback(uint16_t usConnectionHandle, uint16_t usConnectInterval, uint16_t usConnectLatency, uint16_t usConnectTimeout)
 {
+    log_i("app_event_ble_param_updated_callback:%d,%d,%d,%d", usConnectionHandle, usConnectInterval, usConnectLatency, usConnectTimeout);
+
     for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
     {
         // 找到对应的连接信息,并记录当前的连接参数
@@ -229,6 +235,7 @@ void app_event_ble_param_updated_callback(uint16_t usConnectionHandle, uint16_t 
 *******************************************************************************/
 void app_event_ble_disconnect_callback(uint16_t usConnectionHandle)
 {
+    log_i("app_event_ble_disconnect_callback:%d", usConnectionHandle);
 
     // 删除连接
     app_remove_ble_connect(usConnectionHandle);
@@ -284,8 +291,8 @@ void app_init(void)
     // 初始化启动时间
     cgms_sst_init();
 
-    // 设置CGM状态为由于MCU复位导致的停止
-    app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_M3RESET_STOPPED;
+    // 设置CGM状态为CGM结束
+    app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
 
     // 初始化历史数据存储部分
     cgms_db_init();

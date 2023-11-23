@@ -9,6 +9,11 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
+#if !defined(LOG_TAG)
+#define LOG_TAG                   "CGMS_RACP"
+#endif
+#undef LOG_LVL
+#define LOG_LVL                    ELOG_LVL_DEBUG
 
 #include <stdint.h>
 #include <string.h>
@@ -20,6 +25,7 @@
 #include "sl_bt_api.h"
 #include "cgms_crc.h"
 #include "app_glucose_meas.h"
+#include <elog.h>
 //#include "app_glucose_meas.h"
 /* Private variables ---------------------------------------------------------*/
 static bool g_bBleRacpNotifyIsEnableFlag = false;						// BLE ROCP通知使能标志位
@@ -156,11 +162,14 @@ void racp_response_code_send(ble_event_info_t BleEventInfo, uint8_t ucOpcode, ui
     memcpy(ucEncodedRacp, cipher, 16);
 #endif
 
-    if ((ble_racp_notify_is_enable()) && (app_global_get_app_state()->bRecordSendFlag == true) && (app_global_get_app_state()->bBleConnected == true))
+    if ((ble_racp_notify_is_enable()) && (app_global_get_app_state()->bBleConnected == true))
     {
         sl_status_t sc;
         sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucEncodedRacp);
-		app_global_get_app_state()->bRecordSendFlag = false;
+		if (sc != SL_STATUS_OK)
+		{
+			log_e("sl_bt_gatt_server_send_notification fail:%d",sc);
+		}
     }
 
 }

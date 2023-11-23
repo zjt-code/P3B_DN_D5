@@ -15,22 +15,23 @@ extern const sli_bt_gattdb_t gattdb;
 #define gattdb_client_support_features        8
 #define gattdb_device_name                    11
 #define gattdb_device_information             14
-#define gattdb_manufacturer_name_string       16
-#define gattdb_model_number_string            18
+#define gattdb_device_model_string            16
+#define gattdb_sn_string                      18
 #define gattdb_hardware_revision_string       20
-#define gattdb_firmware_revision_string       22
+#define gattdb_mac_string                     22
 #define gattdb_software_revision_string       24
-#define gattdb_continuous_glucose_monitoring_0 25
-#define gattdb_cgm_measurement                27
-#define gattdb_cgm_feature                    30
-#define gattdb_cgm_status                     32
-#define gattdb_record_access_control_point    35
-#define gattdb_cgm_session_start_time         38
-#define gattdb_cgm_session_run_time           40
-#define gattdb_cgm_specific_ops_control_point 42
-#define gattdb_battery_service_0              44
-#define gattdb_battery_level                  46
-#define gattdb_characteristic_presentation_format 47
+#define gattdb_sensor_batch_number_string     26
+#define gattdb_continuous_glucose_monitoring_0 27
+#define gattdb_cgm_measurement                29
+#define gattdb_cgm_feature                    32
+#define gattdb_cgm_status                     34
+#define gattdb_record_access_control_point    37
+#define gattdb_cgm_session_start_time         40
+#define gattdb_cgm_session_run_time           42
+#define gattdb_cgm_specific_ops_control_point 44
+#define gattdb_battery_service_0              46
+#define gattdb_battery_level                  48
+#define gattdb_characteristic_presentation_format 49
 
 
 #endif // __GATT_DB_H

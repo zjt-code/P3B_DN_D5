@@ -442,8 +442,8 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
             // 设置返回结果
 			SocpResponseDatapcket.ucRspCode = SOCP_START_THE_SESSION_RSP_CODE_SUCCESS;
 
-			// 更新feature char中的启动来源
-			att_get_feature()->ucStartBy = SocpStartTheSessionDatapacket.ucFrom;
+			// 更新feature char中的启动来源(高四位)
+			att_get_feature()->ucStartBy = SocpStartTheSessionDatapacket.ucFrom<<4;
 
 			// 更新start time char中的启动时间
 			att_get_start_time()->uiStartTime = SocpStartTheSessionDatapacket.uiStartTime;

@@ -213,10 +213,10 @@ static void app_glucose_handle(void)
     if (g_usGlucoseRecordsCurrentOffset >= CGMS_DB_MAX_RECORDS)return;
 
     float* pAvgElectricCurrentCalTempArray = app_glucose_avg_electric_current_get_electric_current_array();
-    log_i("ElectricCurrent:");
+    log_d("ElectricCurrent:");
     for (uint8_t i = 0; i < 18; i++)
     {
-        log_i("index:%d,%f", i, pAvgElectricCurrentCalTempArray[i]);
+        log_d("index:%d,%f", i, pAvgElectricCurrentCalTempArray[i]);
     }
 
 
@@ -346,7 +346,7 @@ void app_glucose_meas_afe_meas_handler(void)
         double dElectricCurrent;
         if (afe_get_new_data(&dElectricCurrent))
         {
-            log_i("app_glucose_avg_electric_current_cal_add_data(%f)", dElectricCurrent);
+            log_d("app_glucose_avg_electric_current_cal_add_data(%f)", dElectricCurrent);
             // 将新数据添加到临时数据列表,以供后续计算平均值
             app_glucose_avg_electric_current_cal_add_data(dElectricCurrent);
         }
@@ -599,7 +599,7 @@ void app_glucose_meas_record_send_handelr(void)
             }
 
             // 100ms后继续发送血糖数据记录
-            if ((ble_meas_notify_is_enable()) && (app_global_get_app_state()->bSentSocpSuccess == true) && (app_global_get_app_state()->bBleConnected == true))
+            if ((ble_meas_notify_is_enable()) && (app_global_get_app_state()->bBleConnected == true))
             {
                 // 发送计数累计(只有在发送成功时才累计)
                 if (bSendSuccessFlag)
@@ -608,6 +608,10 @@ void app_glucose_meas_record_send_handelr(void)
                     app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex++;
                 }
                 app_glucose_meas_record_send_start();
+            }
+            else
+            {
+                log_w("record send end,%d,%d", ble_meas_notify_is_enable() ? 1 : 0, app_global_get_app_state()->bBleConnected ? 1 : 0);
             }
         }
         else
@@ -626,10 +630,19 @@ void app_glucose_meas_record_send_handelr(void)
             BleEventInfo = app_global_get_app_state()->RecordOptInfo.BleEventInfo;
             BleEventInfo.usHandle = gattdb_cgm_measurement;
 
+            ret_code_t ret = cgms_meas_special_send(BleEventInfo, CgmsHistorySpecialDatapcket);
             // 发送特殊血糖数据
-            if (cgms_meas_special_send(BleEventInfo, CgmsHistorySpecialDatapcket) != RET_CODE_SUCCESS)
+            if (ret != RET_CODE_SUCCESS)
             {
+                log_e("cgms_meas_special_send fail:%d", ret);
                 bSendSuccessFlag = false;
+            }
+            else
+            {
+                // 停止发送历史数据
+                app_glucose_meas_record_send_stop();
+
+                app_global_get_app_state()->bRecordSendFlag = false;
             }
 
             // 如果发送失败
