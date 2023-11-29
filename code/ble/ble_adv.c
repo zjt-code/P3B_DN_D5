@@ -69,8 +69,8 @@ void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint8_t* pAdvDataLen)
         memcpy(&pAdvDataBuffer[ucDataIndex], &usCompanyID, sizeof(usCompanyID));
         ucDataIndex += sizeof(usCompanyID);
 
-        log_i("ble_adv_generate_adv_data");
-        elog_hexdump("adv_Data", 8, pAdvDataBuffer, ucDataIndex);
+        log_d("ble_adv_generate_adv_data");
+        //elog_hexdump("adv_Data", 8, pAdvDataBuffer, ucDataIndex);
         if (pAdvDataLen)*pAdvDataLen = ucDataIndex;
     }
 }

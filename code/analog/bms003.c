@@ -14,7 +14,7 @@
 #define LOG_TAG                "BMS0003"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                ELOG_LVL_INFO
+#define LOG_LVL                ELOG_LVL_DEBUG
 
 #include "spidrv.h"
 #include "sl_udelay.h"
@@ -40,6 +40,10 @@
 #define CLK                                         0x26
 #define CIC                                         0x61
 
+
+#define SLEEP_TIMER_INTERVAL    (20*1000)
+
+
 static uint8_t g_ucBms003NewDataFlag = 0;                              // BMS003有新数据标志位
 static uint32_t g_Bms003IrqInterrupt;                                  // BMS003中断引脚的中断号
 static bms003_irq_callback g_Bms003IrqCallbackFun = NULL;           // 中断回调函数
@@ -53,8 +57,6 @@ static uint16_t g_BaseWeVol = 0;                                       // WE1校
 sl_sleeptimer_timer_handle_t g_Bms003WakeupTimer;
 sl_sleeptimer_timer_handle_t g_Bms003MeasureTimer;
 sl_sleeptimer_timer_handle_t g_Bms003ConfigAfterTimer;
-#define SLEEP_TIMER_INTERVAL    (20*1000)
-
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -70,7 +72,7 @@ void bms003_stop(void);
 void bms003_wakeup(void);
 void bms003_sleep(void);
 void bms003_int_irq_handler(void);
-void bms003_config(bool bIsWakeup);
+void bms003_config(void);
 void bms003_config_after_handler(void);
 void bms003_wakeup_config(void);
 /* Private functions ---------------------------------------------------------*/
@@ -299,6 +301,9 @@ void bms003_init(void)
     // 创建fifo
     fifo_create(&g_NewDataFifo, g_ucNewDataFifoBuffer, 4, sizeof(g_ucNewDataFifoBuffer) / 4);
 
+    // 失能BMS003
+    bms003_disable();
+    bms003_delay_us(1000);
     // 使能BMS003
     bms003_enable();
 
@@ -436,6 +441,7 @@ void bms003_wakeup_timer_handler(void)
 *******************************************************************************/
 void bms003_start(void)
 {
+    log_d("bms003_start");
     sl_status_t status;
 
     // 唤醒bms003
@@ -445,7 +451,11 @@ void bms003_start(void)
     uint32_t uiTimeDiff = rtc_get_curr_time() - g_uiChipEnTime;
 
     // 如果BMS003启动时间少于1S,则等待BMS003启动
-    if (uiTimeDiff < 1000)bms003_delay_us((1000 - uiTimeDiff) * 1000);
+    if (uiTimeDiff < 1000)
+    {
+        log_d("uiTimeDiff:%d", uiTimeDiff);
+        bms003_delay_us((1000 - uiTimeDiff) * 1000);
+    }
 
     // 设置AFE的INT引脚中断
     GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
@@ -460,7 +470,7 @@ void bms003_start(void)
     g_bWakeupFlag = false;
 
     // bms003配置
-    bms003_config(g_bWakeupFlag);
+    bms003_config();
 }
 
 
@@ -653,6 +663,7 @@ uint8_t bms003_read_cycle(uint8_t ucRegAddr, uint32_t uiStartDelayUs, uint32_t u
 *******************************************************************************/
 void bms003_config_after_handler(void)
 {
+    log_d("bms003_config_after_handler:%d", g_bWakeupFlag);
     uint8_t ucBufferIndex = 0;
     uint8_t ucWriteBuffer[32];
 
@@ -674,9 +685,7 @@ void bms003_config_after_handler(void)
         // 标志位置位,后续按唤醒配置
         g_bWakeupFlag = true;
     }
-
-    //第7位置1  3E|80
-    bms003_delay_us(3);
+    bms003_delay_us(300);
 
     bms003_write_cycle(0x3A, CLK | 0x80, 0, 30);
 
@@ -688,29 +697,89 @@ void bms003_config_after_handler(void)
     ucWriteBuffer[ucBufferIndex++] = CHA_NUM;   //3通道加模式配置
     bms003_write_burst(0x01, ucWriteBuffer, ucBufferIndex, 15, 30);
 
-    bms003_delay_us(3);
+    bms003_delay_us(300);
 
     bms003_write_cycle(IMEAS_REG_SEQ, 0x0, 0, 31);
 
-    bms003_delay_us(3);
+    bms003_delay_us(300);
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = 0x1;      //17INPUT_FORMAT
     ucWriteBuffer[ucBufferIndex++] = 0x1;      //18使能IMEAS_EN
     bms003_write_burst(0x17, ucWriteBuffer, ucBufferIndex, 17, 30);
+    
+    log_d("CFG BURST IMEAS FINISH!");
+    // 读寄存器
+    bms003_delay_us(300);
 
-    bms003_delay_us(1);
+    uint8_t ucReadData = bms003_read_cycle(0x73, 0, 1);
+    log_d("addr:%x", 0x73);
+    log_d("check data write:%x", ucReadData);
+
+    bms003_delay_us(300);
+
+    ucReadData = bms003_read_cycle(0x53, 0, 1);
+    log_d("addr:%x", 0x53);
+    log_d("FB res:%x", ucReadData);
+
+    bms003_delay_us(300);
+
+    ucReadData = bms003_read_cycle(0x54, 0, 1);
+    log_d("addr:%x", 0x54);
+    log_d("DDA:%x", ucReadData);
+
+    bms003_delay_us(300);
+
+    ucReadData = bms003_read_cycle(0x59, 0, 1);
+    log_d("addr:%x", 0x59);
+    log_d("diff vol low 8bit:%x", ucReadData);
+
+    bms003_delay_us(300);
+
+    ucReadData = bms003_read_cycle(0x5A, 0, 1);
+    log_d("addr:%x", 0x5A);
+    log_d("diff vol high 2bit:%x", ucReadData);
+
+    bms003_delay_us(300);
+
+    ucReadData = bms003_read_cycle(0x3A, 0, 1);
+    log_d("addr:%x", 0x3A);
+    log_d("PCLK&ICK:%x", ucReadData);
+
+    bms003_delay_us(300);
+
+    ucReadData = bms003_read_cycle(0x01, 0, 1);
+    log_d("addr:%x", 0x01);
+    log_d("CIC enable state:%x", ucReadData);
+
+    bms003_delay_us(300);
+
+    ucReadData = bms003_read_cycle(0x50, 0, 1);
+    log_d("addr:%x", 0x50);
+    log_d("BG,DAC enable state:%x", ucReadData);
+
+    bms003_delay_us(300);
+
+    ucReadData = bms003_read_cycle(0x3B, 0, 1);
+    log_d("addr:%x", 0x3B);
+    log_d("0X3B:%x", ucReadData);
+
+    bms003_delay_us(300);
+
+    ucReadData = bms003_read_cycle(0x55, 0, 1);
+    log_d("addr:%x", 0x55);
+    log_d("0X55:%x", ucReadData);
 }
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-27
 * Function Name  :  bms003_config
 * Description    :  BMS003配置
-* Input          :  bool bIsWakeup
+* Input          :  None
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void bms003_config(bool bIsWakeup)
+void bms003_config(void)
 {
     uint8_t ucWriteBuffer[32];
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
@@ -721,7 +790,7 @@ void bms003_config(bool bIsWakeup)
     ucWriteBuffer[ucBufferIndex++] = 0x7;
     bms003_write_burst(0x3A, ucWriteBuffer, ucBufferIndex, 15, 30);
 
-    bms003_delay_us(5);
+    bms003_delay_us(300);
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = 0x03;          // addr:0x50 使能BG,DAC[0:1]   // 模拟保持状态关闭BG,DCDC分频
@@ -740,8 +809,8 @@ void bms003_config(bool bIsWakeup)
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5D 配置CE[8:9]
     bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex, 15, 30);
 
-    // 启动一个1S后的单次定时器
-    sl_status_t status = sl_sleeptimer_start_timer(&g_Bms003ConfigAfterTimer, sl_sleeptimer_ms_to_tick(1000), bms003_config_after_timer_callback, (void*)NULL, 0, 0);
+    // 启动一个10mS后的单次定时器
+    sl_status_t status = sl_sleeptimer_start_timer(&g_Bms003ConfigAfterTimer, sl_sleeptimer_ms_to_tick(10), bms003_config_after_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
     {
         log_e("sl_sleeptimer_start_timer fail:%d",status);

@@ -55,6 +55,7 @@ ret_code_t cgms_prm_db_write_flash()
 *******************************************************************************/
 ret_code_t cgms_prm_get_sn(unsigned char* buff)
 {
+    static bool bLogOutFlag = false;
     uint32_t uiFlag;
 
     // 如果SN值非法,或者CRC错误,则恢复默认SN
@@ -64,8 +65,8 @@ ret_code_t cgms_prm_get_sn(unsigned char* buff)
         g_PrmDb.P4.prmWMY[1] = 'H'; //B
         g_PrmDb.P4.prmWMY[2] = 'T'; //C
         g_PrmDb.P4.prmWMY[3] = 0;  //null,end of string
-        log_e("can not read SN,use default SN");
-        g_PrmDb.P4.SN = 3;
+        if(bLogOutFlag==false)log_w("can not read SN,use default SN");
+        g_PrmDb.P4.SN = 4;
         uiFlag = RET_CODE_FAIL;
     }
     else
@@ -73,7 +74,11 @@ ret_code_t cgms_prm_get_sn(unsigned char* buff)
         uiFlag = RET_CODE_SUCCESS;
     }
     sprintf((char*)buff, "JN-%s%04d", (unsigned char*)g_PrmDb.P4.prmWMY, g_PrmDb.P4.SN);
-    log_e("SN:%s", buff);
+    if (bLogOutFlag == false)
+    {
+        log_i("SN:%s", buff);
+        bLogOutFlag = true;
+    }
     return uiFlag;
 }
 

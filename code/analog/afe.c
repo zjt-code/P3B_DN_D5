@@ -57,11 +57,11 @@ void afe_init(void)
     log_d("afe_init");
 
     g_bAfeisWorking = false;
-#if 0
+#if AFE_USE_BMS003
     // 初始化bms003
     bms003_init();
-
-#else
+#endif
+#if AFE_USE_LTCGM1272
     // 初始化LTCGM1272
     ltcgm1272_init();
 #endif
@@ -79,10 +79,11 @@ void afe_init(void)
 void afe_stop(void)
 {
     log_d("afe_stop");
-#if 0
+#if AFE_USE_BMS003
     // bms003停止工作
     bms003_stop();
-#else
+#endif
+#if AFE_USE_LTCGM1272
     // LTCGM1272停止工作
     ltcgm1272_stop();
 #endif
@@ -100,11 +101,11 @@ void afe_stop(void)
 void afe_start(void)
 {
     log_d("afe_start");
-#if 0
+#if AFE_USE_BMS003
     // bms003开始工作
     bms003_start();
-
-#else
+#endif
+#if AFE_USE_LTCGM1272
     // LTCGM1272开始工作
     ltcgm1272_start();
 #endif
@@ -123,9 +124,11 @@ void afe_start(void)
 *******************************************************************************/
 bool afe_new_data_is_ready(void)
 {
-#if 0
+#if AFE_USE_BMS003
     return bms003_new_data_is_ready();
-#else
+#endif
+
+#if AFE_USE_LTCGM1272
     return ltcgm1272_new_data_is_ready();
 #endif
 }
@@ -156,10 +159,12 @@ double afe_get_current_electric_current(void)
 *******************************************************************************/
 bool afe_get_new_data(double* pNewData)
 {
-#if 0
+#if AFE_USE_BMS003
     bool Ret =  bms003_get_new_data(&g_fCurrElectricCurrent);
     if (pNewData && Ret)*pNewData = g_fCurrElectricCurrent;
-#else
+#endif
+
+#if AFE_USE_LTCGM1272
     bool Ret = ltcgm1272_get_new_data(&g_fCurrElectricCurrent);
     if (pNewData && Ret)*pNewData = g_fCurrElectricCurrent;
 #endif
@@ -177,9 +182,11 @@ bool afe_get_new_data(double* pNewData)
 *******************************************************************************/
 void afe_register_irq_callback(afe_irq_callback callback)
 {
-#if 0
+#if AFE_USE_BMS003
     bms003_register_irq_callback(callback);
-#else
+#endif
+
+#if AFE_USE_LTCGM1272
     ltcgm1272_register_irq_callback(callback);
 #endif
 }
