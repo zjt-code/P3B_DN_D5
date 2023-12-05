@@ -93,20 +93,20 @@
 #define USART1_CLK_PIN                           5
 #endif
 
-// USART1 RX on PA04
+// USART1 RX on PA03
 #ifndef USART1_RX_PORT                          
 #define USART1_RX_PORT                           gpioPortA
 #endif
 #ifndef USART1_RX_PIN                           
-#define USART1_RX_PIN                            4
+#define USART1_RX_PIN                            3
 #endif
 
-// USART1 TX on PA03
+// USART1 TX on PA04
 #ifndef USART1_TX_PORT                          
 #define USART1_TX_PORT                           gpioPortA
 #endif
 #ifndef USART1_TX_PIN                           
-#define USART1_TX_PIN                            3
+#define USART1_TX_PIN                            4
 #endif
 
 // [USART1]$
@@ -142,18 +142,18 @@
 // [MODEM]$
 
 // $[CUSTOM_PIN_NAME]
-#ifndef SPI_MOSI_PORT                           
-#define SPI_MOSI_PORT                            gpioPortA
-#endif
-#ifndef SPI_MOSI_PIN                            
-#define SPI_MOSI_PIN                             3
-#endif
-
 #ifndef SPI_MISO_PORT                           
 #define SPI_MISO_PORT                            gpioPortA
 #endif
 #ifndef SPI_MISO_PIN                            
-#define SPI_MISO_PIN                             4
+#define SPI_MISO_PIN                             3
+#endif
+
+#ifndef SPI_MOSI_PORT                           
+#define SPI_MOSI_PORT                            gpioPortA
+#endif
+#ifndef SPI_MOSI_PIN                            
+#define SPI_MOSI_PIN                             4
 #endif
 
 #ifndef SPI_CLK_PORT                            

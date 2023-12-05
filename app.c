@@ -92,25 +92,8 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         sc = sl_bt_legacy_advertiser_start(g_ucAdvertisingSetHandle, sl_bt_advertiser_connectable_scannable);
         app_assert_status(sc);
 
-
-        // 更新CGM状态Char内容
-        att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->status;
-        att_update_cgm_status_char_data_crc();
-
-        // 更新CGM启动时间char内容
-        att_update_start_time_char_data_crc();
-
-        // 工作时间默认14天
-        att_get_feature()->ucWorkTime = 14;
-
-        // 数据发送间隔默认3分钟
-        att_get_feature()->ucSampleTime = 3;
-
-        // 支持CRC
-        att_get_feature()->ucCrcSupported = 0x01;
-
-        // 更新Feature char的内容
-        att_update_feature_char_data_crc();
+        // 初始化应用层
+        app_init();
 
         break;
     }

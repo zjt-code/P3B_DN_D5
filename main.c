@@ -28,6 +28,7 @@
 #include "pin_config.h"
 #include "temp_sensor.h"
 #include "app_glucose_meas.h"
+#include "cgms_prm.h"
 /* Private variables ---------------------------------------------------------*/
 sl_sleeptimer_timer_handle_t g_TestTimer;
 
@@ -37,14 +38,6 @@ sl_sleeptimer_timer_handle_t g_TestTimer;
 
 
 /* Private functions ---------------------------------------------------------*/
-
-
-
-void test_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
-{
-  log_i("test");
-    //temp_sensor_start_meas();
-}
 
 
 /*******************************************************************************
@@ -78,19 +71,14 @@ int main(void)
     elog_start();
     log_i("sys init");
 
-    // 应用层初始化
-    app_init();
+    // 参数存储上电初始化
+    cgms_prm_db_power_on_init();
 
     // 初始化AFE
     afe_init();
 
     // 初始化温度传感器
     //temp_sensor_init();
-
-    // 应用层血糖测量初始化
-    app_glucose_meas_init();
-
-    //sl_sleeptimer_start_periodic_timer(&g_TestTimer, sl_sleeptimer_ms_to_tick(10*1000), test_timer_callback, (void*)NULL, 0, 0);
 
     while (1)
     {

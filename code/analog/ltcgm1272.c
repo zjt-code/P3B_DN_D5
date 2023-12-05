@@ -31,7 +31,7 @@ float g_fLtcgm1272CurrData = 0.0f;                                     // LTCGM1
 uint32_t g_ucLtcgm1272IrqInterrupt;                                    // LTCGM1272中断引脚的中断号
 ltcgm1272_irq_callback g_Ltcgm1272IrqCallbackFun = NULL;               // 中断回调函数
 fifo_t g_NewDataFifo;                                                  // 新数据fifo
-uint8_t g_ucNewDataFifoBuffer[9 * 2];                                  // 新数据fifo所使用的buffer
+uint16_t g_usNewDataFifoBuffer[9];                                     // 新数据fifo所使用的buffer
 
 sl_sleeptimer_timer_handle_t g_Ltcgm1272WakeupTimer;
 sl_sleeptimer_timer_handle_t g_Ltcgm1272MeasureTimer;
@@ -130,7 +130,7 @@ void ltcgm1272_init(void)
     event_add(MAIN_LOOP_EVENT_AFE_IRQ, ltcgm1272_int_irq_handler);
 
     // 创建fifo
-    fifo_create(&g_NewDataFifo, g_ucNewDataFifoBuffer, 2, sizeof(g_ucNewDataFifoBuffer) / 2);
+    fifo_create(&g_NewDataFifo, g_usNewDataFifoBuffer, 2, sizeof(g_usNewDataFifoBuffer) / sizeof(g_usNewDataFifoBuffer[0]));
 }
 
 /*******************************************************************************

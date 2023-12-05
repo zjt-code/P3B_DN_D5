@@ -13,7 +13,7 @@
 #define LOG_TAG                   "APP_GLUCOSE_MEAS"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                    ELOG_LVL_INFO
+#define LOG_LVL                    ELOG_LVL_DEBUG
 
 
 #include <string.h>

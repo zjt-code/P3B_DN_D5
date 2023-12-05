@@ -26,6 +26,7 @@
 #include "gpiointerrupt.h"
 #include "app_global.h"
 #include "fifo.h"
+#include "sl_spidrv_usart_AfeSpiInst_config.h"
 /* Private variables ---------------------------------------------------------*/
 
 // 反馈
@@ -41,14 +42,14 @@
 #define CIC                                         0x61
 
 
-#define SLEEP_TIMER_INTERVAL    (20*1000)
+#define SLEEP_TIMER_INTERVAL    (10*1000)
 
 
 static uint8_t g_ucBms003NewDataFlag = 0;                              // BMS003有新数据标志位
 static uint32_t g_Bms003IrqInterrupt;                                  // BMS003中断引脚的中断号
-static bms003_irq_callback g_Bms003IrqCallbackFun = NULL;           // 中断回调函数
+static bms003_irq_callback g_Bms003IrqCallbackFun = NULL;              // 中断回调函数
 static fifo_t g_NewDataFifo;                                           // 新数据fifo
-static uint8_t g_ucNewDataFifoBuffer[9 * 4];                           // 新数据fifo所使用的buffer
+static uint32_t g_uiNewDataFifoBuffer[17];                             // 新数据fifo所使用的buffer
 static uint32_t g_uiChipEnTime = 0;                                    // 芯片使能时间
 static bool g_bWakeupFlag = false;                                     // 唤醒标志位
 static uint16_t ucIrqCnt = 0;                                          // 中断计数
@@ -88,11 +89,11 @@ void bms003_wakeup_config(void);
 *******************************************************************************/
 bool bms003_get_new_data(double* pNewData)
 {
-    uint32_t uiData;
+    int32_t iData;
     if (pNewData == NULL)return false;
-    if (fifo_out(&g_NewDataFifo, &uiData, 1, 1))
+    if (fifo_out(&g_NewDataFifo, &iData, 1, 1))
     {
-        *pNewData = uiData / 32768.0 * 1.165 * 100;
+        *pNewData = (double)(iData / 32768.0 * 1.165 * 100);
         return true;
     }
     return false;
@@ -124,15 +125,7 @@ void bms003_register_irq_callback(bms003_irq_callback callback)
 *******************************************************************************/
 bool bms003_new_data_is_ready(void)
 {
-    // 如果当前注册了中断回调,则直接判断
-    if (g_Bms003IrqCallbackFun)
-    {
-        return fifo_len(&g_NewDataFifo) ? true : false;
-    }
-    else
-    {
-
-    }
+    return fifo_len(&g_NewDataFifo) ? true : false;
 }
 
 /*******************************************************************************
@@ -299,10 +292,11 @@ void bms003_init(void)
     event_add(MAIN_LOOP_EVENT_AFE_IRQ, bms003_int_irq_handler);
     event_add(MAIN_LOOP_EVENT_AFE_CONFIG_AFTER_TIMER, bms003_config_after_handler);
     // 创建fifo
-    fifo_create(&g_NewDataFifo, g_ucNewDataFifoBuffer, 4, sizeof(g_ucNewDataFifoBuffer) / 4);
+    fifo_create(&g_NewDataFifo, g_uiNewDataFifoBuffer, 4, sizeof(g_uiNewDataFifoBuffer) / sizeof(g_uiNewDataFifoBuffer[0]));
 
     // 失能BMS003
     bms003_disable();
+    bms003_sleep();
     bms003_delay_us(1000);
     // 使能BMS003
     bms003_enable();
@@ -354,8 +348,10 @@ void bms003_read_adc_data(void)
             ucOnePeriodSampCnt = 3;
 
             // 数据推入FIFO
-            uint32_t uiData = buff - g_BaseWeVol;
-            fifo_in(&g_NewDataFifo, &uiData, 1);
+            int32_t iData = buff - g_BaseWeVol;
+
+            log_d("curr nA:%f", iData / 32768.0 * 1.165 * 100);
+            fifo_in(&g_NewDataFifo, &iData, 1);
             GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, false, false, false);
         }
     }
@@ -586,12 +582,28 @@ void bms003_write_cycle(uint8_t ucRegAddr, uint8_t ucData, uint32_t uiStartDelay
     ucWriteBuffer[ucBufferIndex++] = WR_SINGLE_CMD;
     ucWriteBuffer[ucBufferIndex++] = ucData;
     ucWriteBuffer[ucBufferIndex++] = PAD;
-
+    /*
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].TXROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portTx << _GPIO_EUSART_TXROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinTx << _GPIO_EUSART_TXROUTE_PIN_SHIFT);
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].RXROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portRx << _GPIO_EUSART_RXROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinRx << _GPIO_EUSART_RXROUTE_PIN_SHIFT);
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].SCLKROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portClk << _GPIO_EUSART_SCLKROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinClk << _GPIO_EUSART_SCLKROUTE_PIN_SHIFT);
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].ROUTEEN = GPIO_EUSART_ROUTEEN_TXPEN | GPIO_EUSART_ROUTEEN_RXPEN | GPIO_EUSART_ROUTEEN_SCLKPEN;
+    bms003_delay_us(100);
+    */
     GPIO_PinOutClear(SPI_CS_PORT, SPI_CS_PIN);
     if (uiStartDelayUs)bms003_delay_us(uiStartDelayUs);
     bms003_spi_write_data(ucWriteBuffer, ucBufferIndex);
     if (uiStopDelayUs)bms003_delay_us(uiStopDelayUs);
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
+    /*
+    bms003_delay_us(10);
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].TXROUTE = _GPIO_EUSART_TXROUTE_RESETVALUE;
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].RXROUTE = _GPIO_EUSART_RXROUTE_RESETVALUE;
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].SCLKROUTE = _GPIO_EUSART_SCLKROUTE_RESETVALUE;
+    GPIO_PinModeSet(SPI_CLK_PORT, SPI_CLK_PIN, gpioModePushPull, 0);
+    GPIO_PinModeSet(SPI_MOSI_PORT, SPI_MOSI_PIN, gpioModePushPull, 0);
+    GPIO_PinModeSet(SPI_MISO_PORT, SPI_MISO_PIN, gpioModePushPull, 0);
+    */
+
 }
 
 /*******************************************************************************
@@ -618,11 +630,27 @@ void bms003_write_burst(uint8_t ucRegAddr, uint8_t* pData,uint8_t ucLen,uint32_t
     }
     ucWriteBuffer[ucBufferIndex++] = PAD;
 
+    /*
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].TXROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portTx << _GPIO_EUSART_TXROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinTx << _GPIO_EUSART_TXROUTE_PIN_SHIFT);
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].RXROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portRx << _GPIO_EUSART_RXROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinRx << _GPIO_EUSART_RXROUTE_PIN_SHIFT);
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].SCLKROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portClk << _GPIO_EUSART_SCLKROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinClk << _GPIO_EUSART_SCLKROUTE_PIN_SHIFT);
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].ROUTEEN = GPIO_EUSART_ROUTEEN_TXPEN | GPIO_EUSART_ROUTEEN_RXPEN | GPIO_EUSART_ROUTEEN_SCLKPEN;
+    bms003_delay_us(100);
+    */
     GPIO_PinOutClear(SPI_CS_PORT, SPI_CS_PIN);
     if(uiStartDelayUs)bms003_delay_us(uiStartDelayUs);
     bms003_spi_write_data(ucWriteBuffer, ucBufferIndex);
     if(uiStopDelayUs)bms003_delay_us(uiStopDelayUs);
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
+    /*
+    bms003_delay_us(10);
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].TXROUTE = _GPIO_EUSART_TXROUTE_RESETVALUE;
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].RXROUTE = _GPIO_EUSART_RXROUTE_RESETVALUE;
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].SCLKROUTE = _GPIO_EUSART_SCLKROUTE_RESETVALUE;
+    GPIO_PinModeSet(SPI_CLK_PORT, SPI_CLK_PIN, gpioModePushPull, 0);
+    GPIO_PinModeSet(SPI_MOSI_PORT, SPI_MOSI_PIN, gpioModePushPull, 0);
+    GPIO_PinModeSet(SPI_MISO_PORT, SPI_MISO_PIN, gpioModePushPull, 0);
+    */
 }
 
 /*******************************************************************************
@@ -644,11 +672,27 @@ uint8_t bms003_read_cycle(uint8_t ucRegAddr, uint32_t uiStartDelayUs, uint32_t u
     ucWriteBuffer[ucBufferIndex++] = RD_SINGLE_CMD;
     ucWriteBuffer[ucBufferIndex++] = PAD;
 
+    /*
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].TXROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portTx << _GPIO_EUSART_TXROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinTx << _GPIO_EUSART_TXROUTE_PIN_SHIFT);
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].RXROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portRx << _GPIO_EUSART_RXROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinRx << _GPIO_EUSART_RXROUTE_PIN_SHIFT);
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].SCLKROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portClk << _GPIO_EUSART_SCLKROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinClk << _GPIO_EUSART_SCLKROUTE_PIN_SHIFT);
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].ROUTEEN = GPIO_EUSART_ROUTEEN_TXPEN | GPIO_EUSART_ROUTEEN_RXPEN | GPIO_EUSART_ROUTEEN_SCLKPEN;
+    bms003_delay_us(100);
+    */
     GPIO_PinOutClear(SPI_CS_PORT, SPI_CS_PIN);
     if (uiStartDelayUs)bms003_delay_us(uiStartDelayUs);
     bms003_spi_transfer(ucWriteBuffer, ucReadBuffer, 3);
     if (uiStopDelayUs)bms003_delay_us(uiStopDelayUs);
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
+    /*
+    bms003_delay_us(10);
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].TXROUTE = _GPIO_EUSART_TXROUTE_RESETVALUE;
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].RXROUTE = _GPIO_EUSART_RXROUTE_RESETVALUE;
+    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].SCLKROUTE = _GPIO_EUSART_SCLKROUTE_RESETVALUE;
+    GPIO_PinModeSet(SPI_CLK_PORT, SPI_CLK_PIN, gpioModePushPull, 0);
+    GPIO_PinModeSet(SPI_MOSI_PORT, SPI_MOSI_PIN, gpioModePushPull, 0);
+    GPIO_PinModeSet(SPI_MISO_PORT, SPI_MISO_PIN, gpioModePushPull, 0);
+    */
     return ucReadBuffer[2];
 }
 
@@ -708,6 +752,7 @@ void bms003_config_after_handler(void)
     ucWriteBuffer[ucBufferIndex++] = 0x1;      //18使能IMEAS_EN
     bms003_write_burst(0x17, ucWriteBuffer, ucBufferIndex, 17, 30);
     
+    /*
     log_d("CFG BURST IMEAS FINISH!");
     // 读寄存器
     bms003_delay_us(300);
@@ -769,6 +814,8 @@ void bms003_config_after_handler(void)
     ucReadData = bms003_read_cycle(0x55, 0, 1);
     log_d("addr:%x", 0x55);
     log_d("0X55:%x", ucReadData);
+    */
+    
 }
 
 /*******************************************************************************
@@ -783,7 +830,7 @@ void bms003_config(void)
 {
     uint8_t ucWriteBuffer[32];
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
-    bms003_delay_us(5);
+    bms003_delay_us(300);
     uint8_t ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = CLK;
     ucWriteBuffer[ucBufferIndex++] = 0xb;

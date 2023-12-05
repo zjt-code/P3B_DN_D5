@@ -396,7 +396,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 		memcpy(&SocpStartTheSessionDatapacket, pData, sizeof(SocpStartTheSessionDatapacket));
 
 		// 如果当前CGM已经运行或者处于极化中
-		if ((att_get_cgm_status()->ucRunStatus == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING) | (att_get_cgm_status()->ucRunStatus == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP))
+		if ((att_get_cgm_status()->ucRunStatus == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING) || (att_get_cgm_status()->ucRunStatus == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP))
 		{
 			// 返回对应错误码
 			SocpResponseDatapcket.ucRspCode = SOCP_START_THE_SESSION_RSP_CODE_IS_STARTED;

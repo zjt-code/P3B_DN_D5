@@ -18,6 +18,7 @@
 #include <elog.h>
 #include "sl_bt_api.h"
 #include "cgms_prm.h"
+#include "ble_customss.h"
 /* Private variables ---------------------------------------------------------*/
 app_state_t g_app_state;
 event_info_t g_EventInfoArray[APP_EVENT_MAX_NUM];
@@ -282,9 +283,6 @@ void app_init(void)
     // 添加更新ble连接参数事件
     event_add(MAIN_LOOP_EVENT_BLE_UPDATE_CONNECT_PARAMETERS, ble_update_connect_param_handle);
 
-    // 参数存储上电初始化
-    cgms_prm_db_power_on_init();
-
     // 初始化血糖算法
     //simpleGlucoInit();
 
@@ -294,8 +292,30 @@ void app_init(void)
     // 设置CGM状态为CGM结束
     app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
 
+    // 更新CGM状态Char内容
+    att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->status;
+    att_update_cgm_status_char_data_crc();
+
+    // 更新CGM启动时间char内容
+    att_update_start_time_char_data_crc();
+
+    // 工作时间默认14天
+    att_get_feature()->ucWorkTime = 14;
+
+    // 数据发送间隔默认3分钟
+    att_get_feature()->ucSampleTime = 3;
+
+    // 支持CRC
+    att_get_feature()->ucCrcSupported = 0x01;
+
+    // 更新Feature char的内容
+    att_update_feature_char_data_crc();
+
     // 初始化历史数据存储部分
     cgms_db_init();
+
+    // 应用层血糖测量初始化
+    app_glucose_meas_init();
 }
 
 
