@@ -34,14 +34,14 @@ typedef struct
 {
     cgms_meas_t Record;// 历史数据内容
     uint16_t usChecksum;// 校验
-}one_record_storage_unit_t;// 单个历史数据存储结构体
+}__attribute__((packed))  one_record_storage_unit_t;// 单个历史数据存储结构体
 
 typedef struct
 {
     uint16_t usDataSum;// 效验
     uint32_t uiRecordsNum;// 当前历史数据总数
     ble_cgms_sst_t sst;// CGM会话启动时间
-}record_index_storage_unit_t;// 历史数据参数存储结构体
+}__attribute__((packed))  record_index_storage_unit_t;// 历史数据参数存储结构体
 
 typedef struct
 {
@@ -63,7 +63,7 @@ typedef struct
     uint32_t uiBFSR;
     uint32_t uiLR_EXC_RETURN;
     uint32_t uiRecordNum;
-}hard_fault_info_t;
+}__attribute__((packed))  hard_fault_info_t;
 
 /* Private variables ---------------------------------------------------------*/
 

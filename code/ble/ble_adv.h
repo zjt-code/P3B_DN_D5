@@ -27,8 +27,7 @@
 
 
 /* Private function prototypes -----------------------------------------------*/
-void ble_adv_set_sn(char* pSnStr);
-void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint8_t* pAdvDataLen);
+void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint32_t* pAdvDataLen);
 void ble_adv_generate_adv_scan_response_data(uint8_t* pAdvScanRespDataBuffer, uint8_t* ucAdvScanRespDataLen);
 
 #endif /* __BLE_ADV_H */

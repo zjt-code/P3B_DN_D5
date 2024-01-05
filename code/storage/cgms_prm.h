@@ -1,3 +1,18 @@
+/******************** (C) COPYRIGHT 2023 ³ÂËÕÑô ********************************
+* File Name          :  cgms_prm.h
+* Author             :  ³ÂËÕÑô
+* CPU Type         	 :  NRF52832
+* IDE                :  Keil
+* Version            :  V1.0
+* Date               :  30/11/2023
+* Description        :  
+*******************************************************************************/
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef __CGMS_PRM_H
+#define __CGMS_PRM_H
+
+/* Includes ------------------------------------------------------------------*/
 #include "stdint.h"
 #include "cgms_db.h"
 #include "app.h"
@@ -153,6 +168,7 @@ extern prm_t g_PrmDb;
 #define ERROR_RACP_SEND              			0x0009
 #define ERROR_HARDFALT             			  0x000A
 
+/* Private function prototypes -----------------------------------------------*/
 ret_code_t cgms_prm_get_sn(unsigned char* buff);
 void cgms_prm_db_power_on_init(void);
 uint8_t* cgms_prm_get_sn_p(void);
@@ -161,4 +177,6 @@ ret_code_t cgms_prm_db_write_flash(void);
 
 extern softreset_error_log_backup_t softreset_error_log;
 
-//====================
+#endif /* __CGMS_PRM_H */
+
+/******************* (C) COPYRIGHT 2023 ³ÂËÕÑô **** END OF FILE ****************/

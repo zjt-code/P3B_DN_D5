@@ -139,7 +139,7 @@ void app_glucose_avg_electric_current_cal_init(void)
 *******************************************************************************/
 float app_glucose_avg_electric_current_cal_get(void)
 {
-	float dAvg = 0.0;
+    float dAvg = 0.0;
     // 累加临时数据
     for (uint8_t i = 0; i < g_ucAvgElectricCurrentCalTempArrayCnt; i++)
     {

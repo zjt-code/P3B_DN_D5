@@ -47,21 +47,21 @@ void att_initialize(void)
 /*******************************************************************************
 *                           陈苏阳@2023-10-19
 * Function Name  :  att_set_start_handle
-* Description    :  
+* Description    :
 * Input          :  uint16_t handle
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
 void att_set_start_handle(uint16_t handle)
 {
-	app_global_get_app_state()->start_hdl = handle;
+    app_global_get_app_state()->start_hdl = handle;
 }
 
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-19
 * Function Name  :  att_get_att_handle
-* Description    :  
+* Description    :
 * Input          :  uint16_t attindx
 * Output         :  None
 * Return         :  uint16_t
@@ -74,7 +74,7 @@ uint16_t att_get_att_handle(uint16_t attindx)
 /*******************************************************************************
 *                           陈苏阳@2023-10-19
 * Function Name  :  att_get_start_handle
-* Description    :  
+* Description    :
 * Input          :  void
 * Output         :  None
 * Return         :  uint16_t
@@ -187,7 +187,7 @@ void att_update_feature_char_data_crc(void)
 /*******************************************************************************
 *                           陈苏阳@2023-10-19
 * Function Name  :  att_update_notify_indication
-* Description    :  
+* Description    :
 * Input          :  uint16_t handle
 * Input          :  uint16_t value
 * Output         :  None
@@ -224,7 +224,7 @@ void att_update_notify_indication(uint16_t handle, uint16_t value)
 /*******************************************************************************
 *                           陈苏阳@2023-10-19
 * Function Name  :  att_disable_notify_indication
-* Description    :  
+* Description    :
 * Input          :  void
 * Output         :  None
 * Return         :  void
@@ -244,7 +244,7 @@ void att_disable_notify_indication(void)
 /*******************************************************************************
 *                           陈苏阳@2023-10-19
 * Function Name  :  customss_clear_cccd
-* Description    :  
+* Description    :
 * Input          :  void
 * Output         :  None
 * Return         :  void

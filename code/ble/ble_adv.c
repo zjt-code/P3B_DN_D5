@@ -9,6 +9,13 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
+
+#if !defined(LOG_TAG)
+#define LOG_TAG                   "BLE_ADV"
+#endif
+#undef LOG_LVL
+#define LOG_LVL                    ELOG_LVL_INFO
+
 #include "ble_adv.h"
 #include "string.h"
 #include "app_global.h"
@@ -32,11 +39,11 @@ char g_cAdvSnStr[12];
 * Function Name  :  ble_adv_generate_adv_data
 * Description    :  生成广播数据
 * Input          :  uint8_t * pAdvDataBuffer
-* Input          :  uint8_t * pAdvDataLen
+* Input          :  uint32_t * pAdvDataLen
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint8_t* pAdvDataLen)
+void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint32_t* pAdvDataLen)
 {
     uint16_t usCompanyID = APP_COMPANY_ID;
     uint16_t usAppCompleteList16BitUuid = APP_COMPLETE_LIST_16_BIT_UUID;
@@ -46,11 +53,12 @@ void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint8_t* pAdvDataLen)
         // 获取存储的SN
         cgms_prm_get_sn(g_cAdvSnStr);
 
+#ifndef RSL15_CID            // 如果是RSL15平台的,就不需要添加flag字段,不然会发不出广播
         // 添加Flag
         pAdvDataBuffer[ucDataIndex++] = 0x02;
         pAdvDataBuffer[ucDataIndex++] = 0x01;
         pAdvDataBuffer[ucDataIndex++] = 0x06;
-
+#endif
         // 添加设备名
         pAdvDataBuffer[ucDataIndex++] = 10 + 1;
         pAdvDataBuffer[ucDataIndex++] = 0x09;
@@ -69,8 +77,7 @@ void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint8_t* pAdvDataLen)
         memcpy(&pAdvDataBuffer[ucDataIndex], &usCompanyID, sizeof(usCompanyID));
         ucDataIndex += sizeof(usCompanyID);
 
-        log_d("ble_adv_generate_adv_data");
-        //elog_hexdump("adv_Data", 8, pAdvDataBuffer, ucDataIndex);
+        elog_hexdump("adv_data", 8, pAdvDataBuffer, ucDataIndex);
         if (pAdvDataLen)*pAdvDataLen = ucDataIndex;
     }
 }

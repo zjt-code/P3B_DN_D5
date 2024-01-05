@@ -16,7 +16,7 @@
 #include "string.h"
 #include <elog.h>
 uint8_t g_ucSn[11] = { 'J','N','-','X','X', 'X', '0', '0', '0', '0',0x00 };
-prm_t g_PrmDb;
+prm_t g_PrmDb __attribute__((aligned(4)));
 
 
 /*******************************************************************************
@@ -31,15 +31,17 @@ ret_code_t cgms_prm_db_write_flash()
     uint8_t ucResult;
 
     // 擦除参数所在的Flash区域
-    ucResult = cgms_prm_flash_erase(0, 1);
+    ucResult = cgms_prm_flash_erase_sector(0);
     if (ucResult)
     {
+        log_e("cgms_prm_flash_erase_sector fail:%d", ucResult);
         return ucResult;
     }
-    // 写入参数结构体,最后补4byte,防止结构体大小没法对齐
-	ucResult = cgms_prm_flash_write(0, (sizeof(g_PrmDb) / 4) + 1, (uint32_t*)&g_PrmDb);
+    // 写入参数结构体
+    ucResult = cgms_prm_flash_write(0, (uint32_t*)&g_PrmDb, sizeof(g_PrmDb));
     if (ucResult)
     {
+        log_e("cgms_prm_flash_write fail:%d", ucResult);
         return ucResult;
     }
     return 0;

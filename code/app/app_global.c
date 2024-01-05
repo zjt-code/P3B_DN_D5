@@ -167,7 +167,7 @@ bool app_have_a_active_ble_connect(void)
 *******************************************************************************/
 void app_event_ble_connected_callback(uint16_t usConnectionHandle)
 {
-    log_i("app_event_ble_connected_callback:%d",usConnectionHandle);
+    log_i("app_event_ble_connected_callback:%d", usConnectionHandle);
 
     // 设置当前全局BLE连接状态为已连接
     app_global_get_app_state()->bBleConnected = true;
@@ -242,7 +242,10 @@ void app_event_ble_disconnect_callback(uint16_t usConnectionHandle)
     app_remove_ble_connect(usConnectionHandle);
 
     // 历史数据发送标志位取消 todo:这边会有冲突问题,待完善
-    app_global_get_app_state()->bRecordSendFlag = 0;
+    app_global_get_app_state()->bRecordSendFlag = false;
+
+    // 清除密码效验成功标志
+    //app_global_get_app_state()->bCgmsPwdVerifyOk = false;
 
     // 关闭发送历史数据定时器
     app_glucose_meas_record_send_stop();
