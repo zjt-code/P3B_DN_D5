@@ -7,7 +7,7 @@
     <properties key="universalConfig.toolchainCompatibility" value="iar gcc"/>
     <properties key="projectCommon.boardIds" value="com.silabs.board.none:0.0.0"/>
     <properties key="projectCommon.kitId" value=""/>
-    <properties key="projectCommon.partId" value="mcu.arm.efr32.bg27.efr32bg27c140f768im40"/>
+    <properties key="projectCommon.partId" value="mcu.arm.efr32.bg27.efr32bg27c230f768im40"/>
     <properties key="projectCommon.toolchainId" value="com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:10.3.1.20210824"/>
     <properties key="universalConfig.projectTypeIds" value="com.silabs.ss.framework.ide.project.core.cdtMbsProjectType"/>
     <properties key="projectCommon.importModeId" value="COPY"/>

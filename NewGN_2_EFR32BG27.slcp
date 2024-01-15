@@ -29,17 +29,17 @@ toolchain_settings: []
 component:
 - {id: iostream_rtt}
 - {id: bluetooth_feature_gatt_server}
-- {id: bluetooth_feature_legacy_advertiser}
 - {id: mpu}
-- {id: gatt_configuration}
+- {id: bluetooth_feature_legacy_advertiser}
 - {id: device_init_lfxo}
+- {id: gatt_configuration}
+- {id: EFR32BG27C230F768IM40}
 - {id: gatt_service_device_information}
 - {id: bluetooth_stack}
 - instance: [AfeSpiInst]
   id: spidrv_usart
 - {id: gpiointerrupt}
 - {id: rail_util_pti}
-- {id: EFR32BG27C140F768IM40}
 - {id: udelay}
 - {id: mbedtls_nist_kw}
 - {id: app_log}
