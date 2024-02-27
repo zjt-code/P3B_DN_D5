@@ -55,7 +55,7 @@ static uint8_t g_ucAdvDataLen;                      // BLE广播内容长度
 void sl_bt_on_event(sl_bt_msg_t* evt)
 {
     sl_status_t sc;
-    //log_i("sl_bt_on_event:0x%X", SL_BT_MSG_ID(evt->header));
+    log_d("sl_bt_on_event:0x%X", SL_BT_MSG_ID(evt->header));
     switch (SL_BT_MSG_ID(evt->header))
     {
         // BLE协议栈初始化完成事件
@@ -75,8 +75,8 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         ble_adv_generate_adv_data(g_ucAdvDataBuffer, &g_ucAdvDataLen);
 
         // 设置广播数据
-        sc = sl_bt_legacy_advertiser_set_data(g_ucAdvertisingSetHandle, 0, g_ucAdvDataLen, (uint8_t*)g_ucAdvDataBuffer);
-        //sc = sl_bt_advertiser_set_data(g_ucAdvertisingSetHandle, sl_bt_advertiser_scan_response_packet, g_ucAdvDataLen, g_ucAdvDataBuffer);
+        //sc = sl_bt_legacy_  advertiser_generate_data(g_ucAdvertisingSetHandle, sl_bt_advertiser_general_discoverable);
+        sc = sl_bt_legacy_advertiser_set_data(g_ucAdvertisingSetHandle, sl_bt_advertiser_advertising_data_packet, g_ucAdvDataLen, (uint8_t*)g_ucAdvDataBuffer);
         app_assert_status(sc);
 
         // 设置广播的时间参数
@@ -91,9 +91,6 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         // 开始BLE广播
         sc = sl_bt_legacy_advertiser_start(g_ucAdvertisingSetHandle, sl_bt_advertiser_connectable_scannable);
         app_assert_status(sc);
-
-        // 初始化应用层
-        app_init();
 
         break;
     }

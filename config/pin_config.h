@@ -59,14 +59,6 @@
 // [GPIO]$
 
 // $[TIMER0]
-// TIMER0 CC0 on PB00
-#ifndef TIMER0_CC0_PORT                         
-#define TIMER0_CC0_PORT                          gpioPortB
-#endif
-#ifndef TIMER0_CC0_PIN                          
-#define TIMER0_CC0_PIN                           0
-#endif
-
 // [TIMER0]$
 
 // $[TIMER1]
@@ -82,33 +74,33 @@
 // [TIMER4]$
 
 // $[USART0]
+// USART0 CLK on PA05
+#ifndef USART0_CLK_PORT                         
+#define USART0_CLK_PORT                          gpioPortA
+#endif
+#ifndef USART0_CLK_PIN                          
+#define USART0_CLK_PIN                           5
+#endif
+
+// USART0 RX on PA07
+#ifndef USART0_RX_PORT                          
+#define USART0_RX_PORT                           gpioPortA
+#endif
+#ifndef USART0_RX_PIN                           
+#define USART0_RX_PIN                            7
+#endif
+
+// USART0 TX on PA06
+#ifndef USART0_TX_PORT                          
+#define USART0_TX_PORT                           gpioPortA
+#endif
+#ifndef USART0_TX_PIN                           
+#define USART0_TX_PIN                            6
+#endif
+
 // [USART0]$
 
 // $[USART1]
-// USART1 CLK on PA05
-#ifndef USART1_CLK_PORT                         
-#define USART1_CLK_PORT                          gpioPortA
-#endif
-#ifndef USART1_CLK_PIN                          
-#define USART1_CLK_PIN                           5
-#endif
-
-// USART1 RX on PA03
-#ifndef USART1_RX_PORT                          
-#define USART1_RX_PORT                           gpioPortA
-#endif
-#ifndef USART1_RX_PIN                           
-#define USART1_RX_PIN                            3
-#endif
-
-// USART1 TX on PA04
-#ifndef USART1_TX_PORT                          
-#define USART1_TX_PORT                           gpioPortA
-#endif
-#ifndef USART1_TX_PIN                           
-#define USART1_TX_PIN                            4
-#endif
-
 // [USART1]$
 
 // $[I2C1]
@@ -142,18 +134,25 @@
 // [MODEM]$
 
 // $[CUSTOM_PIN_NAME]
-#ifndef SPI_MISO_PORT                           
-#define SPI_MISO_PORT                            gpioPortA
+#ifndef _PORT                                   
+#define _PORT                                    gpioPortA
 #endif
-#ifndef SPI_MISO_PIN                            
-#define SPI_MISO_PIN                             3
+#ifndef _PIN                                    
+#define _PIN                                     0
 #endif
 
-#ifndef SPI_MOSI_PORT                           
-#define SPI_MOSI_PORT                            gpioPortA
+#ifndef SPI_CS_PORT                             
+#define SPI_CS_PORT                              gpioPortA
 #endif
-#ifndef SPI_MOSI_PIN                            
-#define SPI_MOSI_PIN                             4
+#ifndef SPI_CS_PIN                              
+#define SPI_CS_PIN                               3
+#endif
+
+#ifndef AFE_INT_PORT                            
+#define AFE_INT_PORT                             gpioPortA
+#endif
+#ifndef AFE_INT_PIN                             
+#define AFE_INT_PIN                              4
 #endif
 
 #ifndef SPI_CLK_PORT                            
@@ -163,47 +162,57 @@
 #define SPI_CLK_PIN                              5
 #endif
 
-#ifndef SPI_CS_PORT                             
-#define SPI_CS_PORT                              gpioPortA
+#ifndef SPI_MOSI_PORT                           
+#define SPI_MOSI_PORT                            gpioPortA
 #endif
-#ifndef SPI_CS_PIN                              
-#define SPI_CS_PIN                               6
-#endif
-
-#ifndef AFE_INT_PORT                            
-#define AFE_INT_PORT                             gpioPortA
-#endif
-#ifndef AFE_INT_PIN                             
-#define AFE_INT_PIN                              7
+#ifndef SPI_MOSI_PIN                            
+#define SPI_MOSI_PIN                             6
 #endif
 
-#ifndef TEMP_SENSOR_PORT                        
-#define TEMP_SENSOR_PORT                         gpioPortB
+#ifndef SPI_MISO_PORT                           
+#define SPI_MISO_PORT                            gpioPortA
 #endif
-#ifndef TEMP_SENSOR_PIN                         
-#define TEMP_SENSOR_PIN                          0
-#endif
-
-#ifndef TEMP_SENSOR_EN_PORT                     
-#define TEMP_SENSOR_EN_PORT                      gpioPortB
-#endif
-#ifndef TEMP_SENSOR_EN_PIN                      
-#define TEMP_SENSOR_EN_PIN                       1
+#ifndef SPI_MISO_PIN                            
+#define SPI_MISO_PIN                             7
 #endif
 
 #ifndef AFE_WAKE_UP_PORT                        
 #define AFE_WAKE_UP_PORT                         gpioPortB
 #endif
 #ifndef AFE_WAKE_UP_PIN                         
-#define AFE_WAKE_UP_PIN                          2
+#define AFE_WAKE_UP_PIN                          0
 #endif
 
 #ifndef AFE_CHIP_EN_PORT                        
 #define AFE_CHIP_EN_PORT                         gpioPortB
 #endif
 #ifndef AFE_CHIP_EN_PIN                         
-#define AFE_CHIP_EN_PIN                          3
+#define AFE_CHIP_EN_PIN                          1
 #endif
+
+
+#ifndef POWER_EN_PORT
+#define POWER_EN_PORT                         gpioPortC
+#endif
+#ifndef POWER_EN_PIN
+#define POWER_EN_PIN                          0
+#endif
+
+#ifndef NTC_EN_PORT
+#define NTC_EN_PORT                         gpioPortB
+#endif
+#ifndef NTC_EN_PIN
+#define NTC_EN_PIN                          3
+#endif
+
+
+#ifndef NTC_DATA_PORT
+#define NTC_DATA_PORT                       gpioPortB
+#endif
+#ifndef NTC_DATA_PIN
+#define NTC_DATA_PIN                        2
+#endif
+
 
 // [CUSTOM_PIN_NAME]$
 

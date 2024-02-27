@@ -14,7 +14,7 @@
 #define LOG_TAG                "BMS0003"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                ELOG_LVL_DEBUG
+#define LOG_LVL                ELOG_LVL_WARN
 
 #include "spidrv.h"
 #include "sl_udelay.h"
@@ -34,7 +34,7 @@
 // 增益
 #define CH1_WE1_VGAIN_SEL                           0x00
 // 偏置
-#define CH1_DINWE_L8                                0x94
+#define CH1_DINWE_L8                                0x96
 #define CH1_DINWE_H2                                0x00
 
 // 修改ICLK&PCLK&CIC
@@ -93,7 +93,7 @@ bool bms003_get_new_data(double* pNewData)
     if (pNewData == NULL)return false;
     if (fifo_out(&g_NewDataFifo, &iData, 1, 1))
     {
-        *pNewData = (double)(iData / 32768.0 * 1.165 * 100);
+        *pNewData = (double)(iData / 32768.0 * 1.2 * 100);
         return true;
     }
     return false;
@@ -350,7 +350,7 @@ void bms003_read_adc_data(void)
             // 数据推入FIFO
             int32_t iData = buff - g_BaseWeVol;
 
-            log_d("curr nA:%f", iData / 32768.0 * 1.165 * 100);
+            log_i("curr nA:%f", iData / 32768.0 * 1.2 * 100);
             fifo_in(&g_NewDataFifo, &iData, 1);
             GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, false, false, false);
         }
@@ -419,12 +419,13 @@ void bms003_wakeup_timer_handler(void)
     bms003_wakeup();
 
     // 启动一个1S后的单次定时器
-    status = sl_sleeptimer_start_timer(&g_Bms003MeasureTimer, sl_sleeptimer_ms_to_tick(1000), bms003_measure_timer_callback, (void*)NULL, 0, 0);
+    status = sl_sleeptimer_start_timer(&g_Bms003MeasureTimer, sl_sleeptimer_ms_to_tick(1), bms003_measure_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
     {
         log_e("sl_sleeptimer_start_timer failed");
         return;
     }
+
 }
 
 /*******************************************************************************
@@ -582,28 +583,12 @@ void bms003_write_cycle(uint8_t ucRegAddr, uint8_t ucData, uint32_t uiStartDelay
     ucWriteBuffer[ucBufferIndex++] = WR_SINGLE_CMD;
     ucWriteBuffer[ucBufferIndex++] = ucData;
     ucWriteBuffer[ucBufferIndex++] = PAD;
-    /*
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].TXROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portTx << _GPIO_EUSART_TXROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinTx << _GPIO_EUSART_TXROUTE_PIN_SHIFT);
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].RXROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portRx << _GPIO_EUSART_RXROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinRx << _GPIO_EUSART_RXROUTE_PIN_SHIFT);
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].SCLKROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portClk << _GPIO_EUSART_SCLKROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinClk << _GPIO_EUSART_SCLKROUTE_PIN_SHIFT);
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].ROUTEEN = GPIO_EUSART_ROUTEEN_TXPEN | GPIO_EUSART_ROUTEEN_RXPEN | GPIO_EUSART_ROUTEEN_SCLKPEN;
-    bms003_delay_us(100);
-    */
+
     GPIO_PinOutClear(SPI_CS_PORT, SPI_CS_PIN);
     if (uiStartDelayUs)bms003_delay_us(uiStartDelayUs);
     bms003_spi_write_data(ucWriteBuffer, ucBufferIndex);
     if (uiStopDelayUs)bms003_delay_us(uiStopDelayUs);
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
-    /*
-    bms003_delay_us(10);
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].TXROUTE = _GPIO_EUSART_TXROUTE_RESETVALUE;
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].RXROUTE = _GPIO_EUSART_RXROUTE_RESETVALUE;
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].SCLKROUTE = _GPIO_EUSART_SCLKROUTE_RESETVALUE;
-    GPIO_PinModeSet(SPI_CLK_PORT, SPI_CLK_PIN, gpioModePushPull, 0);
-    GPIO_PinModeSet(SPI_MOSI_PORT, SPI_MOSI_PIN, gpioModePushPull, 0);
-    GPIO_PinModeSet(SPI_MISO_PORT, SPI_MISO_PIN, gpioModePushPull, 0);
-    */
-
 }
 
 /*******************************************************************************
@@ -630,27 +615,11 @@ void bms003_write_burst(uint8_t ucRegAddr, uint8_t* pData,uint8_t ucLen,uint32_t
     }
     ucWriteBuffer[ucBufferIndex++] = PAD;
 
-    /*
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].TXROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portTx << _GPIO_EUSART_TXROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinTx << _GPIO_EUSART_TXROUTE_PIN_SHIFT);
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].RXROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portRx << _GPIO_EUSART_RXROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinRx << _GPIO_EUSART_RXROUTE_PIN_SHIFT);
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].SCLKROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portClk << _GPIO_EUSART_SCLKROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinClk << _GPIO_EUSART_SCLKROUTE_PIN_SHIFT);
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].ROUTEEN = GPIO_EUSART_ROUTEEN_TXPEN | GPIO_EUSART_ROUTEEN_RXPEN | GPIO_EUSART_ROUTEEN_SCLKPEN;
-    bms003_delay_us(100);
-    */
     GPIO_PinOutClear(SPI_CS_PORT, SPI_CS_PIN);
     if(uiStartDelayUs)bms003_delay_us(uiStartDelayUs);
     bms003_spi_write_data(ucWriteBuffer, ucBufferIndex);
     if(uiStopDelayUs)bms003_delay_us(uiStopDelayUs);
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
-    /*
-    bms003_delay_us(10);
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].TXROUTE = _GPIO_EUSART_TXROUTE_RESETVALUE;
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].RXROUTE = _GPIO_EUSART_RXROUTE_RESETVALUE;
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].SCLKROUTE = _GPIO_EUSART_SCLKROUTE_RESETVALUE;
-    GPIO_PinModeSet(SPI_CLK_PORT, SPI_CLK_PIN, gpioModePushPull, 0);
-    GPIO_PinModeSet(SPI_MOSI_PORT, SPI_MOSI_PIN, gpioModePushPull, 0);
-    GPIO_PinModeSet(SPI_MISO_PORT, SPI_MISO_PIN, gpioModePushPull, 0);
-    */
 }
 
 /*******************************************************************************
@@ -672,27 +641,11 @@ uint8_t bms003_read_cycle(uint8_t ucRegAddr, uint32_t uiStartDelayUs, uint32_t u
     ucWriteBuffer[ucBufferIndex++] = RD_SINGLE_CMD;
     ucWriteBuffer[ucBufferIndex++] = PAD;
 
-    /*
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].TXROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portTx << _GPIO_EUSART_TXROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinTx << _GPIO_EUSART_TXROUTE_PIN_SHIFT);
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].RXROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portRx << _GPIO_EUSART_RXROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinRx << _GPIO_EUSART_RXROUTE_PIN_SHIFT);
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].SCLKROUTE = ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.portClk << _GPIO_EUSART_SCLKROUTE_PORT_SHIFT) | ((uint32_t)sl_spidrv_usart_AfeSpiInst_handle->initData.pinClk << _GPIO_EUSART_SCLKROUTE_PIN_SHIFT);
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].ROUTEEN = GPIO_EUSART_ROUTEEN_TXPEN | GPIO_EUSART_ROUTEEN_RXPEN | GPIO_EUSART_ROUTEEN_SCLKPEN;
-    bms003_delay_us(100);
-    */
     GPIO_PinOutClear(SPI_CS_PORT, SPI_CS_PIN);
     if (uiStartDelayUs)bms003_delay_us(uiStartDelayUs);
     bms003_spi_transfer(ucWriteBuffer, ucReadBuffer, 3);
     if (uiStopDelayUs)bms003_delay_us(uiStopDelayUs);
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
-    /*
-    bms003_delay_us(10);
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].TXROUTE = _GPIO_EUSART_TXROUTE_RESETVALUE;
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].RXROUTE = _GPIO_EUSART_RXROUTE_RESETVALUE;
-    GPIO->EUSARTROUTE[SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO].SCLKROUTE = _GPIO_EUSART_SCLKROUTE_RESETVALUE;
-    GPIO_PinModeSet(SPI_CLK_PORT, SPI_CLK_PIN, gpioModePushPull, 0);
-    GPIO_PinModeSet(SPI_MOSI_PORT, SPI_MOSI_PIN, gpioModePushPull, 0);
-    GPIO_PinModeSet(SPI_MISO_PORT, SPI_MISO_PIN, gpioModePushPull, 0);
-    */
     return ucReadBuffer[2];
 }
 
@@ -751,7 +704,6 @@ void bms003_config_after_handler(void)
     ucWriteBuffer[ucBufferIndex++] = 0x1;      //17INPUT_FORMAT
     ucWriteBuffer[ucBufferIndex++] = 0x1;      //18使能IMEAS_EN
     bms003_write_burst(0x17, ucWriteBuffer, ucBufferIndex, 17, 30);
-    
     /*
     log_d("CFG BURST IMEAS FINISH!");
     // 读寄存器
@@ -815,7 +767,6 @@ void bms003_config_after_handler(void)
     log_d("addr:%x", 0x55);
     log_d("0X55:%x", ucReadData);
     */
-    
 }
 
 /*******************************************************************************
@@ -847,12 +798,12 @@ void bms003_config(void)
     ucWriteBuffer[ucBufferIndex++] = CH1_WE1_VGAIN_SEL;// addr:0x54 配置DDA增益倍数
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x55 默认为0
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x56 默认为0
-    ucWriteBuffer[ucBufferIndex++] = 0x1;// addr:0x57 参比电极以及辅助电极使能
+    ucWriteBuffer[ucBufferIndex++] = 0x0;// addr:0x57 参比电极以及辅助电极使能
     ucWriteBuffer[ucBufferIndex++] = 0x1;// addr:0x58 工作电极的偏置电压由第一个DAC生成使能
     ucWriteBuffer[ucBufferIndex++] = CH1_DINWE_L8;// addr:0x59 设置偏置电压[0:7]
     ucWriteBuffer[ucBufferIndex++] = CH1_DINWE_H2;// addr:0x5A 设置偏置电压[8:9]
-    ucWriteBuffer[ucBufferIndex++] = 0x1;// addr:0x5B 参比电极的偏置电压由第二个DAC生成使能[0:7]
-    ucWriteBuffer[ucBufferIndex++] = 0x7f;// addr:0x5C 配置CE[0:7]
+    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5B 参比电极的偏置电压由第二个DAC生成使能[0:7]
+    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5C 配置CE[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5D 配置CE[8:9]
     bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex, 15, 30);
 
@@ -899,12 +850,12 @@ void bms003_wakeup_config(void)
     ucWriteBuffer[ucBufferIndex++] = CH1_WE1_VGAIN_SEL;         //54配置DDA增益倍数  0 8 10 18 20 28 30 38    1 2 3 4 8 15 22 29
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //55默认为0
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //56默认为0
-    ucWriteBuffer[ucBufferIndex++] = 0x01;                      //57参比电极以及辅助电极使能
+    ucWriteBuffer[ucBufferIndex++] = 0x00;                      //57参比电极以及辅助电极使能
     ucWriteBuffer[ucBufferIndex++] = 0x01;                      //58工作电极的偏置电压由第一个DAC生成使能	
     ucWriteBuffer[ucBufferIndex++] = CH1_DINWE_L8;              //59设置偏置电压[0:7]
     ucWriteBuffer[ucBufferIndex++] = CH1_DINWE_H2;              //5A设置偏置电压[8:9]
-    ucWriteBuffer[ucBufferIndex++] = 0x01;                      //5B参比电极的偏置电压由第二个DAC生成使能[0:7]
-    ucWriteBuffer[ucBufferIndex++] = 0x7F;                      //5C配置CE[0:7]
+    ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5B参比电极的偏置电压由第二个DAC生成使能[0:7]
+    ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5C配置CE[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5C配置CE[8:9]
     bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex, 15, 30);
 

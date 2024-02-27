@@ -9,6 +9,12 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
+#if !defined(LOG_TAG)
+#define LOG_TAG                   "APP_GLOBAL"
+#endif
+#undef LOG_LVL
+#define LOG_LVL                    ELOG_LVL_WARN
+
 #include "app_global.h"
 #include "app.h"
 #include "ble_update_connect_param.h"
@@ -402,10 +408,12 @@ uint8_t event_handler(uint32_t uiEventId)
     {
         if (g_EventInfoArray[i].uiEventId == (0x01 << uiEventId) && g_EventInfoArray[i].CallBack != NULL)
         {
+            log_d("event_handler:%d", uiEventId);
             g_EventInfoArray[i].CallBack();
             return 1;
         }
     }
+    log_w("event_handler: unknown evnet id");
     return 0;
 }
 

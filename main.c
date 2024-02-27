@@ -26,7 +26,6 @@
 #include "em_cmu.h"
 #include "afe.h"
 #include "pin_config.h"
-#include "temp_sensor.h"
 #include "app_glucose_meas.h"
 #include "cgms_prm.h"
 /* Private variables ---------------------------------------------------------*/
@@ -38,6 +37,8 @@ sl_sleeptimer_timer_handle_t g_TestTimer;
 
 
 /* Private functions ---------------------------------------------------------*/
+
+
 
 
 /*******************************************************************************
@@ -56,6 +57,28 @@ int main(void)
     // 初始化GPIO的时钟
     CMU_ClockEnable(cmuClock_GPIO, true);
 
+
+    GPIO_PinModeSet(gpioPortC, 1, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortC, 2, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortC, 3, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortC, 4, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortC, 5, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortC, 6, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortC, 7, gpioModePushPull, 0);
+
+    GPIO_PinModeSet(gpioPortD, 2, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortD, 3, gpioModePushPull, 0);
+
+    GPIO_PinModeSet(gpioPortA, 0, gpioModePushPull, 0);
+
+    GPIO_PinModeSet(gpioPortB, 4, gpioModePushPull, 0);
+
+    // 设置POWER_EN引脚为推挽输出高电平
+    GPIO_PinModeSet(POWER_EN_PORT, POWER_EN_PIN, gpioModePushPull, 0);
+    // 设置NTC_EN引脚为推挽输出高电平
+    GPIO_PinModeSet(NTC_EN_PORT, NTC_EN_PIN, gpioModePushPull, 0);
+    // 设置NTC_DATA引脚为推挽输出高电平
+    GPIO_PinModeSet(NTC_DATA_PORT, NTC_DATA_PIN, gpioModePushPull, 0);
     // 初始化log
     SEGGER_RTT_Init();
     SEGGER_RTT_SetTerminal(0);
@@ -74,11 +97,11 @@ int main(void)
     // 参数存储上电初始化
     cgms_prm_db_power_on_init();
 
+    // 初始化应用层
+    app_init();
+
     // 初始化AFE
     afe_init();
-
-    // 初始化温度传感器
-    //temp_sensor_init();
 
     while (1)
     {

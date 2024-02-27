@@ -63,7 +63,9 @@ typedef struct
 
 /* Private function prototypes -----------------------------------------------*/
 ret_code_t cgms_meas_send(ble_event_info_t BleEventInfo, cgms_meas_t Rec);
-
+void ble_meas_notify_enable(void);
+void ble_meas_notify_disable(void);
+bool ble_meas_notify_is_enable(void);
 ret_code_t cgms_meas_special_send(ble_event_info_t BleEventInfo, cgms_history_special_datapcket_t CgmsHistorySpecialDatapcket);
 
 

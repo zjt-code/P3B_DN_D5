@@ -25,7 +25,6 @@
 
 char g_cAdvSnStr[12];
 
-
 /* Private function prototypes -----------------------------------------------*/
 
 
@@ -39,11 +38,11 @@ char g_cAdvSnStr[12];
 * Function Name  :  ble_adv_generate_adv_data
 * Description    :  生成广播数据
 * Input          :  uint8_t * pAdvDataBuffer
-* Input          :  uint32_t * pAdvDataLen
+* Input          :  uint8_t * pAdvDataLen
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint32_t* pAdvDataLen)
+void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint8_t* pAdvDataLen)
 {
     uint16_t usCompanyID = APP_COMPANY_ID;
     uint16_t usAppCompleteList16BitUuid = APP_COMPLETE_LIST_16_BIT_UUID;

@@ -58,7 +58,7 @@
 // <o SL_BT_CONFIG_MAX_SOFTWARE_TIMERS> Max number of software timers <0-16>
 // <i> Default: 4
 // <i> Define the number of software timers the application needs.  Each timer needs resources from the stack to be implemented. Increasing amount of soft timers may cause degraded performance in some use cases.
-#define SL_BT_CONFIG_MAX_SOFTWARE_TIMERS     (4)
+#define SL_BT_CONFIG_MAX_SOFTWARE_TIMERS     10
 
 // <o SL_BT_CONFIG_BUFFER_SIZE> Buffer memory size for Bluetooth stack
 // <i> Default: 3150
@@ -80,7 +80,7 @@
 // <i> When this configuration is passed into stack initialization, the stack
 // <i> will select the closest value that the device supports.
 // <i> API sl_bt_system_get_tx_power_setting() can be used to query the selected value.
-#define SL_BT_CONFIG_MIN_TX_POWER     (-30)
+#define SL_BT_CONFIG_MIN_TX_POWER     0
 
 // <o SL_BT_CONFIG_MAX_TX_POWER> Maximum radiated TX power level in 0.1dBm unit
 // <i> Default: 80 (8 dBm)
@@ -89,7 +89,7 @@
 // <i> When this configuration is passed into stack initialization, the stack
 // <i> will select the closest value that the device supports.
 // <i> API sl_bt_system_get_tx_power_setting() can be used to query the selected value.
-#define SL_BT_CONFIG_MAX_TX_POWER     (80)
+#define SL_BT_CONFIG_MAX_TX_POWER     0
 
 // </h> End TX Power Levels
 

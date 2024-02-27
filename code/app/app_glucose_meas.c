@@ -13,7 +13,7 @@
 #define LOG_TAG                   "APP_GLUCOSE_MEAS"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                    ELOG_LVL_DEBUG
+#define LOG_LVL                    ELOG_LVL_WARN
 
 
 #include <string.h>
@@ -727,12 +727,13 @@ void app_glucose_meas_init(void)
     // 添加事件
     event_add(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_1S_TIMER, app_glucose_meas_handler);
     event_add(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_RECORD_SEND_TIMER, app_glucose_meas_record_send_handelr);
+    event_add(MAIN_LOOP_EVENT_APP_BATTERY_MEAS_TIMER, app_battery_meas_handelr);
 
     // 启动一个500ms的单次定时器
     sl_status_t status = sl_sleeptimer_start_timer(&g_AppBatteryMeasTimer, sl_sleeptimer_ms_to_tick(500), app_battery_meas_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
     {
-        log_e("sl_sleeptimer_start_timer failed");
+        log_e("sl_sleeptimer_start_timer failed:%d", status);
     }
 }
 

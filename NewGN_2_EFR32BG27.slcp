@@ -24,13 +24,13 @@ include:
 - path: ''
   file_list:
   - {path: app.h}
-sdk: {id: gecko_sdk, version: 4.3.2}
+sdk: {id: gecko_sdk, version: 4.4.0}
 toolchain_settings: []
 component:
 - {id: iostream_rtt}
 - {id: bluetooth_feature_gatt_server}
-- {id: mpu}
 - {id: bluetooth_feature_legacy_advertiser}
+- {id: mpu}
 - {id: device_init_lfxo}
 - {id: gatt_configuration}
 - {id: EFR32BG27C230F768IM40}

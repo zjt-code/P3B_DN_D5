@@ -264,7 +264,7 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 	uint8_t  ucResponseCode = 0;
 	uint16_t usOpand1Start, usOprand2End;
 	ble_cgms_racp_datapacket_t RacpDatapacket;
-
+	elog_hexdump("racp_rav_raw", 8, pData, usLen);
 #ifdef CGMS_ENCRYPT_ENABLE
 	if (usLen != 16)
 	{
@@ -280,6 +280,7 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 
 #endif
 
+    elog_hexdump("racp_rav", 8, pData, usLen);
 	// 如果数据包正常
 	if (ucResponseCode == 0)
 	{
@@ -288,10 +289,12 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 
 		if ((RacpDatapacket.ucOpCode == RACP_OPCODE_REPORT_RECS) && (usLen == 16) && (RacpDatapacket.pData[RacpDatapacket.ucDataLen - 1] != 8))  //decrped cmd, len=16, && AES-pading7
 		{
+			log_w("racp datapcket command len err");
 			ucResponseCode = RACP_RESPONSE_RESULT_COMMAND_LEN_ERR;
 		}
 		else if (RacpDatapacket.ucOpCode != RACP_OPCODE_REPORT_RECS)
 		{
+			log_w("racp datapcket command format err");
 			ucResponseCode = RACP_RESPONSE_RESULT_COMMAND_FORMAT_ERR;
 		}
 		else
@@ -299,6 +302,7 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 			// 效验CRC
 			if (do_crc(pData, 8) != 0)
 			{
+				log_w("racp datapcket crc err");
 				ucResponseCode = RACP_RESPONSE_RESULT_COMMAND_OTHER_ERR;
 			}
 			else
@@ -306,7 +310,14 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 				// 判断当前是否有历史数据操作在执行
 				if (app_global_get_app_state()->bRecordSendFlag == true)
 				{
+					log_w("racp working,busy");
 					ucResponseCode = RACP_RESPONSE_RESULT_COMMAND_BUSY;
+
+                    // 记录本次历史数据操作的BLE事件信息
+                    app_global_get_app_state()->RecordOptInfo.BleEventInfo = BleEventInfo;
+
+					// 发送历史数据发送结束数据包
+					app_glucose_meas_record_send_done_datapacket_send_start();
 				}
 				else
 				{
@@ -320,7 +331,14 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 					// 如果找不到符合的数据
 					if (ucRet == 0)
 					{
+						log_w("start index range out");
 						ucResponseCode = RACP_RESPONSE_RESULT_COMMAND_START_INDEX_RANGE_OUT;
+
+                        // 记录本次历史数据操作的BLE事件信息
+                        app_global_get_app_state()->RecordOptInfo.BleEventInfo = BleEventInfo;
+
+                        // 发送历史数据发送结束数据包
+                        app_glucose_meas_record_send_done_datapacket_send_start();
 					}
 					else
 					{
@@ -340,6 +358,10 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 				}
 			}
 		}
+	}
+	else
+	{
+		log_w("racp datapacket len err");
 	}
 
 	// 发送回应包
