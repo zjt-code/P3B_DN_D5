@@ -3,7 +3,7 @@
 *                        The Embedded Experts                        *
 **********************************************************************
 *                                                                    *
-*            (c) 1995 - 2021 SEGGER Microcontroller GmbH             *
+*            (c) 1995 - 2023 SEGGER Microcontroller GmbH             *
 *                                                                    *
 *       www.segger.com     Support: support@segger.com               *
 *                                                                    *
@@ -42,7 +42,7 @@
 *                                                                    *
 **********************************************************************
 *                                                                    *
-*       SystemView version: 3.32                                    *
+*       SystemView version: 3.52                                    *
 *                                                                    *
 **********************************************************************
 ---------------------------END-OF-HEADER------------------------------
@@ -79,7 +79,7 @@ Revision: $Rev: 24316 $
 // Up-channel 1: SystemView
 //
 #ifndef   SEGGER_RTT_MAX_NUM_UP_BUFFERS
-  #define SEGGER_RTT_MAX_NUM_UP_BUFFERS             (12)     // Max. number of up-buffers (T->H) available on this target    (Default: 3)
+  #define SEGGER_RTT_MAX_NUM_UP_BUFFERS             (3)     // Max. number of up-buffers (T->H) available on this target    (Default: 3)
 #endif
 //
 // Most common case:
@@ -87,7 +87,7 @@ Revision: $Rev: 24316 $
 // Down-channel 1: SystemView
 //
 #ifndef   SEGGER_RTT_MAX_NUM_DOWN_BUFFERS
-  #define SEGGER_RTT_MAX_NUM_DOWN_BUFFERS           (2)     // Max. number of down-buffers (H->T) available on this target  (Default: 3)
+  #define SEGGER_RTT_MAX_NUM_DOWN_BUFFERS           (3)     // Max. number of down-buffers (H->T) available on this target  (Default: 3)
 #endif
 
 #ifndef   BUFFER_SIZE_UP
@@ -95,7 +95,7 @@ Revision: $Rev: 24316 $
 #endif
 
 #ifndef   BUFFER_SIZE_DOWN
-  #define BUFFER_SIZE_DOWN                          (1024)    // Size of the buffer for terminal input to target from host (Usually keyboard input) (Default: 16)
+  #define BUFFER_SIZE_DOWN                          (1024)  // Size of the buffer for terminal input to target from host (Usually keyboard input) (Default: 16)
 #endif
 
 #ifndef   SEGGER_RTT_PRINTF_BUFFER_SIZE
@@ -423,12 +423,6 @@ void OS_SIM_LeaveCriticalSection(void);
 #ifndef   SEGGER_RTT_UNLOCK
   #define SEGGER_RTT_UNLOCK()              // Unlock RTT (nestable) (i.e. enable previous interrupt lock state)
 #endif
-
-/*********************************************************************
- *
- *       RTT control block configuration
- */
-#define SEGGER_RTT_ALIGNMENT              1024
 
 #endif
 /*************************** End of file ****************************/

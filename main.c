@@ -26,7 +26,6 @@
 #include "em_cmu.h"
 #include "afe.h"
 #include "pin_config.h"
-#include "temp_sensor.h"
 #include "app_glucose_meas.h"
 #include "cgms_prm.h"
 /* Private variables ---------------------------------------------------------*/
@@ -76,9 +75,6 @@ int main(void)
 
     // 初始化AFE
     afe_init();
-
-    // 初始化温度传感器
-    //temp_sensor_init();
 
     while (1)
     {
