@@ -129,44 +129,7 @@ softreset_error_log_backup_t;
 
 
 extern prm_t g_PrmDb;
-
-//ret_code_t cgms_prm_db_write_flash();//add by woo
-
-//====================
-//batt life calc
-
-
-#define BATT_MAX_HOUR		 4000 //UINIT 0.1Hr,400.0Hr under 30K
-#define BATT_CNT_PRD		 360 //period of battCnt ,360s = 0.1Hr
-
-#define BATT_MAX_RECORD		64
-
-#define BATT_DB_ADDR		(115 * 4096)   //0X07300
-
-#define Meas_Reset_db0_Backup_Addr  			0X50000
-#define Meas_Reset_db0_Backup_Addr_End 		0X51000
-
-#define Meas_Reset_db1_Backup_Addr  			0X4F000
-#define Meas_Reset_db1_Backup_Addr_End 		0X50000
-
-#define Global_Value_Backup_Addr    			0x4e000
-#define Global_Value_Backup_Addr_End 			0x4f000
-
-
-#define Error_Log_Backup_Addr    					0x4d000
-#define Error_Log_Backup_Addr_End 				0x4e000
-
-
-#define ERROR_SOFTSTART_HANDLER           0X0001
-#define ERROR_ON_HVC_RACP                 0X0002
-#define ERROR_ON_HVC_SOCP                 0X0003
-#define ERROR_ON_SST_WRITE  							0X0004
-#define ERROR_SOCP_SEND                		0X0005
-#define ERROR_START_SESSION             	0X0006
-#define ERROR_STOP_SESSION               	0x0007
-#define ERROR_UPDATE_SST              		0x0008
-#define ERROR_RACP_SEND              			0x0009
-#define ERROR_HARDFALT             			  0x000A
+extern uint8_t g_ucSn[];
 
 /* Private function prototypes -----------------------------------------------*/
 ret_code_t cgms_prm_get_sn(unsigned char* buff);

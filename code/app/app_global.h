@@ -35,6 +35,10 @@ typedef enum
  MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_1S_TIMER,         // 应用层血糖测量1S定时器事件
  MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_RECORD_SEND_TIMER,// 应用层血糖测量的记录发送定时器事件
  MAIN_LOOP_EVENT_APP_BATTERY_MEAS_TIMER,            // 应用层电量测量定时器事件
+ MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT,          // 开始CGM事件
+ MAIN_LOOP_EVENT_SOCP_STOP_SESSION_EVENT,           // 停止CGM事件
+ MAIN_LOOP_EVENT_SOCP_WRITE_CGM_COMMUNICATION_INTERVAL_EVENT,   // 写CGM通讯间隔事件
+
 }main_Loop_event_t;
 /**********************************************************************/
 
@@ -42,6 +46,10 @@ typedef enum
 
 
 /*******************************存储部分********************************/
+#define CGMS_DB_MAX_RECORDS                         (6720)                                                      // 设备中最大可存储的历史记录条数
+#define CGMS_ONE_PAGE_SIZE     	                    256                                                         // Flash中可擦除的最小单位byte数(一般是一个Page的大小)
+
+#define CMGS_ONE_PAGE_REC_NUM                       (CGMS_ONE_PAGE_SIZE / sizeof(one_record_storage_unit_t))    // Flash中一个Page可以存储的历史数据条数
 
 #define NVR0_ADDR                                   0X00080000
 #define NVR4_ADDR                                   0x00080400
@@ -62,6 +70,7 @@ typedef enum
 
 
 /*******************************设置部分********************************/
+#define GLUCOSE_MEAS_INTERVAL                       (3*60)             // 血糖测量间隔(单位:秒)
 #define APP_EVENT_MAX_NUM                           10                 // 最大的APP事件数量
 
 #define SOCP_SKIP_CRC_CHECK                         1                  // 是否跳过CRC检查
@@ -81,13 +90,11 @@ typedef enum
 #define APP_COMPLETE_LIST_16_BIT_UUID               0x181F
 
 #define BLE_CONNECT_PARAM_UPDATE_DELAY              5000               // 从连接建立到发起更新连接参数所需的延时时间(ms)
-#define BLE_PRE_INTERVAL_MIN                        70                 // 期望的BLE连接间隔(最小值)(*1.25ms)
+#define BLE_PRE_INTERVAL_MIN                        72                // 期望的BLE连接间隔(最小值)(*1.25ms)
 #define BLE_PRE_INTERVAL_MAX                        100                // 期望的BLE连接间隔(最大值)(*1.25ms)
-#define BLE_PRE_LATENCY                             7                  // 期望的BLE连接可跳过的包数
+#define BLE_PRE_LATENCY                             6                  // 期望的BLE连接可跳过的包数
 #define BLE_PRE_TIMEOUT                             500                // 期望的BLE超时时间
-
-
-#define BLE_MAX_CONNECTED_NUM                       3                  // 设备可以同时被连接的最大数量
+#define BLE_MAX_CONNECTED_NUM                       1                  // 设备可以同时被连接的最大数量
 #define CGMS_ENCRYPT_ENABLE                         1                  // BLE通讯使用加密协议
 
 /**********************************************************************/
@@ -199,12 +206,9 @@ typedef struct
 typedef struct
 {
     BleConnectInfo_t BleConnectInfo[BLE_MAX_CONNECTED_NUM];            // 当前BLE连接信息数组
-    bool bCgmsPwdVerifyOk;                                             // 当前密码是否验证成功
-    uint16_t usPasswordSaved;                                          // 保存的密码
     bool bSentRacpSuccess;                                             // RACP发送完成标志位
     bool bSentSocpSuccess;                                             // COAP发送完成标志位
     bool bSentMeasSuccess;                                             // MEAS发送完成标志位
-    bool bBleConnected;                                                // BLE已连接标志位
     bool bRecordSendFlag;                                              // 当前是否正在发送历史数据标志位
     RecordOptInfo_t RecordOptInfo;                                     // 当前正在运行的历史数据操作信息
     bool is_session_started;                                           // 当前是否正在运行CGM
@@ -219,6 +223,7 @@ typedef struct
 /* Private variables ---------------------------------------------------------*/
 app_state_t* app_global_get_app_state(void);
 bool app_global_is_session_runing(void);
+bool app_have_a_active_ble_connect(void);
 void app_event_ble_connected_callback(uint16_t usConnectionHandle);
 void app_event_ble_param_updated_callback(uint16_t usConnectionHandle, uint16_t usConnectInterval, uint16_t usConnectLatency, uint16_t usConnectTimeout);
 void app_event_ble_disconnect_callback(uint16_t usConnectionHandle);

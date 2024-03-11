@@ -13,7 +13,7 @@
 #define LOG_TAG                   "APP_GLUCOSE_MEAS"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                    ELOG_LVL_DEBUG
+#define LOG_LVL                    ELOG_LVL_WARN
 
 
 #include <string.h>
@@ -45,7 +45,6 @@ static float g_dAvgElectricCurrentCalTempArray[APP_GLUCOSE_MEAS_AVG_ELECTRIC_CUR
 static uint16_t g_usAppBatteryTimeDiv = 0;	                            // 电量检测定时任务分频计数
 static uint8_t g_ucAppBatteryInitMeasDoneFlag = 0;                     // 电量初始转换完成标志位
 static uint32_t g_uiListRtcTime = 0;                                   // 最后一次的RTC时间
-static uint32_t g_uiCgmWorkTimeCnt = 0;                                // CGM运行时间(单位秒)
 
 sl_sleeptimer_timer_handle_t g_AppGlucoseMeasTimer;                    // 应用层血糖测量定时器
 sl_sleeptimer_timer_handle_t g_AppGlucoseMeasRecordSendTimer;          // 应用层血糖测量记录发送定时器
@@ -235,11 +234,9 @@ static void app_glucose_handle(void)
 
     cgms_meas_t rec;
     memset(&rec, 0, sizeof(cgms_meas_t));
-    rec.ucDatapacketLen = 14;
     rec.usGlucose = (uint16_t)((double)g_fGlucoseConcentration * 10.0);
     rec.usCurrent = (uint16_t)((double)g_usGlucoseElectricCurrent * 100.0);
     rec.usOffset = g_usGlucoseRecordsCurrentOffset;
-    rec.usCRC16 = do_crc(&rec, sizeof(cgms_meas_t) - 2);
 
     log_i("cgms_meas_create  %d,%d,%d", rec.usOffset, rec.usGlucose, rec.usCurrent);
 
@@ -247,7 +244,7 @@ static void app_glucose_handle(void)
     ret_code_t err_code = cgms_db_record_add(&rec);
     // 通过BLE发送本次的测量记录
 
-	if((ble_meas_notify_is_enable()) &&(app_global_get_app_state()->bBleConnected==true))
+    if ((ble_meas_notify_is_enable()) && app_have_a_active_ble_connect())
 	{
 		app_global_get_app_state()->bSentMeasSuccess=false;
 
@@ -269,7 +266,7 @@ static void app_glucose_handle(void)
         {
             log_w("ble_meas_notify_is_disable");
         }
-        if (app_global_get_app_state()->bBleConnected != true)
+        if (!app_have_a_active_ble_connect())
         {
             log_w("ble is disconnecded");
         }
@@ -279,7 +276,6 @@ static void app_glucose_handle(void)
 
     // 更新CGM状态char的offset
     att_get_cgm_status()->usNumberOfReadings = app_global_get_app_state()->time_offset + 1;
-    att_update_cgm_status_char_data_crc();
 
     // 当前记录索引++
     g_usGlucoseRecordsCurrentOffset++;
@@ -326,7 +322,6 @@ void app_glucose_meas_stop_session_handler(void)
     // 设置传感器状态为停止,并更新状态
     app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
     att_get_cgm_status()->ucRunStatus = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
-    att_update_cgm_status_char_data_crc();
 }
 
 
@@ -434,15 +429,6 @@ void app_glucose_meas_handler(void)
         // 如果当前已经开始了一次血糖测量周期
         if (app_global_is_session_runing())
         {
-            // 增加运行时间
-            g_uiCgmWorkTimeCnt++;
-            log_d("g_uiCgmWorkTimeCnt:%d", g_uiCgmWorkTimeCnt);
-            // 更新运行时间
-            att_get_start_time()->uiRunTime = g_uiCgmWorkTimeCnt;
-
-            // 更新运行时间CRC
-            att_update_start_time_char_data_crc();
-
             // 如果AFE还未开始工作,则启动AFE
             if (afe_is_working() == false)
             {
@@ -599,7 +585,7 @@ void app_glucose_meas_record_send_handelr(void)
             }
 
             // 100ms后继续发送血糖数据记录
-            if ((ble_meas_notify_is_enable()) && (app_global_get_app_state()->bBleConnected == true))
+            if ((ble_meas_notify_is_enable()) && app_have_a_active_ble_connect())
             {
                 // 发送计数累计(只有在发送成功时才累计)
                 if (bSendSuccessFlag)
@@ -611,7 +597,7 @@ void app_glucose_meas_record_send_handelr(void)
             }
             else
             {
-                log_w("record send end,%d,%d", ble_meas_notify_is_enable() ? 1 : 0, app_global_get_app_state()->bBleConnected ? 1 : 0);
+                log_w("record send end,%d,%d", ble_meas_notify_is_enable() ? 1 : 0, app_have_a_active_ble_connect() ? 1 : 0);
             }
         }
         else
@@ -727,12 +713,13 @@ void app_glucose_meas_init(void)
     // 添加事件
     event_add(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_1S_TIMER, app_glucose_meas_handler);
     event_add(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_RECORD_SEND_TIMER, app_glucose_meas_record_send_handelr);
+    event_add(MAIN_LOOP_EVENT_APP_BATTERY_MEAS_TIMER, app_battery_meas_handelr);
 
     // 启动一个500ms的单次定时器
     sl_status_t status = sl_sleeptimer_start_timer(&g_AppBatteryMeasTimer, sl_sleeptimer_ms_to_tick(500), app_battery_meas_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
     {
-        log_e("sl_sleeptimer_start_timer failed");
+        log_e("sl_sleeptimer_start_timer failed:%d", status);
     }
 }
 

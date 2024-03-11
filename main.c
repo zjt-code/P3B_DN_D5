@@ -39,6 +39,8 @@ sl_sleeptimer_timer_handle_t g_TestTimer;
 /* Private functions ---------------------------------------------------------*/
 
 
+
+
 /*******************************************************************************
 *                           陈苏阳@2023-10-25
 * Function Name  :  main
@@ -54,6 +56,22 @@ int main(void)
 
     // 初始化GPIO的时钟
     CMU_ClockEnable(cmuClock_GPIO, true);
+
+
+    GPIO_PinModeSet(gpioPortC, 1, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortC, 2, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortC, 3, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortC, 4, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortC, 5, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortC, 6, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortC, 7, gpioModePushPull, 0);
+
+    GPIO_PinModeSet(gpioPortD, 2, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortD, 3, gpioModePushPull, 0);
+
+    GPIO_PinModeSet(gpioPortA, 0, gpioModePushPull, 0);
+
+    GPIO_PinModeSet(gpioPortB, 4, gpioModePushPull, 0);
 
     // 初始化log
     SEGGER_RTT_Init();
@@ -72,6 +90,9 @@ int main(void)
 
     // 参数存储上电初始化
     cgms_prm_db_power_on_init();
+
+    // 初始化应用层
+    app_init();
 
     // 初始化AFE
     afe_init();

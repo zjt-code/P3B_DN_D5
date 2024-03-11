@@ -37,7 +37,7 @@ typedef struct
     uint8_t   ucOpCode;                             // 操作码
     uint8_t   ucDataLen;                            // 所携带数据的长度
     uint8_t* pData;                                 // 所携带数据的指针
-}__attribute__((packed)) ble_cgms_socp_datapacket_t;
+}__attribute__((packed)) ble_socp_datapacket_t;
 
 
 // SOCP数据包_启动发射器命令包_结构体
@@ -52,6 +52,23 @@ typedef struct
     uint8_t ucSoftwareVersion[3];                   // 启动用的APP或者接收器的软件版本号
     uint16_t usCRC16;                               // CRC16
 }__attribute__((packed)) ble_cgms_socp_start_the_session_datapacket_t;
+
+
+
+// SOCP数据包_设置启动时间数据包_结构体
+typedef struct
+{
+    uint8_t ucOpCode;                               // 操作码
+    uint8_t ucPrmNo;                                // 参数号
+    uint16_t usYear;
+    uint8_t ucMonth;
+    uint8_t ucDay;
+    uint8_t ucHour;
+    uint8_t ucMinute;
+    uint8_t ucSecond;
+    uint8_t ucTimeZone;
+    uint8_t ucDataSaveingTime;
+}__attribute__((packed)) ble_cgms_socp_write_start_time_datapacket_t;
 
 
 // SOCP数据包_输入参比血糖命令包_结构体
@@ -146,14 +163,6 @@ typedef enum
     SOCP_WRITE_GLUCOSE_CALIBRATION_VALUE = 0x04,                       // 写入血糖校准值
     SOCP_READ_GLUCOSE_CALIBRATION_VALUE = 0x05,                        // 读取血糖校准值
     SOCP_READ_GLUCOSE_CALIBRATION_VALUE_RESPONSE = 0x06,               // 读取血糖校准值响应包
-    SOCP_WRITE_PATIENT_HIGH_ALERT_LEVEL = 0x07,                        // 写入病人高血糖报警等级
-    SOCP_READ_PATIENT_HIGH_ALERT_LEVEL = 0x08,                         // 读取病人高血糖报警等级
-    SOCP_READ_PATIENT_HIGH_ALERT_LEVEL_RESPONSE = 0x09,                // 读取病人高血糖报警等级响应包
-    SOCP_WRITE_PATIENT_LOW_ALERT_LEVEL = 0x0A,                         // 写入病人低血糖报警等级
-    SOCP_READ_PATIENT_LOW_ALERT_LEVEL = 0x0B,                          // 读取病人低血糖报警等级
-    SOCP_READ_PATIENT_LOW_ALERT_LEVEL_RESPONSE = 0x0C,                 // 读取病人低血糖报警等级响应包
-    SOCP_SET_HYPO_ALERT_LEVEL = 0x0D,                                  // 设置低血糖警报级别低度警报级别值，单位为mg/dL。此控制点的响应为响应代码
-    SOCP_GET_HYPO_ALERT_LEVEL = 0x0E,                                  // 获取低血糖警报级别-对该控制点的正常响应是操作码0x0F。对于错误条件，响应是响应代码
     SOCP_START_THE_SESSION = 0x1A,                                     // 开始新的CGM测量周期
     SOCP_STOP_THE_SESSION = 0x1B,                                      // 停止当前的CGM测量周期
     SOCP_SENSOR_CODE = 0x1D,                                           // 设置传感器Code
@@ -164,10 +173,23 @@ typedef enum
     SOCP_WRITE_PRM = 0x61,                                             // 写入参数
     SOCP_READ_PRM = 0x62,                                              // 读取参数
     SOCP_START_AD_CALI = 0x63,                                         // 校准ADC
-    SOCP_WRITE_BOND_SECU = 0x65,                                       // 安全绑定
-    SOCP_NOMAL_AUTH = 0x66,                                            // 安全验证
-    SOCP_SET_PASSWORD = 0x7A,                                          // 设置密码
-    SOCP_VERIFY_PWD = 0X7B,                                            // 验证密码
+    SOCP_TEST_API = 0x67,   // 0x67,0x01,0x03,0x38,0x9b
+    SOCP_WRITE_DFU_SECU = 0x68,
+    SOCP_DFU_AUTH = 0x69,
+    SOCP_SPECIAL_AUTH = 0x70,
+    SOCP_MOBLE_INFO = 0X71,  // 0X71,0X00,0x00,0x00,0xdf,0x45
+
+
+    SOCP_RSP_RESERVED_FOR_FUTURE_USE = 0x00,
+    SOCP_RSP_SUCCESS = 0x01,
+    SOCP_RSP_OP_CODE_NOT_SUPPORTED = 0x02,
+    SOCP_RSP_INVALID_OPERAND = 0x03,
+    SOCP_RSP_PROCEDURE_NOT_COMPLETED = 0x04,
+    SOCP_RSP_OUT_OF_RANGE = 0x05,
+
+    SOCP_RSP_OP_CRC_MISSING = 0x80,
+    SOCP_RSP_OP_CRC_ERROR = 0x81,
+    SOCP_RSP_BOND_SUCCESS = 0x00,    //difference in i3
 }socp_opcode_t;
 
 
@@ -259,6 +281,10 @@ typedef enum
 
 /* Private function prototypes -----------------------------------------------*/
 void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t* pData);
+
+void cgms_socp_stop_session_event_callback(void);
+void cgms_socp_start_session_event_callback(void);
+void cgms_socp_write_cgm_communication_interval_event_callback(void);
 void ble_socp_notify_enable(void);
 void ble_socp_notify_disable(void);
 bool ble_socp_notify_is_enable(void);

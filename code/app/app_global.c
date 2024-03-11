@@ -9,6 +9,12 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
+#if !defined(LOG_TAG)
+#define LOG_TAG                   "APP_GLOBAL"
+#endif
+#undef LOG_LVL
+#define LOG_LVL                    ELOG_LVL_WARN
+
 #include "app_global.h"
 #include "app.h"
 #include "ble_update_connect_param.h"
@@ -24,7 +30,6 @@ app_state_t g_app_state;
 event_info_t g_EventInfoArray[APP_EVENT_MAX_NUM];
         
 /* Private function prototypes -----------------------------------------------*/
-
 
 
 /* Private functions ---------------------------------------------------------*/
@@ -102,7 +107,15 @@ void app_add_new_ble_connect(uint16_t usConnectionHandle)
     // 如果有重复的,直接退出
     for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
     {
-        if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true && app_global_get_app_state()->BleConnectInfo[i].usBleConidx == usConnectionHandle)return;
+        if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true && app_global_get_app_state()->BleConnectInfo[i].usBleConidx == usConnectionHandle)
+        {
+            memset(&(app_global_get_app_state()->BleConnectInfo[i]), 0x00, sizeof(app_global_get_app_state()->BleConnectInfo[i]));
+            app_global_get_app_state()->BleConnectInfo[i].bIsConnected = true;
+            app_global_get_app_state()->BleConnectInfo[i].usBleConidx = usConnectionHandle;
+            app_global_get_app_state()->BleConnectInfo[i].bIsUpdateConnectParameter = false;
+            app_global_get_app_state()->BleConnectInfo[i].ulConenctedTimeCnt = 0;
+            return;
+        }
     }
 
     // 找到一个未连接的位置,添加信息
@@ -110,10 +123,11 @@ void app_add_new_ble_connect(uint16_t usConnectionHandle)
     {
         if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == false)
         {
+            memset(&(app_global_get_app_state()->BleConnectInfo[i]),0x00,sizeof(app_global_get_app_state()->BleConnectInfo[i]));
             app_global_get_app_state()->BleConnectInfo[i].bIsConnected = true;
             app_global_get_app_state()->BleConnectInfo[i].usBleConidx = usConnectionHandle;
             app_global_get_app_state()->BleConnectInfo[i].bIsUpdateConnectParameter = false;
-
+            app_global_get_app_state()->BleConnectInfo[i].ulConenctedTimeCnt = 0;
             break;
         }
     }
@@ -168,9 +182,6 @@ bool app_have_a_active_ble_connect(void)
 void app_event_ble_connected_callback(uint16_t usConnectionHandle)
 {
     log_i("app_event_ble_connected_callback:%d", usConnectionHandle);
-
-    // 设置当前全局BLE连接状态为已连接
-    app_global_get_app_state()->bBleConnected = true;
 
     app_global_get_app_state()->bSentRacpSuccess = true;
 
@@ -251,12 +262,6 @@ void app_event_ble_disconnect_callback(uint16_t usConnectionHandle)
     app_glucose_meas_record_send_stop();
 
     ble_update_connect_param_stop();
-
-    if (app_have_a_active_ble_connect() == false)
-    {
-        // 设置当前全局BLE连接状态为未连接
-        app_global_get_app_state()->bBleConnected = false;
-    }
 }
 
 /*******************************************************************************
@@ -297,22 +302,6 @@ void app_init(void)
 
     // 更新CGM状态Char内容
     att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->status;
-    att_update_cgm_status_char_data_crc();
-
-    // 更新CGM启动时间char内容
-    att_update_start_time_char_data_crc();
-
-    // 工作时间默认14天
-    att_get_feature()->ucWorkTime = 14;
-
-    // 数据发送间隔默认3分钟
-    att_get_feature()->ucSampleTime = 3;
-
-    // 支持CRC
-    att_get_feature()->ucCrcSupported = 0x01;
-
-    // 更新Feature char的内容
-    att_update_feature_char_data_crc();
 
     // 初始化历史数据存储部分
     cgms_db_init();
@@ -402,10 +391,12 @@ uint8_t event_handler(uint32_t uiEventId)
     {
         if (g_EventInfoArray[i].uiEventId == (0x01 << uiEventId) && g_EventInfoArray[i].CallBack != NULL)
         {
+            log_d("event_handler:%d", uiEventId);
             g_EventInfoArray[i].CallBack();
             return 1;
         }
     }
+    log_w("event_handler: unknown evnet id");
     return 0;
 }
 

@@ -70,7 +70,7 @@ typedef struct
 /* Private function prototypes -----------------------------------------------*/
 
 /***********************历史数据管理***************************/
-void cgms_db_reset();
+void cgms_db_reset(void);
 ret_code_t cgms_db_init(void);
 uint32_t cgms_db_get_records_num(void);
 ret_code_t cgms_db_record_get(uint16_t usRecordIndex, cgms_meas_t* pRec);

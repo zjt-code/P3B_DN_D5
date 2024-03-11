@@ -47,7 +47,7 @@ typedef struct
 extern ble_cgms_sst_t g_mSST;
 
 /* Private function prototypes -----------------------------------------------*/
-void cgms_update_sst_and_time_zone(uint32_t uiStartTime, uint8_t ucTimeZone);
+void cgms_update_sst_and_time_zone(uint16_t usYear, uint8_t ucMonth, uint8_t ucDay, uint8_t ucHour, uint8_t ucMinute, uint8_t ucSecond, uint8_t ucTimeZone, uint8_t ucDataSaveingTime);
 uint32_t cgms_sst_init(void);
 void cgms_sst_recover(ble_cgms_sst_t SST);
 #endif /* __CGMS_SST_H */

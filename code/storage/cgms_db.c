@@ -117,7 +117,7 @@ static void cgms_db_calculation_record_pos(uint32_t uiRecordIndex, uint16_t* pPa
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void cgms_db_reset()
+void cgms_db_reset(void)
 {
     log_i("cgms_db_reset");
 
@@ -524,7 +524,7 @@ static ret_code_t cgms_db_record_get_raw_data(uint16_t usRecordIndex, cgms_meas_
             log_i("usPageIndex:%d", usPageIndex);
             // 计算目标历史数据地址
             uint32_t uiReadAddr = MEAS_RECORD_ADDR + (usPageIndex * cgm_db_flash_get_info()->usSectorByteSize) + (usPosInPage * usOneRecordStorageUnitSize);
-            cgms_db_flash_read(uiReadAddr, &TmpRecord, sizeof(one_record_storage_unit_t));
+            cgms_db_flash_read(uiReadAddr, (uint8_t*)&TmpRecord, sizeof(one_record_storage_unit_t));
             log_i("cgms_db_record_get_raw_data3  0x%x", uiReadAddr);
             elog_hexdump("data", 8, (uint8_t*)uiReadAddr, sizeof(one_record_storage_unit_t));
         }
@@ -549,7 +549,7 @@ ret_code_t cgms_db_record_get(uint16_t usRecordIndex, cgms_meas_t* pRec)
     if (cgms_db_record_get_raw_data(usRecordIndex, pRec) == RET_CODE_SUCCESS)
     {
         // 设置最高位为1,用于标识本条数据为历史数据而不是实时数据.
-        pRec->usIsHistory = CGMS_MEAS_HISTORY_FLAG_HISTORY;
+        pRec->usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_HISTORY;
         return RET_CODE_SUCCESS;
     }
     return RET_CODE_FAIL;
