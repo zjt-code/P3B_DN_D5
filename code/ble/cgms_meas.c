@@ -143,7 +143,14 @@ uint8_t cgms_meas_encode(cgms_meas_t Rec, uint8_t* pEncodeedData)
         // 编码时间下标
         len += uint16_encode(Rec.usOffset, &pEncodeedData[len]); //len =6
 
-        if (Rec.usHistoryFlag == CGMS_MEAS_HISTORY_FLAG_HISTORY)pEncodeedData[len] = 0x80;
+        if (Rec.usHistoryFlag == CGMS_MEAS_HISTORY_FLAG_HISTORY)
+        {
+            pEncodeedData[len] = 0x80;
+        }
+        else
+        {
+            pEncodeedData[len] = 0x00;
+        }
         len++;
 
         // 编码趋势数据(固定为0)

@@ -68,7 +68,7 @@
     <!--Software Revision String-->
     <characteristic const="false" id="software_revision_string" name="Software Revision String" sourceId="org.bluetooth.characteristic.firmware_revision_string" uuid="2A28">
       <informativeText>Summary: The value of this characteristic is a UTF-8 string representing the firmware revision for the firmware within the device.</informativeText>
-      <value length="5" type="utf-8" variable_length="false">0.0.0</value>
+      <value length="5" type="utf-8" variable_length="false">0.0.1</value>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>
@@ -101,7 +101,7 @@ Summary: The CGM Measurement characteristic is a variable length structure conta
 
     <!--CGM Feature-->
     <characteristic const="false" id="cgm_feature" name="CGM Feature" sourceId="org.bluetooth.characteristic.cgm_feature" uuid="2AA8">
-      <value length="11" type="hex" variable_length="false"/>
+      <value length="8" type="hex" variable_length="false"/>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>
@@ -111,10 +111,9 @@ Summary: The CGM Measurement characteristic is a variable length structure conta
     <characteristic const="false" id="cgm_status" name="CGM Status" sourceId="org.bluetooth.characteristic.cgm_status" uuid="2AA9">
       <informativeText>
 Summary: The CGM Status allows the Collector to actively request the current status from the CGM Sensor, particularly when the CGM measurement is not running and the status cannot be given in the measurement result in the Status Annunciation.</informativeText>
-      <value length="7" type="hex" variable_length="false"/>
+      <value length="5" type="hex" variable_length="false"/>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
-        <notify authenticated="false" bonded="false" encrypted="false"/>
       </properties>
     </characteristic>
 
@@ -133,7 +132,7 @@ Summary: This control point is used with a service to provide basic management f
 
     <!--CGM Session Start Time-->
     <characteristic const="false" id="cgm_session_start_time" name="CGM Session Start Time" sourceId="org.bluetooth.characteristic.cgm_session_start_time" uuid="2AAA">
-      <value length="11" type="hex" variable_length="false"/>
+      <value length="20" type="hex" variable_length="false"/>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>
@@ -141,7 +140,7 @@ Summary: This control point is used with a service to provide basic management f
 
     <!--CGM Session Run Time-->
     <characteristic const="false" id="cgm_session_run_time" name="CGM Session Run Time" sourceId="org.bluetooth.characteristic.cgm_session_run_time" uuid="2AAB">
-      <value length="4" type="hex" variable_length="false"/>
+      <value length="2" type="hex" variable_length="false"/>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>
@@ -156,6 +155,7 @@ Summary: The CGM Specific Ops Control Point encapsulates all functionality and m
       <properties>
         <write authenticated="false" bonded="false" encrypted="false"/>
         <write_no_response authenticated="false" bonded="false" encrypted="false"/>
+        <indicate authenticated="false" bonded="false" encrypted="false"/>
         <notify authenticated="false" bonded="false" encrypted="false"/>
       </properties>
     </characteristic>
@@ -171,7 +171,7 @@ Summary: The Battery Service exposes the Battery State and Battery Level of a si
       <informativeText>Abstract: 
             The current charge level of a battery. 100% represents fully charged while 0% represents fully discharged.
         </informativeText>
-      <value length="1" type="hex" variable_length="false"/>
+      <value length="1" type="hex" variable_length="false">64</value>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>

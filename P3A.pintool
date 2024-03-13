@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="ASCII"?>
+<device:XMLDevice xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:device="http://www.silabs.com/ss/hwconfig/document/device.ecore" name="pin_tool.EFR32BG27C320F768GJ39" partId="mcu.arm.efr32.bg27.efr32bg27c320f768gj39" contextId="com.silabs.sdk.stack.super:4.4.0._-2034667837">
+  <mode name="DefaultMode">
+    <property object="DefaultMode" propertyId="mode.diagramLocation" value="100, 100"/>
+    <property object="PA00" propertyId="pin.name" value=""/>
+    <property object="PA03" propertyId="pin.name" value="SPI_MOSI"/>
+    <property object="PA04" propertyId="pin.name" value=""/>
+    <property object="PA05" propertyId="pin.name" value="AFE_INT"/>
+    <property object="PA05" propertyId="pin.reserve" value="Reserved"/>
+    <property object="PA06" propertyId="pin.name" value=""/>
+    <property object="PB00" propertyId="pin.name" value=""/>
+    <property object="PB01" propertyId="pin.name" value="SPI_MISO"/>
+    <property object="PB02" propertyId="pin.name" value="AFE_WAKE_UP"/>
+    <property object="PB02" propertyId="pin.reserve" value="Reserved"/>
+    <property object="PC03" propertyId="pin.name" value="SPI_CLK"/>
+    <property object="PC04" propertyId="pin.name" value="SPI_CS"/>
+    <property object="PC06" propertyId="pin.name" value="AFE_CHIP_EN"/>
+    <property object="PC06" propertyId="pin.reserve" value="Reserved"/>
+    <property object="PORTIO" propertyId="portio.eusart0.location.tx" value="3"/>
+    <property object="PORTIO" propertyId="portio.iadc0.location.pos" value="144"/>
+    <property object="PORTIO" propertyId="portio.timer0.location.cc0" value="16"/>
+    <property object="PORTIO" propertyId="portio.usart0.enable.clk" value="Enabled"/>
+    <property object="PORTIO" propertyId="portio.usart0.enable.cs" value="Enabled"/>
+    <property object="PORTIO" propertyId="portio.usart0.enable.rx" value="Enabled"/>
+    <property object="PORTIO" propertyId="portio.usart0.enable.tx" value="Enabled"/>
+    <property object="PORTIO" propertyId="portio.usart0.location.clk" value="35"/>
+    <property object="PORTIO" propertyId="portio.usart0.location.cs" value="36"/>
+    <property object="PORTIO" propertyId="portio.usart0.location.rx" value="17"/>
+    <property object="PORTIO" propertyId="portio.usart0.location.tx" value="3"/>
+    <property object="PORTIO" propertyId="portio.usart1.location.clk" value="5"/>
+    <property object="PORTIO" propertyId="portio.usart1.location.cs" value="3"/>
+    <property object="PTI" propertyId="ABModule.selectedRequirement" value="pti%T%SL_RAIL_UTIL_PTI%T%sl_rail_util_pti_config.h"/>
+    <property object="PTI" propertyId="ABPeripheral.included" value="true"/>
+    <property object="USART0" propertyId="ABModule.selectedRequirement" value="usart%T%SL_SPIDRV_USART_AFESPIINST%T%sl_spidrv_usart_AfeSpiInst_config.h"/>
+    <property object="USART0" propertyId="ABPeripheral.included" value="true"/>
+    <property object="USART1" propertyId="ABPeripheral.included" value="true"/>
+  </mode>
+  <modeTransition>
+    <property object="RESET &#x2192; DefaultMode" propertyId="modeTransition.source" value="RESET"/>
+    <property object="RESET &#x2192; DefaultMode" propertyId="modeTransition.target" value="DefaultMode"/>
+  </modeTransition>
+</device:XMLDevice>

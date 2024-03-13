@@ -144,13 +144,18 @@ struct ble_customss_service_att_database
 void att_initialize(void);
 void att_set_start_handle(uint16_t handle);
 uint16_t att_get_start_handle(void);
+uint16_t att_get_att_handle(uint16_t attindx);
+
+
 cgm_session_run_time_char_data_t* att_get_run_time(void);
 cgm_session_start_time_char_data_t* att_get_start_time(void);
-void att_update_start_time_char_data_crc(void);
 cgm_status_char_data_t* att_get_cgm_status(void);
+
+void att_update_start_time_char_data(void);
+void att_update_cgm_status_char_data(void);
+
 void att_update_notify_indication(uint16_t handle, uint16_t value);
 void att_disable_notify_indication(void);
-uint16_t att_get_att_handle(uint16_t attindx);
 
 #endif /* __BLE_CUSTOMSS_H */
 

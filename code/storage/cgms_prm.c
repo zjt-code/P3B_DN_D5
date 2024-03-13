@@ -61,21 +61,21 @@ ret_code_t cgms_prm_get_sn(unsigned char* buff)
     uint32_t uiFlag;
 
     // 如果SN值非法,或者CRC错误,则恢复默认SN
-    if ((0x00 != do_crc((uint8_t*)&g_PrmDb.P4, sizeof(P4_t))) || g_PrmDb.P4.prmWMY[0] == 0xFF)
+    if ((0x00 != do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb))) || g_PrmDb.prmWMY[0] == 0xFF)
     {
-        g_PrmDb.P4.prmWMY[0] = 'A'; //A
-        g_PrmDb.P4.prmWMY[1] = 'B'; //B
-        g_PrmDb.P4.prmWMY[2] = 'C'; //C
-        g_PrmDb.P4.prmWMY[3] = 0;  //null,end of string
+        g_PrmDb.prmWMY[0] = 'A'; //A
+        g_PrmDb.prmWMY[1] = 'B'; //B
+        g_PrmDb.prmWMY[2] = 'C'; //C
+        g_PrmDb.prmWMY[3] = 0;  //null,end of string
         if(bLogOutFlag==false)log_w("can not read SN,use default SN");
-        g_PrmDb.P4.SN = 0;
+        g_PrmDb.SN = 0;
         uiFlag = RET_CODE_FAIL;
     }
     else
     {
         uiFlag = RET_CODE_SUCCESS;
     }
-    sprintf((char*)buff, "JN-%s%04d", (unsigned char*)g_PrmDb.P4.prmWMY, g_PrmDb.P4.SN);
+    sprintf((char*)buff, "JN-%s%04d", (unsigned char*)g_PrmDb.prmWMY, g_PrmDb.SN);
     if (bLogOutFlag == false)
     {
         log_i("SN:%s", buff);

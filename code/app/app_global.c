@@ -13,7 +13,7 @@
 #define LOG_TAG                   "APP_GLOBAL"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                    ELOG_LVL_WARN
+#define LOG_LVL                    ELOG_LVL_INFO
 
 #include "app_global.h"
 #include "app.h"
@@ -25,6 +25,8 @@
 #include "sl_bt_api.h"
 #include "cgms_prm.h"
 #include "ble_customss.h"
+#include "cgms_socp.h"
+#include "afe.h"
 /* Private variables ---------------------------------------------------------*/
 app_state_t g_app_state;
 event_info_t g_EventInfoArray[APP_EVENT_MAX_NUM];
@@ -62,9 +64,6 @@ bool app_global_is_session_runing(void)
     switch (app_global_get_app_state()->status)
     {
     case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING:
-    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_SENSOR_ABNORMAL:
-    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_SENSOR_ERROR:
-    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP:
         return true;
     default:
         return false;
@@ -287,9 +286,11 @@ void app_init(void)
 
     // 初始化事件处理
     event_init();
-
-    // 添加更新ble连接参数事件
+    // 添加事件
     event_add(MAIN_LOOP_EVENT_BLE_UPDATE_CONNECT_PARAMETERS, ble_update_connect_param_handle);
+    event_add(MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT, cgms_socp_start_session_event_callback);
+    event_add(MAIN_LOOP_EVENT_SOCP_STOP_SESSION_EVENT, cgms_socp_stop_session_event_callback);
+    event_add(MAIN_LOOP_EVENT_SOCP_WRITE_CGM_COMMUNICATION_INTERVAL_EVENT, cgms_socp_write_cgm_communication_interval_event_callback);
 
     // 初始化血糖算法
     //simpleGlucoInit();
@@ -298,16 +299,20 @@ void app_init(void)
     cgms_sst_init();
 
     // 设置CGM状态为CGM结束
-    app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
+    app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_M3RESET_STOPPED;
 
     // 更新CGM状态Char内容
     att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->status;
+    att_update_cgm_status_char_data();
 
     // 初始化历史数据存储部分
     cgms_db_init();
 
     // 应用层血糖测量初始化
     app_glucose_meas_init();
+
+    // 初始化AFE
+    afe_init();
 }
 
 
@@ -357,9 +362,10 @@ uint8_t event_add(uint32_t uiEventId, event_callback_t CallBack)
     // 先判断数组中是否已经有本事件
     for (uint32_t i = 0; i < APP_EVENT_MAX_NUM; i++)
     {
-        if (g_EventInfoArray[i].uiEventId == (0x01 << uiEventId))
+        if (g_EventInfoArray[i].uiEventId == (uint32_t)(0x01 << uiEventId))
         {
             g_EventInfoArray[i].CallBack = CallBack;
+            log_d("add event id:%d", uiEventId);
             return 1;
         }
     }
@@ -371,9 +377,11 @@ uint8_t event_add(uint32_t uiEventId, event_callback_t CallBack)
         {
             g_EventInfoArray[i].uiEventId = (0x01 << uiEventId);
             g_EventInfoArray[i].CallBack = CallBack;
+            log_d("add event id:%d", uiEventId);
             return 1;
         }
     }
+    log_e("add event fail,id:%d", uiEventId);
     return 0;
 }
 
@@ -389,14 +397,14 @@ uint8_t event_handler(uint32_t uiEventId)
 {
     for (uint32_t i = 0; i < APP_EVENT_MAX_NUM; i++)
     {
-        if (g_EventInfoArray[i].uiEventId == (0x01 << uiEventId) && g_EventInfoArray[i].CallBack != NULL)
+        if (g_EventInfoArray[i].uiEventId == (uint32_t)(0x01 << uiEventId) && g_EventInfoArray[i].CallBack != NULL)
         {
             log_d("event_handler:%d", uiEventId);
             g_EventInfoArray[i].CallBack();
             return 1;
         }
     }
-    log_w("event_handler: unknown evnet id");
+    log_w("event_handler: unknown evnet id(%d)", uiEventId);
     return 0;
 }
 

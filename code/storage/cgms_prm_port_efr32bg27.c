@@ -47,8 +47,8 @@ uint8_t cgms_prm_port_init(void)
 * Return         :  uint8_t
 *******************************************************************************/
 uint8_t cgms_prm_port_erase_sector(uint32_t uiAddr)
-{   
-  if(MSC_ErasePage(g_uiPrmFlashAddrOffset+uiAddr)==mscReturnOk)return 0;
+{
+    if (MSC_ErasePage(g_uiPrmFlashAddrOffset + uiAddr) == mscReturnOk)return 0;
 }
 
 /*******************************************************************************
@@ -63,9 +63,9 @@ uint8_t cgms_prm_port_erase_sector(uint32_t uiAddr)
 *******************************************************************************/
 uint8_t cgms_prm_port_write(uint32_t uiAddr, uint8_t* pWriteData, uint16_t usWriteLen)
 {
-    if (MSC_WriteWord(g_uiPrmFlashAddrOffset+uiAddr, (uint32_t*)pWriteData, usWriteLen) == mscReturnOk)
+    if (MSC_WriteWord(g_uiPrmFlashAddrOffset + uiAddr, (uint32_t*)pWriteData, usWriteLen) == mscReturnOk)
     {
-        return 10;
+        return 1;
     }
     return 0;
 }
@@ -82,7 +82,7 @@ uint8_t cgms_prm_port_write(uint32_t uiAddr, uint8_t* pWriteData, uint16_t usWri
 *******************************************************************************/
 uint8_t cgms_prm_port_read(uint32_t uiAddr, uint8_t* pReadData, uint16_t usReadLen)
 {
-    memcpy(pReadData, (uint32_t*)(g_uiPrmFlashAddrOffset+uiAddr), usReadLen);
+    memcpy(pReadData, (uint32_t*)(g_uiPrmFlashAddrOffset + uiAddr), usReadLen);
     return 0;
 }
 

@@ -90,20 +90,20 @@
 #define USART0_CS_PIN                            4
 #endif
 
-// USART0 RX on PA03
+// USART0 RX on PB01
 #ifndef USART0_RX_PORT                          
-#define USART0_RX_PORT                           gpioPortA
+#define USART0_RX_PORT                           gpioPortB
 #endif
 #ifndef USART0_RX_PIN                           
-#define USART0_RX_PIN                            3
+#define USART0_RX_PIN                            1
 #endif
 
-// USART0 TX on PB01
+// USART0 TX on PA03
 #ifndef USART0_TX_PORT                          
-#define USART0_TX_PORT                           gpioPortB
+#define USART0_TX_PORT                           gpioPortA
 #endif
 #ifndef USART0_TX_PIN                           
-#define USART0_TX_PIN                            1
+#define USART0_TX_PIN                            3
 #endif
 
 // [USART0]$
@@ -149,11 +149,11 @@
 #define _PIN                                     0
 #endif
 
-#ifndef SPI_MISO_PORT                           
-#define SPI_MISO_PORT                            gpioPortA
+#ifndef SPI_MOSI_PORT                           
+#define SPI_MOSI_PORT                            gpioPortA
 #endif
-#ifndef SPI_MISO_PIN                            
-#define SPI_MISO_PIN                             3
+#ifndef SPI_MOSI_PIN                            
+#define SPI_MOSI_PIN                             3
 #endif
 
 #ifndef AFE_INT_PORT                            
@@ -163,11 +163,11 @@
 #define AFE_INT_PIN                              5
 #endif
 
-#ifndef SPI_MOSI_PORT                           
-#define SPI_MOSI_PORT                            gpioPortB
+#ifndef SPI_MISO_PORT                           
+#define SPI_MISO_PORT                            gpioPortB
 #endif
-#ifndef SPI_MOSI_PIN                            
-#define SPI_MOSI_PIN                             1
+#ifndef SPI_MISO_PIN                            
+#define SPI_MISO_PIN                             1
 #endif
 
 #ifndef AFE_WAKE_UP_PORT                        

@@ -55,6 +55,7 @@ uint8_t cgms_db_port_init(cgms_db_port_info_t* pInfo)
 uint8_t cgms_db_port_erase_sector(uint32_t uiAddr)
 {   
   if(MSC_ErasePage(uiAddr)==mscReturnOk)return 0;
+  return 1;
 }
 
 /*******************************************************************************

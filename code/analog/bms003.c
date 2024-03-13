@@ -14,7 +14,7 @@
 #define LOG_TAG                "BMS0003"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                ELOG_LVL_WARN
+#define LOG_LVL                ELOG_LVL_DEBUG
 
 #include "spidrv.h"
 #include "sl_udelay.h"
@@ -328,6 +328,8 @@ void bms003_read_adc_data(void)
     // 累计中断次数
     ucIrqCnt++;
 
+    log_i("bms003_read_adc_data ucIrqCnt:%d  ucOnePeriodSampCnt:%d", ucIrqCnt, ucOnePeriodSampCnt);
+
     // 在第14次周期时记录WE1
     if (ucIrqCnt == 14)
     {
@@ -349,7 +351,7 @@ void bms003_read_adc_data(void)
 
             // 数据推入FIFO
             int32_t iData = buff - g_BaseWeVol;
-
+            log_i("read raw data:%d",iData);
             log_i("curr nA:%f", iData / 32768.0 * 1.2 * 100);
             fifo_in(&g_NewDataFifo, &iData, 1);
             GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, false, false, false);
@@ -704,6 +706,7 @@ void bms003_config_after_handler(void)
     ucWriteBuffer[ucBufferIndex++] = 0x1;      //17INPUT_FORMAT
     ucWriteBuffer[ucBufferIndex++] = 0x1;      //18使能IMEAS_EN
     bms003_write_burst(0x17, ucWriteBuffer, ucBufferIndex, 17, 30);
+    
     /*
     log_d("CFG BURST IMEAS FINISH!");
     // 读寄存器

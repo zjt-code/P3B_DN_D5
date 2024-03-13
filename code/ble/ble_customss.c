@@ -98,6 +98,19 @@ cgm_session_start_time_char_data_t* att_get_start_time(void)
     return &(cs_att_db.CgmSessionStartTimeValue);
 }
 
+/*******************************************************************************
+*                           陈苏阳@2023-10-19
+* Function Name  :  att_update_start_time_char_data
+* Description    :  更新ATT表中的启动时间Char数据
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void att_update_start_time_char_data(void)
+{
+    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_session_start_time, 0, sizeof(cs_att_db.CgmSessionStartTimeValue), &(cs_att_db.CgmSessionStartTimeValue));
+}
+
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-19
@@ -111,6 +124,34 @@ cgm_status_char_data_t* att_get_cgm_status(void)
 {
     return &(cs_att_db.CgmStatusValue);
 }
+
+/*******************************************************************************
+*                           陈苏阳@2024-03-12
+* Function Name  :  att_update_cgm_status_char_data
+* Description    :  更新ATT表中的CGM状态Char数据
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void att_update_cgm_status_char_data(void)
+{
+    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_status, 0, sizeof(cs_att_db.CgmStatusValue), &(cs_att_db.CgmStatusValue));
+}
+
+
+/*******************************************************************************
+*                           陈苏阳@2024-03-12
+* Function Name  :  att_update_feature_char_data
+* Description    :  更新ATT表中的特征Char数据
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void att_update_feature_char_data(void)
+{
+    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_feature, 0, sizeof(cs_att_db.CgmFeatureValue), &(cs_att_db.CgmFeatureValue));
+}
+
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-19

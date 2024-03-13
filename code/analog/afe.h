@@ -1,6 +1,6 @@
-/******************** (C) COPYRIGHT 2023 ������ ********************************
+/******************** (C) COPYRIGHT 2023 陈苏阳 ********************************
 * File Name          :  afe.h
-* Author             :  ������
+* Author             :  陈苏阳
 * CPU Type         	 :  NRF52832
 * IDE                :  Keil
 * Version            :  V1.0
@@ -40,5 +40,5 @@ bool afe_get_new_data(double* pNewData);
 void afe_register_irq_callback(afe_irq_callback callback);
 #endif /* __AFE_H */
 
-/******************* (C) COPYRIGHT 2023 ������ **** END OF FILE ****************/
+/******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/
 

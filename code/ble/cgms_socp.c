@@ -180,9 +180,6 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
     // 发送数据包
     elog_hexdump("socp_send", 8, EncodedRespDatapacketBuffer, ucLen);
 
-    // 发送数据包
-    elog_hexdump("socp_send(encrpty)", 8, EncodedRespDatapacketBuffer, ucLen);
-
 	if ((ble_socp_notify_is_enable()) && app_have_a_active_ble_connect())
 	{
 		sl_status_t sc;
@@ -242,6 +239,13 @@ void cgms_socp_start_session_event_callback(void)
 
     // 清空历史数据
     cgms_db_reset();
+
+    // 更新CGM Status中的运行状态为极化中
+    app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING;
+    att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->status;
+
+    // 更新CGM状态char的内容
+    att_update_cgm_status_char_data();
 }
 
 /*******************************************************************************
@@ -287,12 +291,12 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
         // 如果是写入CGM通讯间隔命令
     case SOCP_WRITE_CGM_COMMUNICATION_INTERVAL:
         if (SocpRequest.ucDataLen > 3)
-    {
-        	RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
+        {
+            RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
         }
         else
         {
-        	RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
+            RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
             /*
                         // 如果写入间隔为0xFF
                         if (p_cgms->comm_interval == 0xFF)
@@ -314,35 +318,37 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
                         */
         }
         break;
-    // 如果是读取CGM通讯间隔命令
+        // 如果是读取CGM通讯间隔命令
     case SOCP_READ_CGM_COMMUNICATION_INTERVAL:
-    	RspRequest.ucRspCode = SOCP_READ_CGM_COMMUNICATION_INTERVAL_RESPONSE;
+        RspRequest.ucRspCode = SOCP_READ_CGM_COMMUNICATION_INTERVAL_RESPONSE;
         // todo:待重构后实现
-    	RspRequest.ucSizeVal++;
+        RspRequest.ucSizeVal++;
         break;
-    // 如果是开始CGM命令
+        // 如果是开始CGM命令
     case SOCP_START_THE_SESSION:
     {
         if (app_global_get_app_state()->is_session_started)
         {
             // CRC错误
-        	RspRequest.ucRspCode = SOCP_RSP_PROCEDURE_NOT_COMPLETED;
+            RspRequest.ucRspCode = SOCP_RSP_PROCEDURE_NOT_COMPLETED;
         }
         else
         {
             log_i("!!SOCP_START_THE_SESSION   OK!!");
             RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
             event_push(MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT);
-            }
-                break;
-            }
+        }
+        break;
+    }
     case SOCP_SENSOR_CODE:
-            {
+    {
         uint16_t usSensorCode;
         usSensorCode = uint16_decode(SocpRequest.pData + 1);
 
-                // 更新CGM Status中的工厂校准码
+        // 更新CGM Status中的工厂校准码
         att_get_cgm_status()->usFactoryCode = usSensorCode;
+        // 更新CGM状态char的内容
+        att_update_cgm_status_char_data();
         //设置传感器Code
         //sensorK = ((float)usSensorCode / 1000);
         log_i("sensorcode update:%d", usSensorCode);
@@ -350,17 +356,19 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
         // 如果Code为0,则说明Code无效
         if (usSensorCode == 0)
         {
-        	RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
-            }
+            RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
+        }
         else
         {
             log_i("sensor code update done");
-        	RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-        	app_global_get_app_state()->isfs = true;
-          //cur_get_cur_error_value(sensorK);
+            RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
+            app_global_get_app_state()->isfs = true;
+            //cur_get_cur_error_value(sensorK);
 
-            // 在CGM status Char中设置code码
+              // 在CGM status Char中设置code码
             att_get_cgm_status()->usFactoryCode = usSensorCode;
+            // 更新CGM状态char的内容
+            att_update_cgm_status_char_data();
         }
         break;
     }
@@ -373,15 +381,15 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     }
     case SOCP_READ_RESET_REG:// 读取复位原因寄存器
     {
-      /*
-        extern uint32_t rest_dig_status;
-        extern uint32_t acs_reset_status;
-        memcpy(&(RspRequest.ucRespVal[0]), &rest_dig_status, 4);
-        memcpy(&(RspRequest.ucRespVal[4]), &acs_reset_status, 4);
-        RspRequest.ucSizeVal = 8;
-        */
+        /*
+          extern uint32_t rest_dig_status;
+          extern uint32_t acs_reset_status;
+          memcpy(&(RspRequest.ucRespVal[0]), &rest_dig_status, 4);
+          memcpy(&(RspRequest.ucRespVal[4]), &acs_reset_status, 4);
+          RspRequest.ucSizeVal = 8;
+          */
         break;
-        }
+    }
     case SOCP_READ_HARD_FAULT_INFO:// 读取硬错误信息
     {
 
@@ -393,25 +401,25 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     {
         RspRequest.ucOpCode = SOCP_RSP_SUCCESS;
         event_push(MAIN_LOOP_EVENT_SOCP_STOP_SESSION_EVENT);
-            break;
-        }
+        break;
+    }
     case SOCP_WRITE_GLUCOSE_CALIBRATION_VALUE: //write calibration
         if (usLen >= 13)
         {
             memcpy((void*)calData, (void*)(pData + 1), 10);
             calDataFlag = 1;
             if (usLen == 13)
-        {
+            {
                 uint16_t concentration = uint16_decode(SocpRequest.pData);
                 //usBfFlg = 1;
                 //sfCurrBg = (float)concentration / 100.0f;
                 //log_i("sfCurrBg:%f\r\n", sfCurrBg);
                 RspRequest.ucOpCode = SOCP_RSP_SUCCESS;  //response is 1C 04(opcode) 01(response) EC 6F (CRC)
 
-        }
-        else
-        {
-            	RspRequest.ucOpCode = SOCP_RSP_INVALID_OPERAND;
+            }
+            else
+            {
+                RspRequest.ucOpCode = SOCP_RSP_INVALID_OPERAND;
             }
         }
         break;
@@ -419,10 +427,10 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 
         break;
     case SOCP_WRITE_PRM://add by woo set parameters 0x61
-    // 如果是写入参数命令
+        // 如果是写入参数命令
         if (SocpRequest.ucDataLen > 16)
         {
-        	RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
+            RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
         }
         else
         {
@@ -431,100 +439,35 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
             int16_t tmp;
             PrmNo = SocpRequest.pData[index++];
 
-            if (PrmNo == 0x01) //This is for accurracy calibration  0x 61 01 XX XX CRC
+            if (PrmNo == 0x04)//write SN time part
             {
-            	RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-                //p_cgms->comm_interval          = socp_request.p_operand[0];
+                RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
+
+                g_PrmDb.prmWMY[0] = *(SocpRequest.pData + index);
+                index += 1;
+                g_PrmDb.prmWMY[1] = *(SocpRequest.pData + index);
+                index += 1;
+                g_PrmDb.prmWMY[2] = *(SocpRequest.pData + index);
+                index += 1;
+                g_PrmDb.prmWMY[3] = 0;
 
                 tmp = uint16_decode(SocpRequest.pData + index);
-                g_PrmDb.Pone.prmVD1 = (int32_t)tmp;  //Calibration VD1
+                g_PrmDb.SN = (int16_t)tmp;
                 index += 2;
 
-                tmp = uint16_decode(SocpRequest.pData + index);
-                g_PrmDb.Pone.prmRL1 = (int32_t)tmp;
-                index += 2;
-
-                tmp = uint16_decode(SocpRequest.pData + index);
-                g_PrmDb.Pone.prmOffset = (int32_t)tmp;
-                index += 2;
-
-                tmp = uint16_decode(SocpRequest.pData + index);
-                g_PrmDb.Pone.prmAD1 = (int32_t)tmp;
-                index += 2;
-
-                tmp = uint16_decode(SocpRequest.pData + index);
-                g_PrmDb.Pone.prmRL2 = (int32_t)tmp;
-                index += 2;
-
-                tmp = uint16_decode(SocpRequest.pData + index);
-                g_PrmDb.Pone.prmAD2 = (int32_t)tmp;
-                index += 2;
-
-                g_PrmDb.Pone.rsvd = 0;
-
-                // 计算CRC
-                g_PrmDb.Pone.prmCrc1 = do_crc((uint8_t*)&g_PrmDb.Pone, sizeof(P1_t) - 2);
-            }
-            else if (PrmNo == 0x03)//cmd = 0x 61 03 XX XX CRC can be hidden if necessary
-            {
-            	RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-
-                g_PrmDb.P3.prmDX0 = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P3.prmDX1 = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P3.prmDX2 = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P3.prmDX3 = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P3.prmDX4 = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P3.prmDX5 = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P3.prmDX6 = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P3.prmDX7 = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P3.prmDX8 = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P3.prmDX9 = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P3.prmDXA = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P3.prmDXB = *(SocpRequest.pData + index);
-                index += 1;
-
-                g_PrmDb.P3.prmCrc3 = do_crc((uint8_t*)&g_PrmDb.P3, sizeof(P3_t) - 2);
-            }
-            else if (PrmNo == 0x04)//write SN time part
-            {
-            	RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-
-            	g_PrmDb.P4.prmWMY[0] = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P4.prmWMY[1] = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P4.prmWMY[2] = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.P4.prmWMY[3] = 0;
-
-                tmp = uint16_decode(SocpRequest.pData + index);
-                g_PrmDb.P4.SN = (int16_t)tmp;
-                index += 2;
-
-                g_PrmDb.P4.prmCrc4 = do_crc((uint8_t*)&g_PrmDb.P4, sizeof(P4_t) - 2);
+                g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
             }
             else if (PrmNo == 0xFA)// 写入启动时间
             {
-            	ble_cgms_socp_write_start_time_datapacket_t SetStartTimeDatapcket;
+                ble_cgms_socp_write_start_time_datapacket_t SetStartTimeDatapcket;
                 memcpy(&SetStartTimeDatapcket, pData, sizeof(SetStartTimeDatapcket));
 
                 RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-                
+
                 cgms_update_sst_and_time_zone(SetStartTimeDatapcket.usYear, SetStartTimeDatapcket.ucMonth, SetStartTimeDatapcket.ucDay, SetStartTimeDatapcket.ucHour, SetStartTimeDatapcket.ucMinute, SetStartTimeDatapcket.ucSecond, SetStartTimeDatapcket.ucTimeZone, SetStartTimeDatapcket.ucDataSaveingTime);
-                }
+            }
             else if (PrmNo == 0xFB)//write debug variable ������������õ�ͨ��Э��
-                {
+            {
                 RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
 
                 app_glucose_meas_set_glucose_meas_interval(*(SocpRequest.pData + index)); //change measure interval
@@ -536,26 +479,26 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
                 simDelta = *(SocpRequest.pData + index);
                 index += 1;
 
-        }
+            }
             else if (PrmNo == 0xFC)//cmd = 0x 61 FC XX XX CRC
-    {
+            {
                 RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
                 uint16_t usBitCmd = uint16_decode(SocpRequest.pData + index);
                 if (usBitCmd & 0x0001)
-        {
+                {
                     //cem102_set_we1_dac(ANALOG_ELECTRODE_POLARIZATION_VOL_LOW);
-        }
-        else
-        {
+                }
+                else
+                {
                     //cem102_set_we1_dac(ANALOG_ELECTRODE_POLARIZATION_VOL_HIGH);
                 }	// high volts //不必等待极化可以直接设置高低电压
 
                 if (usBitCmd & 0x0004)
-            {
+                {
 
-            }
+                }
                 else
-            {
+                {
 
 
                 }//VPER_SHDN	 shut down //测试软件中的“关闭探头”
@@ -565,12 +508,12 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
                 RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
             }
             else if (PrmNo == 0xFE)// 固化参数
-    {
+            {
                 cgms_prm_db_write_flash();
                 RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-        }
-        else
-        {
+            }
+            else
+            {
                 RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
             }
 
@@ -580,72 +523,16 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
         if (SocpRequest.ucDataLen > 4)
         {
             RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
-
         }
         else
         {
             uint8_t index = 0;
             uint8_t PrmNo = 0;
             PrmNo = SocpRequest.pData[0];
-            if (PrmNo == 0x01) //"��ȡ��һ�����"
+            
+            if (PrmNo == 0xA0)//read sst
             {
-            	RspRequest.ucOpCode = SOCP_READ_PRM_RESPONSE;
-
-                *(RspRequest.ucRespVal) = PrmNo;
-                index += 1;
-
-                uint16_encode(g_PrmDb.Pone.prmVD1, RspRequest.ucRespVal + index);
-                index += 2;
-                uint16_encode(g_PrmDb.Pone.prmRL1, RspRequest.ucRespVal + index);
-                index += 2;
-                uint16_encode(g_PrmDb.Pone.prmOffset, RspRequest.ucRespVal + index);
-                index += 2;
-                uint16_encode(g_PrmDb.Pone.prmAD1, RspRequest.ucRespVal + index);
-                index += 2;
-                uint16_encode(g_PrmDb.Pone.prmRL2, RspRequest.ucRespVal + index);
-                index += 2;
-                uint16_encode(g_PrmDb.Pone.prmAD2, RspRequest.ucRespVal + index);
-                index += 2;
-                RspRequest.ucSizeVal = index;
-            }
-            else if (PrmNo == 0x02)//read cgm algorithm coff ////difference in i3 used to be A4 ��ȫ���ȡ�㷨������APP���ܲ����ã����ǿ��Ը�
-            {
-            	RspRequest.ucOpCode = SOCP_READ_PRM_RESPONSE;
-
-                *(RspRequest.ucRespVal) = PrmNo;
-                index += 1;
-                /*
-                *(RspRequest.ucRespVal + index) = (uint8_t)(vD_X0);
-                index += 1;
-                *(RspRequest.ucRespVal + index) = (uint8_t)(vD_X1 * 100);
-                index += 1;
-                *(RspRequest.ucRespVal + index) = vD_X2;
-                index += 1;
-                *(RspRequest.ucRespVal + index) = (uint8_t)(vD_X3 * 10);
-                index += 1;
-                *(RspRequest.ucRespVal + index) = (uint8_t)(vD_X4 * 10);
-                index += 1;
-                *(RspRequest.ucRespVal + index) = (uint8_t)(vD_X5 * 10);
-                index += 1;
-                *(RspRequest.ucRespVal + index) = vD_X6;
-                index += 1;
-                *(RspRequest.ucRespVal + index) = vD_X7;
-                index += 1;
-                *(RspRequest.ucRespVal + index) = (uint8_t)(vD_X8 * 1000);
-                index += 1;
-                *(RspRequest.ucRespVal + index) = (uint8_t)(vD_X9 * 10);
-                index += 1;
-                *(RspRequest.ucRespVal + index) = (uint8_t)(vD_XA * 10);
-                index += 1;
-                *(RspRequest.ucRespVal + index) = vD_XB;
-                index += 1;
-                */
-
-                RspRequest.ucSizeVal = index;
-            }
-            else if (PrmNo == 0xA0)//read sst
-            {
-            	RspRequest.ucOpCode = SOCP_READ_PRM_RESPONSE;
+                RspRequest.ucOpCode = SOCP_READ_PRM_RESPONSE;
 
                 *(RspRequest.ucRespVal) = PrmNo;
                 index += 1;
@@ -673,7 +560,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
             }
             else if (PrmNo == 0xA3)//read sim parameters ����
             {
-            	RspRequest.ucOpCode = SOCP_READ_PRM_RESPONSE;
+                RspRequest.ucOpCode = SOCP_READ_PRM_RESPONSE;
 
                 *(RspRequest.ucRespVal) = PrmNo;
                 index += 1;
@@ -689,7 +576,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
             }
             else if (PrmNo == 0xA4)////difference in i3 //"��ȡ�����" ����ǰ�ȫ��
             {
-            	RspRequest.ucOpCode = SOCP_READ_PRM_RESPONSE;
+                RspRequest.ucOpCode = SOCP_READ_PRM_RESPONSE;
 
                 *(RspRequest.ucRespVal) = PrmNo;
                 index += 1;
@@ -715,7 +602,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
         break;
     }
 
-    socp_send(BleEventInfo,RspRequest);
+    socp_send(BleEventInfo, RspRequest);
 }
 
 

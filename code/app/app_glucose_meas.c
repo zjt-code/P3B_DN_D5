@@ -13,7 +13,7 @@
 #define LOG_TAG                   "APP_GLUCOSE_MEAS"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                    ELOG_LVL_WARN
+#define LOG_LVL                    ELOG_LVL_INFO
 
 
 #include <string.h>
@@ -237,6 +237,7 @@ static void app_glucose_handle(void)
     rec.usGlucose = (uint16_t)((double)g_fGlucoseConcentration * 10.0);
     rec.usCurrent = (uint16_t)((double)g_usGlucoseElectricCurrent * 100.0);
     rec.usOffset = g_usGlucoseRecordsCurrentOffset;
+    rec.usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_REAL;
 
     log_i("cgms_meas_create  %d,%d,%d", rec.usOffset, rec.usGlucose, rec.usCurrent);
 
@@ -245,21 +246,21 @@ static void app_glucose_handle(void)
     // 通过BLE发送本次的测量记录
 
     if ((ble_meas_notify_is_enable()) && app_have_a_active_ble_connect())
-	{
-		app_global_get_app_state()->bSentMeasSuccess=false;
+    {
+        app_global_get_app_state()->bSentMeasSuccess = false;
 
-		for(uint8_t i=0;i<BLE_MAX_CONNECTED_NUM;i++)
-		{
-			// 如果发现一个连接
-			if(app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true)
-			{
-				ble_event_info_t BleEventInfo;
-				BleEventInfo.ucConidx = app_global_get_app_state()->BleConnectInfo[i].usBleConidx;
+        for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
+        {
+            // 如果发现一个连接
+            if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true)
+            {
+                ble_event_info_t BleEventInfo;
+                BleEventInfo.ucConidx = app_global_get_app_state()->BleConnectInfo[i].usBleConidx;
                 BleEventInfo.usHandle = gattdb_cgm_measurement;
-			    err_code = cgms_meas_send(BleEventInfo, rec);
-			}
-		}
-	}
+                err_code = cgms_meas_send(BleEventInfo, rec);
+            }
+        }
+    }
     else
     {
         if (!ble_meas_notify_is_enable())
@@ -271,11 +272,14 @@ static void app_glucose_handle(void)
             log_w("ble is disconnecded");
         }
     }
-    
+
     app_global_get_app_state()->time_offset = g_usGlucoseRecordsCurrentOffset;
 
     // 更新CGM状态char的offset
     att_get_cgm_status()->usNumberOfReadings = app_global_get_app_state()->time_offset + 1;
+
+    // 更新CGM状态char的内容
+    att_update_cgm_status_char_data();
 
     // 当前记录索引++
     g_usGlucoseRecordsCurrentOffset++;
@@ -320,8 +324,10 @@ void app_glucose_meas_stop_session_handler(void)
     afe_stop();
 
     // 设置传感器状态为停止,并更新状态
-    app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
-    att_get_cgm_status()->ucRunStatus = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
+    app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED;
+    att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->status;
+    // 更新CGM状态char的内容
+    att_update_cgm_status_char_data();
 }
 
 
@@ -341,7 +347,7 @@ void app_glucose_meas_afe_meas_handler(void)
         double dElectricCurrent;
         if (afe_get_new_data(&dElectricCurrent))
         {
-            log_d("app_glucose_avg_electric_current_cal_add_data(%f)", dElectricCurrent);
+            log_i("app_glucose_avg_electric_current_cal_add_data(%f)", dElectricCurrent);
             // 将新数据添加到临时数据列表,以供后续计算平均值
             app_glucose_avg_electric_current_cal_add_data(dElectricCurrent);
         }
@@ -528,6 +534,10 @@ void app_glucose_meas_record_send_start(void)
     if (status != SL_STATUS_OK)
     {
         log_e("sl_sleeptimer_start_timer failed");
+    }
+    else
+    {
+        app_global_get_app_state()->bRecordSendFlag = true;
     }
     
 }

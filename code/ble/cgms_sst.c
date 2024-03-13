@@ -62,6 +62,9 @@ void cgms_update_sst_and_time_zone(uint16_t usYear,uint8_t ucMonth,uint8_t ucDay
     att_get_start_time()->ucMinute = g_mSST.date_time.time_info.minute;
     att_get_start_time()->ucSecond = g_mSST.date_time.time_info.sec;
 
+    // 更新开始时间char的内容
+    att_update_start_time_char_data();
+
     g_mSST.time_zone = ucTimeZone;
     log_i("cgm_update_sst %04d/%02d/%02d  %02d:%02d:%02d", g_mSST.date_time.time_info.year, g_mSST.date_time.time_info.month, g_mSST.date_time.time_info.day, g_mSST.date_time.time_info.hour, g_mSST.date_time.time_info.minute, g_mSST.date_time.time_info.sec);
 }
@@ -93,6 +96,9 @@ uint32_t cgms_sst_init(void)
     att_get_start_time()->ucHour = g_mSST.date_time.time_info.hour;
     att_get_start_time()->ucMinute = g_mSST.date_time.time_info.minute;
     att_get_start_time()->ucSecond = g_mSST.date_time.time_info.sec;
+
+    // 更新开始时间char的内容
+    att_update_start_time_char_data();
     return 0;
 }
 
@@ -117,6 +123,9 @@ void cgms_sst_recover(ble_cgms_sst_t SST)
     att_get_start_time()->ucMinute = g_mSST.date_time.time_info.minute;
     att_get_start_time()->ucSecond = g_mSST.date_time.time_info.sec;
     att_get_start_time()->ucTimeZone = g_mSST.time_zone;
+
+    // 更新开始时间char的内容
+    att_update_start_time_char_data();
 }
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/

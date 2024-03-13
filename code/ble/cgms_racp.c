@@ -174,6 +174,9 @@ void racp_response_send(ble_event_info_t BleEventInfo, racp_response_t ResponseC
 
     ucLen = ble_racp_encode(&Datapacket, ucEncodedRacp);
 
+    // 发送数据包
+    elog_hexdump("racp_send", 8, ucEncodedRacp, ucLen);
+
     if ((ble_racp_notify_is_enable()) && app_have_a_active_ble_connect())
     {
         sl_status_t sc;
@@ -283,36 +286,36 @@ static uint8_t racp_findMeasDB(uint8_t filter, uint16_t operand1, uint16_t opera
 *******************************************************************************/
 void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t* pData)
 {
-	ble_cgms_racp_datapacket_t RacpDatapacket;
-	ble_cgms_racp_datapacket_t RspDatapacket;
+    ble_cgms_racp_datapacket_t RacpDatapacket;
+    ble_cgms_racp_datapacket_t RspDatapacket;
 
     racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
 
     uint16_t usfilterData1 = 0x00;
     uint16_t usfilterData2 = 0x00;
 
-		ble_racp_decode(usLen, pData, &RacpDatapacket);
+    ble_racp_decode(usLen, pData, &RacpDatapacket);
     elog_hexdump("racp_rav", 16, pData, usLen);
     RspDatapacket.ucOpCode = RacpDatapacket.ucOpCode;
 
     switch (RacpDatapacket.ucOpCode)
-		{
+    {
     case RACP_OPCODE_REPORT_RECS:
     case RACP_OPCODE_REPORT_NUM_RECS:
     case RACP_OPCODE_DELETE_RECS:
-		{
-			// 效验CRC
+    {
+        // 效验CRC
         if ((0 == RacpDatapacket.ucOperator) || (usLen <= 1))
-			{
+        {
             log_w("RACP_RESPONSE_RESULT_INVALID_OPERATOR");
             ResponseCode = RACP_RESPONSE_RESULT_INVALID_OPERATOR;
             break;
-			}
+        }
 
 
-					// 发送历史数据发送结束数据包
+        // 发送历史数据发送结束数据包
         if (RacpDatapacket.ucOperator >= 7)
-				{
+        {
             log_w("RACP_RESPONSE_RESULT_OPERATOR_UNSUPPORTED");
             ResponseCode = RACP_RESPONSE_RESULT_OPERATOR_UNSUPPORTED;
             break;
@@ -330,7 +333,7 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
                 break;
             }
             usfilterData1 = uint16_decode(&RacpDatapacket.ucData[1]);
-					}
+        }
 
 
 
@@ -338,12 +341,13 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 
         //Test the operands are valid
         if ((RacpDatapacket.ucOperator == RACP_OPERATOR_ALL && RacpDatapacket.ucDataLen > 0) || (RacpDatapacket.ucOperator == RACP_OPERATOR_RANGE && usfilterData1 > usfilterData2))
-					{
+        {
             log_w("RACP_RESPONSE_RESULT_INVALID_OPERAND");
             ResponseCode = RACP_RESPONSE_RESULT_INVALID_OPERAND;
             break;
         }
 
+        log_i("racp_findMeasDB %d/%d", usfilterData1, usfilterData2);
         //Get the starting and ending index of the record meeting requriement  
         if (racp_findMeasDB(RacpDatapacket.ucOperator, usfilterData1, usfilterData2))
         {
@@ -351,16 +355,16 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
             {
                 ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
 
-						// 清空发送累计
-						app_global_get_app_state()->RecordOptInfo.usRacpRecordSendCnt = 0;
+                // 清空发送累计
+                app_global_get_app_state()->RecordOptInfo.usRacpRecordSendCnt = 0;
 
-						// 记录本次历史数据操作的BLE事件信息
-						app_global_get_app_state()->RecordOptInfo.BleEventInfo = BleEventInfo;
+                // 记录本次历史数据操作的BLE事件信息
+                app_global_get_app_state()->RecordOptInfo.BleEventInfo = BleEventInfo;
 
-						// 开始发送数据记录
-						app_glucose_meas_record_send_start();
+                // 开始发送数据记录
+                app_glucose_meas_record_send_start();
                 return;
-					}
+            }
             //If we only need to report the number count, we can prepare the send the packet right away.
             else if (RacpDatapacket.ucOpCode == RACP_OPCODE_REPORT_NUM_RECS)
             {
@@ -370,13 +374,13 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
                 RspDatapacket.ucDataLen = 2;
                 log_i("report record number:%d", usRacpRecordCnt);
                 ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
-				}
+            }
             //If we need to delete the record, the record delete function is called.
             else if (RacpDatapacket.ucOpCode == RACP_OPCODE_DELETE_RECS)
             {
                 ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
-			}
-		}
+            }
+        }
         //If search is not successful, indicate the result.
         else
         {
@@ -386,17 +390,17 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
                 RspDatapacket.ucData[1] = 0x00;
                 RspDatapacket.ucDataLen = 2;
                 ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
-	}
-	else
-	{
+            }
+            else
+            {
                 log_w("RACP_RESPONSE_RESULT_NO_RECORDS_FOUND");
                 ResponseCode = RACP_RESPONSE_RESULT_NO_RECORDS_FOUND;
-	}
+            }
         }
         break;
     }
     case RACP_OPCODE_EXIT:
-    	ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+        ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
         break;
     case RACP_OPCODE_ABORT_OPERATION:
 
@@ -408,10 +412,10 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 
         log_w("RACP_RESPONSE_RESULT_OPCODE_UNSUPPORTED");
         // Respond with error code
-    	ResponseCode = RACP_RESPONSE_RESULT_OPCODE_UNSUPPORTED;
+        ResponseCode = RACP_RESPONSE_RESULT_OPCODE_UNSUPPORTED;
         break;
     }
-	// 发送回应包
+    // 发送回应包
     racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
 }
 

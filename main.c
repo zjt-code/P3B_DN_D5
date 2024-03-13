@@ -24,7 +24,7 @@
 #include "SEGGER_RTT.h"
 #include <elog.h>
 #include "em_cmu.h"
-#include "afe.h"
+
 #include "pin_config.h"
 #include "app_glucose_meas.h"
 #include "cgms_prm.h"
@@ -91,17 +91,10 @@ int main(void)
     // 参数存储上电初始化
     cgms_prm_db_power_on_init();
 
-    // 初始化应用层
-    app_init();
-
-    // 初始化AFE
-    afe_init();
-
     while (1)
     {
         sl_system_process_action();
         sl_power_manager_sleep();
-
     }
 }
 

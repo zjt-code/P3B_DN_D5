@@ -38,7 +38,7 @@
 
 // <o SL_SPIDRV_USART_AFESPIINST_BITRATE> SPI bitrate
 // <i> Default: 1000000
-#define SL_SPIDRV_USART_AFESPIINST_BITRATE           1000000
+#define SL_SPIDRV_USART_AFESPIINST_BITRATE           700000
 
 // <o SL_SPIDRV_USART_AFESPIINST_FRAME_LENGTH> SPI frame length <4-16>
 // <i> Default: 8
@@ -64,7 +64,7 @@
 // <o SL_SPIDRV_USART_AFESPIINST_CS_CONTROL> SPI master chip select (CS) control scheme.
 // <spidrvCsControlAuto=> CS controlled by the SPI driver
 // <spidrvCsControlApplication=> CS controlled by the application
-#define SL_SPIDRV_USART_AFESPIINST_CS_CONTROL        spidrvCsControlAuto
+#define SL_SPIDRV_USART_AFESPIINST_CS_CONTROL        spidrvCsControlApplication
 
 // <o SL_SPIDRV_USART_AFESPIINST_SLAVE_START_MODE> SPI slave transfer start scheme
 // <spidrvSlaveStartImmediate=> Transfer starts immediately
@@ -84,20 +84,20 @@
 #define SL_SPIDRV_USART_AFESPIINST_PERIPHERAL_NO 0
 #endif
 
-// USART0 TX on PB01
+// USART0 TX on PA03
 #ifndef SL_SPIDRV_USART_AFESPIINST_TX_PORT      
-#define SL_SPIDRV_USART_AFESPIINST_TX_PORT       gpioPortB
+#define SL_SPIDRV_USART_AFESPIINST_TX_PORT       gpioPortA
 #endif
 #ifndef SL_SPIDRV_USART_AFESPIINST_TX_PIN       
-#define SL_SPIDRV_USART_AFESPIINST_TX_PIN        1
+#define SL_SPIDRV_USART_AFESPIINST_TX_PIN        3
 #endif
 
-// USART0 RX on PA03
+// USART0 RX on PB01
 #ifndef SL_SPIDRV_USART_AFESPIINST_RX_PORT      
-#define SL_SPIDRV_USART_AFESPIINST_RX_PORT       gpioPortA
+#define SL_SPIDRV_USART_AFESPIINST_RX_PORT       gpioPortB
 #endif
 #ifndef SL_SPIDRV_USART_AFESPIINST_RX_PIN       
-#define SL_SPIDRV_USART_AFESPIINST_RX_PIN        3
+#define SL_SPIDRV_USART_AFESPIINST_RX_PIN        1
 #endif
 
 // USART0 CLK on PC03
