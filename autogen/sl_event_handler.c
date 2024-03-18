@@ -12,6 +12,7 @@
 #include "sl_rail_util_rf_path.h"
 #include "sl_sleeptimer.h"
 #include "app_log.h"
+#include "app_timer.h"
 #include "sl_bluetooth.h"
 #include "gpiointerrupt.h"
 #include "sl_iostream_rtt.h"
@@ -76,6 +77,7 @@ void sl_platform_process_action(void)
 
 void sl_service_process_action(void)
 {
+  sli_app_timer_step();
 }
 
 void sl_stack_process_action(void)

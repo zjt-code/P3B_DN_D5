@@ -54,24 +54,23 @@ int main(void)
     // 系统初始化
     sl_system_init();
 
+
+    sl_sleeptimer_delay_millisecond(2000);
+
+
     // 初始化GPIO的时钟
     CMU_ClockEnable(cmuClock_GPIO, true);
-
-
+    GPIO_PinModeSet(gpioPortC, 0, gpioModePushPull, 0);
     GPIO_PinModeSet(gpioPortC, 1, gpioModePushPull, 0);
     GPIO_PinModeSet(gpioPortC, 2, gpioModePushPull, 0);
-    GPIO_PinModeSet(gpioPortC, 3, gpioModePushPull, 0);
-    GPIO_PinModeSet(gpioPortC, 4, gpioModePushPull, 0);
     GPIO_PinModeSet(gpioPortC, 5, gpioModePushPull, 0);
-    GPIO_PinModeSet(gpioPortC, 6, gpioModePushPull, 0);
-    GPIO_PinModeSet(gpioPortC, 7, gpioModePushPull, 0);
-
-    GPIO_PinModeSet(gpioPortD, 2, gpioModePushPull, 0);
-    GPIO_PinModeSet(gpioPortD, 3, gpioModePushPull, 0);
 
     GPIO_PinModeSet(gpioPortA, 0, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortA, 4, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortA, 6, gpioModePushPull, 0);
 
-    GPIO_PinModeSet(gpioPortB, 4, gpioModePushPull, 0);
+    GPIO_PinModeSet(gpioPortB, 0, gpioModePushPull, 0);
+
 
     // 初始化log
     SEGGER_RTT_Init();
@@ -85,7 +84,7 @@ int main(void)
     elog_set_fmt(ELOG_LVL_DEBUG, ELOG_FMT_TIME | ELOG_FMT_TAG | ELOG_FMT_LVL | ELOG_LVL_INFO);
 
 
-    elog_start();
+    //elog_start();
     log_i("sys init");
 
     // 参数存储上电初始化

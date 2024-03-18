@@ -39,9 +39,9 @@ static uint8_t g_ucGlucoseMeasInterval = 0;                            // 血糖
 static uint8_t g_ucGlucoseMeasTimeCnt = 0;                             // 血糖测量与转换定时器时间计数
 static uint16_t g_usGlucoseRecordsCurrentOffset = 0;                   // 当前血糖记录索引(从0开始)
 static uint16_t g_usGlucoseElectricCurrent = 0;                        // 测量计算出来的血糖浓度质量(在这里实际用于存储电流值,单位:0.01nA)
-static float g_fGlucoseConcentration = 0.0f;                           // 测量计算出来的实时血糖浓度(单位:mmol/L)
+static double g_fGlucoseConcentration = 0.0f;                           // 测量计算出来的实时血糖浓度(单位:mmol/L)
 static uint8_t g_ucAvgElectricCurrentCalTempArrayCnt = 0;              // 当前用于计算平均电流的临时数据数量
-static float g_dAvgElectricCurrentCalTempArray[APP_GLUCOSE_MEAS_AVG_ELECTRIC_CURRENT_CAL_TEMP_ARRAY_SIZE];                   // 用于计算平均电流的临时数据数组
+static double g_dAvgElectricCurrentCalTempArray[APP_GLUCOSE_MEAS_AVG_ELECTRIC_CURRENT_CAL_TEMP_ARRAY_SIZE];                   // 用于计算平均电流的临时数据数组
 static uint16_t g_usAppBatteryTimeDiv = 0;	                            // 电量检测定时任务分频计数
 static uint8_t g_ucAppBatteryInitMeasDoneFlag = 0;                     // 电量初始转换完成标志位
 static uint32_t g_uiListRtcTime = 0;                                   // 最后一次的RTC时间
@@ -76,7 +76,7 @@ uint16_t app_glucose_get_records_current_offset(void)
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void app_glucose_avg_electric_current_cal_add_data(float dElectricCurrent)
+void app_glucose_avg_electric_current_cal_add_data(double dElectricCurrent)
 {
     // 如果数据数量没有超限,则将新数据添加进数组
     if (g_ucAvgElectricCurrentCalTempArrayCnt < APP_GLUCOSE_MEAS_AVG_ELECTRIC_CURRENT_CAL_TEMP_ARRAY_SIZE)
@@ -296,18 +296,8 @@ static void app_glucose_handle(void)
 *******************************************************************************/
 void app_glucose_meas_battery_sub_handler(void)
 {
-
-    if (g_usAppBatteryTimeDiv < 30 * 60)
-    {
-        g_usAppBatteryTimeDiv++;
-    }
-    else
-    {
-        // 触发电量采集定时器处理函数
-        app_battery_timer_handler(5);
-
-        g_usAppBatteryTimeDiv = 0;
-    }
+    // 触发电量采集定时器处理函数
+    app_battery_timer_handler(1);
 }
 
 /*******************************************************************************
@@ -347,7 +337,7 @@ void app_glucose_meas_afe_meas_handler(void)
         double dElectricCurrent;
         if (afe_get_new_data(&dElectricCurrent))
         {
-            log_i("app_glucose_avg_electric_current_cal_add_data(%f)", dElectricCurrent);
+            log_i("app_glucose_avg_electric_current_cal_add_data(%f)", (float)dElectricCurrent);
             // 将新数据添加到临时数据列表,以供后续计算平均值
             app_glucose_avg_electric_current_cal_add_data(dElectricCurrent);
         }
@@ -668,12 +658,12 @@ void app_battery_meas_handelr(void)
     if (g_ucAppBatteryInitMeasDoneFlag < 2)
     {
         // 触发电量采集定时器处理函数
-        app_battery_timer_handler(0);
+        app_battery_timer_handler(1);
 
         g_ucAppBatteryInitMeasDoneFlag++;
 
-        // 启动一个500ms的单次定时器
-        status = sl_sleeptimer_start_timer(&g_AppBatteryMeasTimer, sl_sleeptimer_ms_to_tick(500), app_battery_meas_timer_callback, (void*)NULL, 0, 0);
+        // 启动一个1S的单次定时器
+        status = sl_sleeptimer_start_timer(&g_AppBatteryMeasTimer, sl_sleeptimer_ms_to_tick(1000), app_battery_meas_timer_callback, (void*)NULL, 0, 0);
         if (status != SL_STATUS_OK)
         {
             log_e("sl_sleeptimer_start_timer failed");

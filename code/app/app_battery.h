@@ -1,6 +1,6 @@
-/******************** (C) COPYRIGHT 2023 ³ÂËÕÑô ********************************
+/******************** (C) COPYRIGHT 2023 é™ˆè‹é˜³ ********************************
 * File Name          :  app_battery.h
-* Author             :  ³ÂËÕÑô
+* Author             :  é™ˆè‹é˜³
 * CPU Type         	 :  NRF52832
 * IDE                :  Keil
 * Version            :  V1.0
@@ -18,7 +18,22 @@
 
 /* Private define ------------------------------------------------------------*/
 
+typedef enum
+{
+    APP_BATTERY_FSM_INIT = 0,                                       // ç”µé‡ç»„ä»¶åˆå§‹åŒ–
+    APP_BATTERY_FSM_CONVERSION,                                     // ç”µé‡ç»„ä»¶è½¬æ¢ä¸­
+    APP_BATTERY_FSM_READED,                                         // ç”µé‡ç»„ä»¶è¯»å–å®Œæˆ
+}app_battery_fsm_e;
 
+
+typedef enum
+{
+    APP_BATTERY_LEVEL_VOL_MAX = 3300,                               // mV
+    APP_BATTERY_LEVEL_VOL_100 = 2600,                               // mV
+    APP_BATTERY_LEVEL_VOL_10 = 2400,                                // mV
+    APP_BATTERY_LEVEL_VOL_5 = 2200,                                 // mV
+    APP_BATTERY_LEVEL_VOL_1 = 1900                                  // mV
+}app_battery_level_vol_e;
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -27,9 +42,12 @@
 
 
 /* Private function prototypes -----------------------------------------------*/
+
+
+void app_battery_init(void);
 uint32_t app_battery_get_run_time(void);
 void app_battery_timer_handler(uint16_t usInterval);
 #endif /* __APP_BATTERY_H */
 
-/******************* (C) COPYRIGHT 2023 ³ÂËÕÑô **** END OF FILE ****************/
+/******************* (C) COPYRIGHT 2023 é™ˆè‹é˜³ **** END OF FILE ****************/
 

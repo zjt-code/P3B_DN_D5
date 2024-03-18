@@ -38,7 +38,7 @@
 // <h> PA Configuration
 // <o SL_RAIL_UTIL_PA_POWER_DECI_DBM> Initial PA Power (deci-dBm, 100 = 10.0 dBm)
 // <i> Default: 100
-#define SL_RAIL_UTIL_PA_POWER_DECI_DBM      100
+#define SL_RAIL_UTIL_PA_POWER_DECI_DBM      0
 
 // <o SL_RAIL_UTIL_PA_RAMP_TIME_US> PA Ramp Time (microseconds)
 // <0-65535:1>
@@ -47,14 +47,14 @@
 // <o SL_RAIL_UTIL_PA_VOLTAGE_MV> Milli-volts on PA supply pin (PA_VDD)
 // <0-65535:1>
 // <i> Default: 3300
-#define SL_RAIL_UTIL_PA_VOLTAGE_MV          3300
+#define SL_RAIL_UTIL_PA_VOLTAGE_MV          1800
 // <o SL_RAIL_UTIL_PA_SELECTION_2P4GHZ> 2.4 GHz PA Selection
 // <RAIL_TX_POWER_MODE_2P4GIG_HIGHEST=> Highest Possible
 // <RAIL_TX_POWER_MODE_2P4GIG_HP=> High Power (chip-specific)
 // <RAIL_TX_POWER_MODE_2P4GIG_LP=> Low Power
 // <RAIL_TX_POWER_MODE_NONE=> Disable
 // <i> Default: RAIL_TX_POWER_MODE_2P4GIG_HIGHEST
-#define SL_RAIL_UTIL_PA_SELECTION_2P4GHZ    RAIL_TX_POWER_MODE_2P4GIG_HIGHEST
+#define SL_RAIL_UTIL_PA_SELECTION_2P4GHZ    RAIL_TX_POWER_MODE_2P4GIG_LP
 // <o SL_RAIL_UTIL_PA_SELECTION_SUBGHZ> Sub-1 GHz PA Selection
 // <RAIL_TX_POWER_MODE_NONE=> Disable
 // <i> Default: RAIL_TX_POWER_MODE_NONE

@@ -4,6 +4,7 @@ app_assert_config.h=1351236558
 app_log_config.h=-1893283838
 app_properties_config.h=-763091270
 btconf/gatt_configuration.btconf=-138811667
+btconf/gatt_service_battery.xml=1930901036
 btconf/in_place_ota_dfu.xml=-1860696934
 btl_interface_cfg.h=-1719664633
 dmadrv_config.h=1207334949

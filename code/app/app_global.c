@@ -15,6 +15,7 @@
 #undef LOG_LVL
 #define LOG_LVL                    ELOG_LVL_INFO
 
+#include "app_battery.h"
 #include "app_global.h"
 #include "app.h"
 #include "ble_update_connect_param.h"

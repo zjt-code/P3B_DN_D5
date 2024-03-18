@@ -30,6 +30,7 @@ component:
 - {id: iostream_rtt}
 - {id: segger_rtt}
 - {id: bluetooth_feature_gatt_server}
+- {id: gatt_service_battery}
 - {id: bluetooth_feature_legacy_advertiser}
 - {id: mpu}
 - {id: gatt_configuration}
@@ -41,6 +42,7 @@ component:
 - {id: gpiointerrupt}
 - {id: rail_util_pti}
 - {id: udelay}
+- {id: app_timer}
 - {id: mbedtls_aes}
 - {id: app_log}
 - {id: bt_post_build}
