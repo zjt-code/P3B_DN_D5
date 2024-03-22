@@ -17,8 +17,8 @@
 #include "stdbool.h"
 /* Private define ------------------------------------------------------------*/
 
-#define AFE_USE_BMS003          (1)           // 使用暖芯咖的AFE
-//#define AFE_USE_LTCGM1272       (1)           // 使用列拓的AFE
+//#define AFE_USE_BMS003          (1)           // 使用暖芯咖的AFE
+#define AFE_USE_LTCGM1272       (1)           // 使用列拓的AFE
 //#define AFE_USE_CEM102          (1)           // 使用安森美的AFE
 
 /* Private typedef -----------------------------------------------------------*/

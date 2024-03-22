@@ -9,10 +9,13 @@
 *******************************************************************************/
 
 /* Define to prevent recursive inclusion -------------------------------------*/
+
 #ifndef __BMS003_H
 #define __BMS003_H
 
 /* Includes ------------------------------------------------------------------*/
+#include "afe.h"
+#ifdef AFE_USE_BMS003
 #include "stdint.h"
 #include "stdbool.h"
 /* Private define ------------------------------------------------------------*/
@@ -207,6 +210,7 @@ bool bms003_get_new_data(double* pNewData);
 void bms003_register_irq_callback(bms003_irq_callback callback);
 void bms003_start(void);
 void bms003_stop(void);
+#endif
 #endif /* __BMS003_H */
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/

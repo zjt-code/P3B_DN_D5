@@ -9,12 +9,15 @@
 *******************************************************************************/
 
 /* Define to prevent recursive inclusion -------------------------------------*/
+
 #ifndef __LTCGM1272_H
 #define __LTCGM1272_H
 
 /* Includes ------------------------------------------------------------------*/
-#include "stdbool.h"
 
+#include "afe.h"
+#ifdef AFE_USE_LTCGM1272
+#include "stdbool.h"
 /* Private define ------------------------------------------------------------*/
 
 
@@ -81,6 +84,8 @@ bool ltcgm1272_new_data_is_ready(void);
 bool ltcgm1272_get_new_data(double* pNewData);
 void ltcgm1272_init(void);
 void ltcgm1272_register_irq_callback(ltcgm1272_irq_callback callback);
+
+#endif
 #endif /* __LTCGM1272_H */
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/

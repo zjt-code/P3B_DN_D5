@@ -13,8 +13,10 @@
     #define LOG_TAG                "LTCGM1272"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                    ELOG_LVL_WARN
+#define LOG_LVL                    ELOG_LVL_DEBUG
 
+#include "afe.h"
+#ifdef AFE_USE_LTCGM1272
 #include "ltcgm1272.h"
 #include "spidrv.h"
 #include "sl_udelay.h"
@@ -89,13 +91,9 @@ bool ltcgm1272_get_new_data(double* pNewData)
     if (pNewData == NULL)return false;
     if (fifo_out(&g_NewDataFifo, &usData, 1, 1))
     {
-        double fVref = 1800;
-
-        // 计算电压
-        double fAdcVol = ((fVref / 4096.0) * ((double)usData)) - (0x4E * fVref / 255);
-
+        double fVwe = (0x4E * 1800.0 / 255.0);
         // 按10M电阻计算电流
-        *pNewData = fAdcVol / 10000000.0 * 1000.0 * 1000.0;
+        *pNewData = (((double)usData)/4095.0*1800.0-fVwe)/ 10000000.0 * 1000.0 * 1000.0;
         return true;
     }
     return false;
@@ -292,8 +290,8 @@ void ltcgm1272_int_irq_handler(void)
 
 
 
-
-/****double*************** (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/
+#endif
+/******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/
 
 
 

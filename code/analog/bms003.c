@@ -9,7 +9,7 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
-
+#ifdef AFE_USE_BMS003
 #if !defined(LOG_TAG)
 #define LOG_TAG                "BMS0003"
 #endif
@@ -787,7 +787,7 @@ void bms003_wakeup_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     bms003_write_burst(0x017, ucWriteBuffer, ucBufferIndex, 1, 1);
 }
-
+#endif
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/
 
