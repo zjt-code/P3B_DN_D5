@@ -84,7 +84,7 @@ int main(void)
     elog_set_fmt(ELOG_LVL_DEBUG, ELOG_FMT_TIME | ELOG_FMT_TAG | ELOG_FMT_LVL | ELOG_LVL_INFO);
 
 
-    //elog_start();
+    elog_start();
     log_i("sys init");
 
     // 参数存储上电初始化

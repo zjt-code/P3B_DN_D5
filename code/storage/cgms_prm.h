@@ -1,6 +1,6 @@
-/******************** (C) COPYRIGHT 2023 ³ÂËÕÑô ********************************
+/******************** (C) COPYRIGHT 2023 é™ˆè‹é˜³ ********************************
 * File Name          :  cgms_prm.h
-* Author             :  ³ÂËÕÑô
+* Author             :  é™ˆè‹é˜³
 * CPU Type         	 :  NRF52832
 * IDE                :  Keil
 * Version            :  V1.0
@@ -55,7 +55,7 @@ extern prm_t g_PrmDb;
 extern uint8_t g_ucSn[];
 
 /* Private function prototypes -----------------------------------------------*/
-ret_code_t cgms_prm_get_sn(unsigned char* buff);
+ret_code_t cgms_prm_get_sn(char* buff);
 void cgms_prm_db_power_on_init(void);
 uint8_t* cgms_prm_get_sn_p(void);
 bool cgms_prm_get_bonded_flag(void);
@@ -65,4 +65,4 @@ extern softreset_error_log_backup_t softreset_error_log;
 
 #endif /* __CGMS_PRM_H */
 
-/******************* (C) COPYRIGHT 2023 ³ÂËÕÑô **** END OF FILE ****************/
+/******************* (C) COPYRIGHT 2023 é™ˆè‹é˜³ **** END OF FILE ****************/

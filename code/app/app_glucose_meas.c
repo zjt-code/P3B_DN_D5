@@ -92,9 +92,9 @@ void app_glucose_avg_electric_current_cal_add_data(double dElectricCurrent)
 * Description    :  获取电流数组
 * Input          :  void
 * Output         :  None
-* Return         :  float*
+* Return         :  double*
 *******************************************************************************/
-float* app_glucose_avg_electric_current_get_electric_current_array(void)
+double* app_glucose_avg_electric_current_get_electric_current_array(void)
 {
     // 如果数组中的数据不足18个,则补齐
     if (g_ucAvgElectricCurrentCalTempArrayCnt < 18)
@@ -134,11 +134,11 @@ void app_glucose_avg_electric_current_cal_init(void)
 * Description    :  平均电流计算_根据目前已有数据,获取当前平均电流
 * Input          :  void
 * Output         :  None
-* Return         :  float
+* Return         :  double
 *******************************************************************************/
-float app_glucose_avg_electric_current_cal_get(void)
+double app_glucose_avg_electric_current_cal_get(void)
 {
-    float dAvg = 0.0;
+    double dAvg = 0.0;
     // 累加临时数据
     for (uint8_t i = 0; i < g_ucAvgElectricCurrentCalTempArrayCnt; i++)
     {
@@ -147,7 +147,7 @@ float app_glucose_avg_electric_current_cal_get(void)
     // 如果临时数据和,与临时数据数量都不为0,则计算平均
     if (fabs(dAvg) > 1e-15 && g_ucAvgElectricCurrentCalTempArrayCnt)
     {
-        return dAvg / (float)g_ucAvgElectricCurrentCalTempArrayCnt;
+        return dAvg / (double)g_ucAvgElectricCurrentCalTempArrayCnt;
     }
     else
     {
@@ -229,13 +229,13 @@ static void app_glucose_handle(void)
     // 计算并输出血糖结果
     simpleGlucoCalc(&g_fGlucoseConcentration);
     */
-    g_usGlucoseElectricCurrent = app_glucose_avg_electric_current_cal_get();
+    g_usGlucoseElectricCurrent = app_glucose_avg_electric_current_cal_get() * 100.0;
     g_fGlucoseConcentration = app_glucose_avg_electric_current_cal_get();
 
     cgms_meas_t rec;
     memset(&rec, 0, sizeof(cgms_meas_t));
-    rec.usGlucose = (uint16_t)((double)g_fGlucoseConcentration * 10.0);
-    rec.usCurrent = (uint16_t)((double)g_usGlucoseElectricCurrent * 100.0);
+    rec.usGlucose = (uint16_t)(g_fGlucoseConcentration * 10.0);
+    rec.usCurrent = g_usGlucoseElectricCurrent;
     rec.usOffset = g_usGlucoseRecordsCurrentOffset;
     rec.usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_REAL;
 

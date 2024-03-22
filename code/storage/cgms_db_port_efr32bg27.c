@@ -36,7 +36,7 @@
 uint8_t cgms_db_port_init(cgms_db_port_info_t* pInfo)
 {
     pInfo->ucAlignAtNByte = 4;
-    pInfo->uiAddroffset = 0x80A2000;
+    pInfo->uiAddroffset = 0x08096000;
     pInfo->usSectorByteSize = 1024*8;
     return 0;
 }

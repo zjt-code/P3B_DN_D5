@@ -268,7 +268,7 @@ void app_battery_timer_handler(uint16_t usInterval)
     }
     else
     {
-        if (g_uiBatteryLifeTimeCnt % 360 == 0)
+        if (g_uiBatteryLifeTimeCnt % 1800 == 0)
         {
             bRunFsmFlag = true;
         }

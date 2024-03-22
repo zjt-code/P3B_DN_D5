@@ -51,11 +51,11 @@ ret_code_t cgms_prm_db_write_flash()
 *                           陈苏阳@2022-12-26
 * Function Name  :  cgms_prm_get_sn
 * Description    :  获取设备SN
-* Input          :  unsigned char * buff
+* Input          :  char * buff
 * Output         :  None
 * Return         :  ret_code_t
 *******************************************************************************/
-ret_code_t cgms_prm_get_sn(unsigned char* buff)
+ret_code_t cgms_prm_get_sn(char* buff)
 {
     static bool bLogOutFlag = false;
     uint32_t uiFlag;
@@ -75,7 +75,7 @@ ret_code_t cgms_prm_get_sn(unsigned char* buff)
     {
         uiFlag = RET_CODE_SUCCESS;
     }
-    sprintf((char*)buff, "JN-%s%04d", (unsigned char*)g_PrmDb.prmWMY, g_PrmDb.SN);
+    sprintf(buff, "JN-%s%04d", (unsigned char*)g_PrmDb.prmWMY, g_PrmDb.SN);
     if (bLogOutFlag == false)
     {
         log_i("SN:%s", buff);
