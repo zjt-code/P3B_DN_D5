@@ -12,7 +12,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "string.h"
-#include "em_msc.h"
+#include <stdio.h>
+#include <string.h>
+#include "nvm3_default.h"
+#include "nvm3_default_config.h"
 /* Private variables ---------------------------------------------------------*/
 
 uint32_t g_uiPrmFlashAddrOffset = 0xFE00000;
@@ -34,7 +37,8 @@ uint32_t g_uiPrmFlashAddrOffset = 0xFE00000;
 *******************************************************************************/
 uint8_t cgms_prm_port_init(void)
 {
-
+  if(nvm3_initDefault()==ECODE_NVM3_OK)return 0;
+  return 1;
 }
 
 
@@ -48,7 +52,11 @@ uint8_t cgms_prm_port_init(void)
 *******************************************************************************/
 uint8_t cgms_prm_port_erase_sector(uint32_t uiAddr)
 {
-    if (MSC_ErasePage(g_uiPrmFlashAddrOffset + uiAddr) == mscReturnOk)return 0;
+  while (nvm3_repackNeeded(nvm3_defaultHandle))
+  {
+    nvm3_repack(nvm3_defaultHandle);
+  }
+  return 0;
 }
 
 /*******************************************************************************
@@ -63,11 +71,9 @@ uint8_t cgms_prm_port_erase_sector(uint32_t uiAddr)
 *******************************************************************************/
 uint8_t cgms_prm_port_write(uint32_t uiAddr, uint8_t* pWriteData, uint16_t usWriteLen)
 {
-    if (MSC_WriteWord(g_uiPrmFlashAddrOffset + uiAddr, (uint32_t*)pWriteData, usWriteLen) == mscReturnOk)
-    {
-        return 1;
-    }
-    return 0;
+
+  if (ECODE_NVM3_OK != nvm3_writeData(nvm3_defaultHandle, uiAddr, (unsigned char *)pWriteData, usWriteLen))return 1;
+  return 0;
 }
 
 /*******************************************************************************
@@ -82,7 +88,7 @@ uint8_t cgms_prm_port_write(uint32_t uiAddr, uint8_t* pWriteData, uint16_t usWri
 *******************************************************************************/
 uint8_t cgms_prm_port_read(uint32_t uiAddr, uint8_t* pReadData, uint16_t usReadLen)
 {
-    memcpy(pReadData, (uint32_t*)(g_uiPrmFlashAddrOffset + uiAddr), usReadLen);
+    if(nvm3_readData(nvm3_defaultHandle, uiAddr, pReadData, usReadLen)!=ECODE_NVM3_OK)return 1;
     return 0;
 }
 

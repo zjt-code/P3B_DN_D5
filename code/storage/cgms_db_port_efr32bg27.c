@@ -54,7 +54,7 @@ uint8_t cgms_db_port_init(cgms_db_port_info_t* pInfo)
 *******************************************************************************/
 uint8_t cgms_db_port_erase_sector(uint32_t uiAddr)
 {   
-  if(MSC_ErasePage(uiAddr)==mscReturnOk)return 0;
+  if(MSC_ErasePage((uint32_t*)uiAddr)==mscReturnOk)return 0;
   return 1;
 }
 
@@ -70,7 +70,7 @@ uint8_t cgms_db_port_erase_sector(uint32_t uiAddr)
 *******************************************************************************/
 uint8_t cgms_db_port_write(uint32_t uiAddr, uint8_t* pWriteData, uint16_t usWriteLen)
 {
-    if (MSC_WriteWord(uiAddr, (uint32_t*)pWriteData, usWriteLen) == mscReturnOk)
+    if (MSC_WriteWord((uint32_t*)uiAddr, (uint32_t*)pWriteData, usWriteLen) == mscReturnOk)
     {
         return 0;
     }

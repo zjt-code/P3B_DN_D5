@@ -35,7 +35,7 @@
 #include "sl_gatt_service_device_information.h"
 
 #define GATTDB_MODEL_NUMBER_STRING_LEN          8
-#define GATTDB_HARDWARE_REVISION_STRING_LEN     3
+#define GATTDB_HARDWARE_REVISION_STRING_LEN     5
 #define GATTDB_FIRMWARE_REVISION_STRING_LEN     5
 #define GATTDB_SYSTEM_ID_LEN                    8
 

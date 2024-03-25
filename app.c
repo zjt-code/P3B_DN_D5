@@ -31,6 +31,11 @@
 #include "app_glucose_meas.h"
 #include "cgms_meas.h"
 /* Private variables ---------------------------------------------------------*/
+#define SL_BOARD_NAME       "P3B_LT01"
+#define SL_BOARD_REV        "0.0.1"
+
+
+
 static uint8_t g_ucAdvertisingSetHandle = 0xff;     // BLE广播集句柄
 static uint8_t g_ucAdvDataBuffer[31];               // BLE广播内容
 static uint8_t g_ucAdvDataLen;                      // BLE广播内容长度

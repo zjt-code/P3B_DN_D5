@@ -33,6 +33,8 @@ extern const sli_bt_gattdb_t gattdb;
 #define gattdb_batt_measurement               47
 #define gattdb_power_source                   49
 #define gattdb_power_source_type              51
+#define gattdb_ota                            52
+#define gattdb_ota_control                    54
 
 
 #endif // __GATT_DB_H

@@ -10,6 +10,7 @@
 #include "pa_conversions_efr32.h"
 #include "sl_rail_util_pti.h"
 #include "sl_rail_util_rf_path.h"
+#include "btl_interface.h"
 #include "sl_sleeptimer.h"
 #include "app_log.h"
 #include "app_timer.h"
@@ -36,6 +37,7 @@ void sl_platform_init(void)
   sl_device_init_hfxo();
   sl_device_init_clocks();
   sl_device_init_emu();
+  bootloader_init();
   nvm3_initDefault();
   sl_power_manager_init();
 }

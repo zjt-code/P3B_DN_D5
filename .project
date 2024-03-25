@@ -31,6 +31,51 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>gecko_sdk_4.4.0/platform/bootloader/api/application_properties.h</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/platform/bootloader/api/application_properties.h</locationURI>
+		</link>
+		<link>
+			<name>gecko_sdk_4.4.0/platform/bootloader/api/btl_errorcode.h</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/platform/bootloader/api/btl_errorcode.h</locationURI>
+		</link>
+		<link>
+			<name>gecko_sdk_4.4.0/platform/bootloader/api/btl_interface.c</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/platform/bootloader/api/btl_interface.c</locationURI>
+		</link>
+		<link>
+			<name>gecko_sdk_4.4.0/platform/bootloader/api/btl_interface.h</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/platform/bootloader/api/btl_interface.h</locationURI>
+		</link>
+		<link>
+			<name>gecko_sdk_4.4.0/platform/bootloader/api/btl_interface_parser.h</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/platform/bootloader/api/btl_interface_parser.h</locationURI>
+		</link>
+		<link>
+			<name>gecko_sdk_4.4.0/platform/bootloader/api/btl_interface_storage.c</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/platform/bootloader/api/btl_interface_storage.c</locationURI>
+		</link>
+		<link>
+			<name>gecko_sdk_4.4.0/platform/bootloader/api/btl_interface_storage.h</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/platform/bootloader/api/btl_interface_storage.h</locationURI>
+		</link>
+		<link>
+			<name>gecko_sdk_4.4.0/platform/bootloader/api/btl_reset_info.h</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/platform/bootloader/api/btl_reset_info.h</locationURI>
+		</link>
+		<link>
+			<name>gecko_sdk_4.4.0/platform/bootloader/app_properties/app_properties.c</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/platform/bootloader/app_properties/app_properties.c</locationURI>
+		</link>
+		<link>
 			<name>gecko_sdk_4.4.0/platform/common/inc/sl_assert.h</name>
 			<type>1</type>
 			<locationURI>STUDIO_SDK_LOC/platform/common/inc/sl_assert.h</locationURI>
@@ -376,6 +421,11 @@
 			<locationURI>STUDIO_SDK_LOC/protocol/bluetooth/api/sl_bt.xapi</locationURI>
 		</link>
 		<link>
+			<name>gecko_sdk_4.4.0/protocol/bluetooth/inc/sl_apploader_util.h</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/protocol/bluetooth/inc/sl_apploader_util.h</locationURI>
+		</link>
+		<link>
 			<name>gecko_sdk_4.4.0/protocol/bluetooth/inc/sl_bgapi.h</name>
 			<type>1</type>
 			<locationURI>STUDIO_SDK_LOC/protocol/bluetooth/inc/sl_bgapi.h</locationURI>
@@ -476,6 +526,11 @@
 			<locationURI>STUDIO_SDK_LOC/protocol/bluetooth/lib/libbluetooth_host_efr32xg27_gcc_release.a</locationURI>
 		</link>
 		<link>
+			<name>gecko_sdk_4.4.0/protocol/bluetooth/src/sl_apploader_util_s2.c</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/protocol/bluetooth/src/sl_apploader_util_s2.c</locationURI>
+		</link>
+		<link>
 			<name>gecko_sdk_4.4.0/protocol/bluetooth/src/sl_bt_stack_init.c</name>
 			<type>1</type>
 			<locationURI>STUDIO_SDK_LOC/protocol/bluetooth/src/sl_bt_stack_init.c</locationURI>
@@ -539,6 +594,16 @@
 			<name>gecko_sdk_4.4.0/app/bluetooth/common/gatt_service_device_information/sl_gatt_service_device_information.h</name>
 			<type>1</type>
 			<locationURI>STUDIO_SDK_LOC/app/bluetooth/common/gatt_service_device_information/sl_gatt_service_device_information.h</locationURI>
+		</link>
+		<link>
+			<name>gecko_sdk_4.4.0/app/bluetooth/common/in_place_ota_dfu/sl_bt_in_place_ota_dfu.c</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/app/bluetooth/common/in_place_ota_dfu/sl_bt_in_place_ota_dfu.c</locationURI>
+		</link>
+		<link>
+			<name>gecko_sdk_4.4.0/app/bluetooth/common/in_place_ota_dfu/sl_bt_in_place_ota_dfu.h</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/app/bluetooth/common/in_place_ota_dfu/sl_bt_in_place_ota_dfu.h</locationURI>
 		</link>
 		<link>
 			<name>gecko_sdk_4.4.0/app/common/util/app_assert/app_assert.h</name>

@@ -43,6 +43,7 @@ component:
 - {id: gatt_service_battery}
 - {id: gatt_service_device_information}
 - {id: gpiointerrupt}
+- {id: in_place_ota_dfu}
 - {id: iostream_rtt}
 - {id: mbedtls_aes}
 - {id: mpu}
