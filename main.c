@@ -53,7 +53,7 @@ int main(void)
     sl_system_init();
 
 
-    sl_sleeptimer_delay_millisecond(2000);
+    sl_sleeptimer_delay_millisecond(3000);
 
 
     // 初始化GPIO的时钟

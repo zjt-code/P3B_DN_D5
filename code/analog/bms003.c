@@ -9,17 +9,19 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
-#ifdef AFE_USE_BMS003
 #if !defined(LOG_TAG)
 #define LOG_TAG                "BMS0003"
 #endif
 #undef LOG_LVL
 #define LOG_LVL                ELOG_LVL_DEBUG
 
+#include "afe.h"
+#ifdef AFE_USE_BMS003
+#include "bms003.h"
 #include "spidrv.h"
 #include "sl_udelay.h"
 #include "sl_spidrv_instances.h"
-#include "bms003.h"
+
 #include "cmsis_gcc.h"
 #include "pin_config.h"
 #include <elog.h>
@@ -65,7 +67,7 @@ void bms003_read_burst(uint8_t ucRegAddr, uint8_t* pData, uint8_t ucLen, uint32_
 void bms003_write_burst(uint8_t ucRegAddr, uint8_t* pData,uint8_t ucLen, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs);
 void bms003_write_cycle(uint8_t ucRegAddr, uint8_t ucData, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs);
 void bms003_int_irq_callback(uint8_t intNo, void* ctx);
-void bms003_read_adc_data(void);
+void bms003_imeas_irq_config_and_reading(void);
 void bms003_measure_timer_handler(void);
 void bms003_wakeup_timer_handler(void);
 void bms003_start(void);
@@ -73,7 +75,7 @@ void bms003_stop(void);
 void bms003_wakeup(void);
 void bms003_sleep(void);
 void bms003_int_irq_handler(void);
-void bms003_config(void);
+void bms003_booting_config(void);
 void bms003_config_after_handler(void);
 void bms003_wakeup_config(void);
 /* Private functions ---------------------------------------------------------*/
@@ -267,6 +269,9 @@ void bms003_init(void)
     // 设置AFE的INT引脚下拉输入
     GPIO_PinModeSet(AFE_INT_PORT, AFE_INT_PIN, gpioModeInputPull, 0);
 
+    // CS拉高
+    GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
+
     // 配置中断处理函数
     g_Bms003IrqInterrupt = GPIOINT_CallbackRegisterExt(AFE_INT_PIN, bms003_int_irq_callback, NULL);
     log_d("g_Bms003IrqInterrupt:%d", g_Bms003IrqInterrupt);
@@ -288,23 +293,20 @@ void bms003_init(void)
 
 }
 
+
 /*******************************************************************************
-*                           陈苏阳@2023-11-02
-* Function Name  :  bms003_read_adc_data
-* Description    :  bms003读取ADC数据
+*                           陈苏阳@2024-03-27
+* Function Name  :  bms003_imeas_irq_config_and_reading
+* Description    :  BMS003测量中断的配置与数据读取
 * Input          :  void
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void bms003_read_adc_data(void)
+void bms003_imeas_irq_config_and_reading(void)
 {
     int buff = 0;      //AD中转存储值
-    GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
-
     bms003_delay_us(200);
-
     bms003_write_cycle(IMEAS_REG_SEQ, 0x01, 0, 1);
-
     bms003_delay_us(200);
 
     uint8_t ucCh0Data[2];
@@ -338,39 +340,13 @@ void bms003_read_adc_data(void)
             double fData = ((double)(buff - g_BaseWeVol) / 32768.0 * 1.2 * 100) / 1.11291;
             log_i("buff:%d   g_BaseWeVol:%d  fData:%f", buff, g_BaseWeVol, fData);
             fifo_in(&g_NewDataFifo, &fData, 1);
-            GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, false, false, false);
         }
     }
 
     //addr:0x4  清除中断状态
-    GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
     bms003_delay_us(200);
     bms003_write_cycle(IMEAS_INT, 0x01, 0, 1);
-
-    if ((ucIrqCnt == 20) && (ucOnePeriodSampCnt == 3))
-    {
-        bms003_delay_us(300);
-
-        uint8_t ucTmpData = CLK;
-        bms003_write_burst(0x3A, &ucTmpData, 1, 0, 30);
-
-
-        //使能BG,DAC  关闭BG
-        bms003_delay_us(300);
-        bms003_write_cycle(0x50, 0x03, 0, 30);
-
-        bms003_delay_us(300);
-
-        bms003_write_cycle(0x3A, CLK | 0x80, 0, 30);
-        // 采集结束
-        bms003_delay_us(100);
-        bms003_sleep();
-
-        // 清除GPIO中断，计算时间比较长，期间BMS3可能会产生一个IO中断
-        GPIO_IntClear(g_Bms003IrqInterrupt);
-    }
 }
-
 
 /*******************************************************************************
 *                           陈苏阳@2023-11-02
@@ -383,11 +359,13 @@ void bms003_read_adc_data(void)
 void bms003_measure_timer_handler(void)
 {
     log_d("bms003_measure_timer_handler");
-    // 设置AFE的INT引脚中断
-    GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
-
     // BMS003唤醒配置
     bms003_wakeup_config();
+    // 清除GPIO中断
+    GPIO_IntClear(g_Bms003IrqInterrupt);
+
+    // 设置AFE的INT引脚中断
+    GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
 }
 
 /*******************************************************************************
@@ -453,7 +431,7 @@ void bms003_start(void)
     g_bWakeupFlag = false;
 
     // bms003配置
-    bms003_config();
+    bms003_booting_config();
 }
 
 
@@ -526,11 +504,49 @@ void bms003_sleep(void)
 void bms003_int_irq_handler(void)
 {
     log_d("bms003_int_irq_handler");
-    // 读取数据
-    bms003_read_adc_data();
 
-    // 调用中断回调
-    if (g_Bms003IrqCallbackFun)g_Bms003IrqCallbackFun();
+    // 先关闭中断
+    GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, false, false, false);
+
+    // 清除GPIO中断，进入sleep期间BMS3可能会产生一个IO中断
+    GPIO_IntClear(g_Bms003IrqInterrupt);
+
+
+    // 测量中断后的配置以及读取ADC数据
+    bms003_imeas_irq_config_and_reading();
+
+    if ((ucIrqCnt == 20) && (ucOnePeriodSampCnt == 3))
+    {
+        ucOnePeriodSampCnt = 0;
+
+        bms003_delay_us(300);
+
+        bms003_write_cycle(0x3A, CLK, 0, 30);
+
+        bms003_delay_us(300);
+        //使能BG,DAC  关闭BG
+        bms003_write_cycle(0x50, 0x03, 0, 30);
+
+        bms003_delay_us(300);
+
+        bms003_write_cycle(0x61, 0x00, 0, 30);
+
+        bms003_delay_us(300);
+
+        bms003_write_cycle(0x3A, CLK | 0x80, 0, 30);
+
+        bms003_delay_us(100);
+
+        uint8_t ucAnaPmu = bms003_read_cycle(0x50, 1, 1);
+        log_i("ucAnaPmu:0x%02x", ucAnaPmu);
+
+
+        bms003_sleep();
+    }
+
+    // 开启中断
+    GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
+
 }
 
 /*******************************************************************************
@@ -667,15 +683,14 @@ void bms003_read_burst(uint8_t ucRegAddr, uint8_t* pData, uint8_t ucLen, uint32_
 /*******************************************************************************
 *                           陈苏阳@2023-10-27
 * Function Name  :  bms003_config
-* Description    :  BMS003配置
+* Description    :  BMS003启动配置
 * Input          :  None
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void bms003_config(void)
+void bms003_booting_config(void)
 {
     uint8_t ucWriteBuffer[32];
-    GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
     bms003_delay_us(1);
     uint8_t ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = CLK;
@@ -693,12 +708,12 @@ void bms003_config(void)
     ucWriteBuffer[ucBufferIndex++] = CH1_WE1_VGAIN_SEL;// addr:0x54 配置DDA增益倍数
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x55 默认为0
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x56 默认为0
-    ucWriteBuffer[ucBufferIndex++] = 0x0;// addr:0x57 参比电极以及辅助电极使能
+    ucWriteBuffer[ucBufferIndex++] = 0x1;// addr:0x57 参比电极以及辅助电极使能
     ucWriteBuffer[ucBufferIndex++] = 0x1;// addr:0x58 工作电极的偏置电压由第一个DAC生成使能
     ucWriteBuffer[ucBufferIndex++] = CH1_DINWE_L8;// addr:0x59 设置偏置电压[0:7]
     ucWriteBuffer[ucBufferIndex++] = CH1_DINWE_H2;// addr:0x5A 设置偏置电压[8:9]
-    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5B 参比电极的偏置电压由第二个DAC生成使能[0:7]
-    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5C 配置CE[0:7]
+    ucWriteBuffer[ucBufferIndex++] = 0x1;// addr:0x5B 参比电极的偏置电压由第二个DAC生成使能[0:7]
+    ucWriteBuffer[ucBufferIndex++] = 0x41;// addr:0x5C 配置CE[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5D 配置CE[8:9]
     bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex, 1, 1);
 
@@ -716,12 +731,16 @@ void bms003_config(void)
     ucWriteBuffer[ucBufferIndex++] = CHA_NUM;
     bms003_write_burst(0x01, ucWriteBuffer, ucBufferIndex, 1, 1);
 
-    bms003_write_cycle(IMEAS_REG_SEQ, 0x00, 1, 1);
+    bms003_write_cycle(IMEAS_REG_SEQ, 0x00, 1, 2);
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     bms003_write_burst(0x017, ucWriteBuffer, ucBufferIndex, 1, 1);
+
+    uint8_t ucAnaPmu = bms003_read_cycle(0x50, 1, 1);
+    log_i("ucAnaPmu:0x%02x", ucAnaPmu);
+
 }
 
 
@@ -739,8 +758,9 @@ void bms003_wakeup_config(void)
 {
     uint8_t ucBufferIndex = 0;
     uint8_t ucWriteBuffer[32];
-    GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
     bms003_delay_us(1);
+    uint8_t ucAnaPmu = bms003_read_cycle(0x50, 1, 1);
+    log_i("ucAnaPmu:0x%02x", ucAnaPmu);
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = CLK;
@@ -786,6 +806,9 @@ void bms003_wakeup_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     bms003_write_burst(0x017, ucWriteBuffer, ucBufferIndex, 1, 1);
+
+    ucAnaPmu = bms003_read_cycle(0x50, 1, 1);
+    log_i("ucAnaPmu:0x%02x", ucAnaPmu);
 }
 #endif
 
