@@ -28,10 +28,12 @@
 #include "ble_customss.h"
 #include "cgms_socp.h"
 #include "afe.h"
+#include "btl_interface.h"
+#include "gatt_db.h"
 /* Private variables ---------------------------------------------------------*/
 app_state_t g_app_state;
 event_info_t g_EventInfoArray[APP_EVENT_MAX_NUM];
-        
+sl_sleeptimer_timer_handle_t g_OtaDelayParamTimer;
 /* Private function prototypes -----------------------------------------------*/
 
 
@@ -274,6 +276,9 @@ void app_event_ble_disconnect_callback(uint16_t usConnectionHandle)
 *******************************************************************************/
 void app_init(void)
 {
+    // 修改设备信息服务中的软件版本号
+    sl_bt_gatt_server_write_attribute_value(gattdb_software_revision_string, 0, 5, (uint8_t*)SOFT_VER);
+
     // 清空app状态
     app_state_t* pAppState = app_global_get_app_state();
     memset(pAppState, 0x00, sizeof(app_state_t));
@@ -427,6 +432,44 @@ uint32_t rtc_get_curr_time(void)
 }
 
 
+/*******************************************************************************
+*                           陈苏阳@2024-03-26
+* Function Name  :  app_global_ota_delay_param_timer_callback
+* Description    :  OTA延时回调
+* Input          :  sl_sleeptimer_timer_handle_t * handle
+* Input          :  void * data
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void app_global_ota_delay_param_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
+{
+    bootloader_rebootAndInstall();
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-03-26
+* Function Name  :  app_global_ota_start
+* Description    :  触发OTA
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void app_global_ota_start(void)
+{
+  /*
+    // 触发更新
+    for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
+    {
+        sl_status_t sc = sl_bt_connection_set_parameters(app_global_get_app_state()->BleConnectInfo[i].usBleConidx, 24, 24, 0, 72, 0xffff, 0xffff);
+        if (sc != SL_STATUS_OK)
+        {
+            log_e("sl_bt_connection_set_parameters fail:%d", sc);
+        }
+    }
+    */
+    // 触发连接参数更新定时器
+    sl_sleeptimer_restart_timer(&g_OtaDelayParamTimer, sl_sleeptimer_ms_to_tick(1000), app_global_ota_delay_param_timer_callback, NULL, 0, 0);
+}
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/
 
 

@@ -56,10 +56,10 @@
       </properties>
     </characteristic>
 
-    <!--Mac String-->
-    <characteristic const="false" id="mac_string" name="Mac String" sourceId="org.bluetooth.characteristic.firmware_revision_string" uuid="2A26">
+    <!--Firmware Revision String-->
+    <characteristic const="false" id="firmware_revision_string" name="Firmware Revision String" sourceId="org.bluetooth.characteristic.firmware_revision_string" uuid="2A26">
       <informativeText>Summary: The value of this characteristic is a UTF-8 string representing the firmware revision for the firmware within the device.</informativeText>
-      <value length="12" type="utf-8" variable_length="false"/>
+      <value length="5" type="utf-8" variable_length="false">0.0.1</value>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>
@@ -68,7 +68,7 @@
     <!--Software Revision String-->
     <characteristic const="false" id="software_revision_string" name="Software Revision String" sourceId="org.bluetooth.characteristic.firmware_revision_string" uuid="2A28">
       <informativeText>Summary: The value of this characteristic is a UTF-8 string representing the firmware revision for the firmware within the device.</informativeText>
-      <value length="5" type="utf-8" variable_length="false">0.0.2</value>
+      <value length="5" type="utf-8" variable_length="false">0.0.1</value>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>

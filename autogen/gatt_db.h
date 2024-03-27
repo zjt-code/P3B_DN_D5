@@ -18,7 +18,7 @@ extern const sli_bt_gattdb_t gattdb;
 #define gattdb_device_model_string            16
 #define gattdb_sn_string                      18
 #define gattdb_hardware_revision_string       20
-#define gattdb_mac_string                     22
+#define gattdb_firmware_revision_string       22
 #define gattdb_software_revision_string       24
 #define gattdb_sensor_batch_number_string     26
 #define gattdb_continuous_glucose_monitoring_0 27

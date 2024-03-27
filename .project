@@ -596,16 +596,6 @@
 			<locationURI>STUDIO_SDK_LOC/app/bluetooth/common/gatt_service_device_information/sl_gatt_service_device_information.h</locationURI>
 		</link>
 		<link>
-			<name>gecko_sdk_4.4.0/app/bluetooth/common/in_place_ota_dfu/sl_bt_in_place_ota_dfu.c</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/app/bluetooth/common/in_place_ota_dfu/sl_bt_in_place_ota_dfu.c</locationURI>
-		</link>
-		<link>
-			<name>gecko_sdk_4.4.0/app/bluetooth/common/in_place_ota_dfu/sl_bt_in_place_ota_dfu.h</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/app/bluetooth/common/in_place_ota_dfu/sl_bt_in_place_ota_dfu.h</locationURI>
-		</link>
-		<link>
 			<name>gecko_sdk_4.4.0/app/common/util/app_assert/app_assert.h</name>
 			<type>1</type>
 			<locationURI>STUDIO_SDK_LOC/app/common/util/app_assert/app_assert.h</locationURI>

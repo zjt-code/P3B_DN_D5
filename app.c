@@ -31,8 +31,6 @@
 #include "app_glucose_meas.h"
 #include "cgms_meas.h"
 /* Private variables ---------------------------------------------------------*/
-#define SL_BOARD_NAME       "P3B_LT01"
-#define SL_BOARD_REV        "0.0.1"
 
 
 

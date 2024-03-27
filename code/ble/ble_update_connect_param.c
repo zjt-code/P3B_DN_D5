@@ -16,7 +16,7 @@
 #undef LOG_LVL
 #define LOG_LVL                    ELOG_LVL_INFO
 
-
+#include "sl_bt_in_place_ota_dfu.h"
 #include "sl_sleeptimer.h"
 #include "ble_update_connect_param.h"
 #include "app.h"
@@ -64,7 +64,7 @@ bool ble_update_connect_param_is_pass(uint16_t usConnectionHandle)
         // 找到对应的连接信息
         if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true && app_global_get_app_state()->BleConnectInfo[i].usBleConidx == usConnectionHandle)
         {
-            if ((app_global_get_app_state()->BleConnectInfo[i].usConnectInterval < BLE_PRE_INTERVAL_MIN) || (app_global_get_app_state()->BleConnectInfo[i].usConnectInterval > BLE_PRE_INTERVAL_MAX) || (app_global_get_app_state()->BleConnectInfo[i].usConnectLatency != BLE_PRE_LATENCY))
+            if ((app_global_get_app_state()->BleConnectInfo[i].usConnectInterval < BLE_NORMAL_INTERVAL_MIN) || (app_global_get_app_state()->BleConnectInfo[i].usConnectInterval > BLE_NORMAL_INTERVAL_MAX) || (app_global_get_app_state()->BleConnectInfo[i].usConnectLatency != BLE_NORMAL_LATENCY))
             {
                 return false;
             }
@@ -84,17 +84,23 @@ bool ble_update_connect_param_is_pass(uint16_t usConnectionHandle)
 *******************************************************************************/
 void ble_update_connect_param_handle(void)
 {
+    // 如果单签已经准备OTA,则放弃连接参数变更
+    if (sl_bt_in_place_ota_dfu_is_boot_to_dfu())
+    {
+        return;
+    }
+
     bool bRestartTimerFlag = false;
     for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
     {
         // 如果当前连接的连接参数还不满足要求
-        if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true && ble_update_connect_param_is_pass(app_global_get_app_state()->BleConnectInfo[i].usBleConidx)==false)
+        if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true && ble_update_connect_param_is_pass(app_global_get_app_state()->BleConnectInfo[i].usBleConidx) == false)
         {
             // 已达到需要更新连接参数的时间
             if (app_global_get_app_state()->BleConnectInfo[i].ulConenctedTimeCnt >= 5)
             {
                 // 触发更新
-                sl_status_t sc = sl_bt_connection_set_parameters(app_global_get_app_state()->BleConnectInfo[i].usBleConidx, BLE_PRE_INTERVAL_MIN, BLE_PRE_INTERVAL_MAX, BLE_PRE_LATENCY, BLE_PRE_TIMEOUT, 0xffff, 0xffff);
+                sl_status_t sc = sl_bt_connection_set_parameters(app_global_get_app_state()->BleConnectInfo[i].usBleConidx, BLE_NORMAL_INTERVAL_MIN, BLE_NORMAL_INTERVAL_MAX, BLE_NORMAL_LATENCY, BLE_NORMAL_TIMEOUT, 0xffff, 0xffff);
                 if (sc != SL_STATUS_OK)
                 {
                     log_e("sl_bt_connection_set_parameters fail:%d", sc);
@@ -112,10 +118,8 @@ void ble_update_connect_param_handle(void)
     if (bRestartTimerFlag && g_bBleUpdateConnectParamEnableFlag)
     {
         // 触发连接参数更新定时器
-        sl_sleeptimer_restart_timer(&g_BleUpdateConnectParamTimer, sl_sleeptimer_ms_to_tick(1000), ble_update_connect_param_timer_callback,NULL, 0, 0);
-
+        sl_sleeptimer_restart_timer(&g_BleUpdateConnectParamTimer, sl_sleeptimer_ms_to_tick(1000), ble_update_connect_param_timer_callback, NULL, 0, 0);
     }
-    
 }
 
 

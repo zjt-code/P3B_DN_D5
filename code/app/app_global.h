@@ -19,6 +19,9 @@
 /* Private define ------------------------------------------------------------*/
 
 
+#define SOFT_VER         "0.0.1"              // 软件版本号
+
+
 /*************************Main Loop事件ID*****************************/
 
 
@@ -89,11 +92,11 @@ typedef enum
 #define APP_COMPANY_ID                              0x0362
 #define APP_COMPLETE_LIST_16_BIT_UUID               0x181F
 
-#define BLE_CONNECT_PARAM_UPDATE_DELAY              5000               // 从连接建立到发起更新连接参数所需的延时时间(ms)
-#define BLE_PRE_INTERVAL_MIN                        72                // 期望的BLE连接间隔(最小值)(*1.25ms)
-#define BLE_PRE_INTERVAL_MAX                        100                // 期望的BLE连接间隔(最大值)(*1.25ms)
-#define BLE_PRE_LATENCY                             6                  // 期望的BLE连接可跳过的包数
-#define BLE_PRE_TIMEOUT                             500                // 期望的BLE超时时间
+#define BLE_CONNECT_PARAM_UPDATE_DELAY              10                  // 从连接建立到发起更新连接参数所需的延时时间(S)
+#define BLE_NORMAL_INTERVAL_MIN                     72                 // 期望的BLE连接间隔(最小值)(*1.25ms)
+#define BLE_NORMAL_INTERVAL_MAX                     100                // 期望的BLE连接间隔(最大值)(*1.25ms)
+#define BLE_NORMAL_LATENCY                          7                  // 期望的BLE连接可跳过的包数
+#define BLE_NORMAL_TIMEOUT                          500                // 期望的BLE超时时间
 #define BLE_MAX_CONNECTED_NUM                       1                  // 设备可以同时被连接的最大数量
 #define CGMS_ENCRYPT_ENABLE                         1                  // BLE通讯使用加密协议
 
@@ -225,6 +228,7 @@ uint8_t event_push(uint32_t uiEventId);
 uint8_t event_add(uint32_t uiEventId, event_callback_t CallBack);
 uint8_t event_handler(uint32_t uiEventId);
 uint32_t rtc_get_curr_time(void);
+void app_global_ota_start(void);
 /* Private function prototypes -----------------------------------------------*/
 
 #endif /* __APP_GLOBAL_H */

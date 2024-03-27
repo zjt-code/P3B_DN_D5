@@ -29,9 +29,7 @@
 #include "app_glucose_meas.h"
 #include "cgms_prm.h"
 /* Private variables ---------------------------------------------------------*/
-sl_sleeptimer_timer_handle_t g_TestTimer;
 
-        
 /* Private function prototypes -----------------------------------------------*/
 
 
@@ -85,7 +83,7 @@ int main(void)
 
 
     elog_start();
-    log_i("sys init");
+    log_i("sys init  ver:%s", SOFT_VER);
 
     // 参数存储上电初始化
     cgms_prm_db_power_on_init();

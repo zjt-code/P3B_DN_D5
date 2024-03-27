@@ -16,7 +16,6 @@
 #undef LOG_LVL
 #define LOG_LVL                    ELOG_LVL_DEBUG
 
-
 #include <stdint.h>
 #include "stdio.h"
 #include <string.h>
@@ -31,6 +30,7 @@
 #include "sl_bt_api.h"
 #include "app_glucose_meas.h"
 #include "cgms_prm.h"
+#include "btl_interface.h"
 #include <elog.h>
 /* Private variables ---------------------------------------------------------*/
 #define NRF_BLE_CGMS_PLUS_INFINTE                     0x07FE
@@ -374,8 +374,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     }
     case SOCP_START_FOTA:
     {
-        // 触发进入OTA
-        //Sys_Fota_StartDfu(1);
+        app_global_ota_start();
         RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
         break;
     }

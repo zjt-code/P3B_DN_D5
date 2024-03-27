@@ -100,12 +100,12 @@ GATT_DATA(const sli_bt_gattdb_value_t gattdb_attribute_field_25) = {
 GATT_DATA(sli_bt_gattdb_attribute_chrvalue_t gattdb_attribute_field_23) = {
   .properties = 0x02,
   .max_len = 5,
-  .data = { 0x30, 0x2e, 0x30, 0x2e, 0x32, },
+  .data = { 0x30, 0x2e, 0x30, 0x2e, 0x31, },
 };
 GATT_DATA(sli_bt_gattdb_attribute_chrvalue_t gattdb_attribute_field_21) = {
   .properties = 0x02,
-  .max_len = 12,
-  .data = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
+  .max_len = 5,
+  .data = { 0x30, 0x2e, 0x30, 0x2e, 0x31, },
 };
 GATT_DATA(sli_bt_gattdb_attribute_chrvalue_t gattdb_attribute_field_19) = {
   .properties = 0x02,
