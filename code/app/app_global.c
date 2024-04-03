@@ -319,8 +319,6 @@ void app_init(void)
 
     // 初始化AFE
     afe_init();
-
-    event_push(MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT);
 }
 
 
