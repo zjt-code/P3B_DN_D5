@@ -32,6 +32,7 @@
 #include "cgms_prm.h"
 #include "btl_interface.h"
 #include <elog.h>
+#include "cgms_debug_db.h"
 /* Private variables ---------------------------------------------------------*/
 #define NRF_BLE_CGMS_PLUS_INFINTE                     0x07FE
 #define NRF_BLE_CGMS_MINUS_INFINTE                    0x0802
@@ -380,19 +381,33 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     }
     case SOCP_READ_RESET_REG:// 读取复位原因寄存器
     {
-        /*
+
           extern uint32_t rest_dig_status;
           extern uint32_t acs_reset_status;
           memcpy(&(RspRequest.ucRespVal[0]), &rest_dig_status, 4);
           memcpy(&(RspRequest.ucRespVal[4]), &acs_reset_status, 4);
           RspRequest.ucSizeVal = 8;
-          */
+
         break;
     }
     case SOCP_READ_HARD_FAULT_INFO:// 读取硬错误信息
     {
-
-
+        for (uint8_t i = 0; i < 5; i++)
+        {
+            char cKey[12];
+            uint8_t ucData[4];
+            RspRequest.ucSizeVal = 0;
+            if (debug_get_kv(i, cKey, ucData))
+            {
+                memcpy(&(RspRequest.ucRespVal[i*4]), ucData, 4);
+                RspRequest.ucSizeVal = i * 4;
+            }
+            else
+            {
+                break;
+            }
+        }
+        RspRequest.ucOpCode = SOCP_RSP_SUCCESS;
         break;
     }
     // 如果是停止CGM命令

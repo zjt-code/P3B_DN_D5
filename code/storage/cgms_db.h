@@ -22,10 +22,10 @@
 
 #define MEAS_RECORD_INDEX_ADDR                      (0)                                                         // 历史数据参数存储地址(开始)
 #define MEAS_RECORD_INDEX_FLASH_SIZE                (0x2000)                                                    // 用于存储历史数据参数的存储大小(byte)
-#define MEAS_RECORD_INDEX_ONE_UNIT_SIZE             (32)                                                        // 单个历史数据参数存储单元所占Flash的大小
+#define MEAS_RECORD_INDEX_ONE_UNIT_SIZE             (16)                                                        // 单个历史数据参数存储单元所占Flash的大小
 
 #define MEAS_RECORD_ADDR                            (MEAS_RECORD_INDEX_ADDR+MEAS_RECORD_INDEX_FLASH_SIZE)       // 历史数据存储地址(开始)
-#define MEAS_RECORD_FLASH_SIZE                      (0x1C000)                                                   // 用于存储历史数据的存储大小(byte)
+#define MEAS_RECORD_FLASH_SIZE                      (0x1C000)                                                   // 用于存储历史数据的存储大小(byte)*8192(对齐为112KB)
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -33,6 +33,7 @@
 typedef struct
 {
     cgms_meas_t Record;// 历史数据内容
+    uint8_t ucNone[7];// 填充
     uint16_t usChecksum;// 校验
 }__attribute__((packed))  one_record_storage_unit_t;// 单个历史数据存储结构体
 

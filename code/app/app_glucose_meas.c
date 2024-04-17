@@ -13,7 +13,7 @@
 #define LOG_TAG                   "APP_GLUCOSE_MEAS"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                    ELOG_LVL_INFO
+#define LOG_LVL                    ELOG_LVL_DEBUG
 
 
 #include <string.h>
@@ -33,9 +33,10 @@
 #include "math.h"
 #include <elog.h>
 #include "gatt_db.h"
+#include "em_wdog.h"
 /* Private variables ---------------------------------------------------------*/
 
-static uint8_t g_ucGlucoseMeasInterval = 0;                            // 血糖测量间隔(ADC测量间隔,默认10S)
+static uint8_t g_ucGlucoseMeasInterval = APP_GLUCOSE_MEAS_MEAS_INTERVAL_MIN;    // 血糖测量间隔(ADC测量间隔,默认30S)
 static uint8_t g_ucGlucoseMeasTimeCnt = 0;                             // 血糖测量与转换定时器时间计数
 static uint16_t g_usGlucoseRecordsCurrentOffset = 0;                   // 当前血糖记录索引(从0开始)
 static uint16_t g_usGlucoseElectricCurrent = 0;                        // 测量计算出来的血糖浓度质量(在这里实际用于存储电流值,单位:0.01nA)
@@ -211,7 +212,7 @@ static void app_glucose_handle(void)
     // 如果当前记录已满,则直接退出
     if (g_usGlucoseRecordsCurrentOffset >= CGMS_DB_MAX_RECORDS)return;
 
-    float* pAvgElectricCurrentCalTempArray = app_glucose_avg_electric_current_get_electric_current_array();
+    double* pAvgElectricCurrentCalTempArray = app_glucose_avg_electric_current_get_electric_current_array();
     log_d("ElectricCurrent:");
     for (uint8_t i = 0; i < 18; i++)
     {
@@ -359,13 +360,15 @@ void app_glucose_meas_afe_meas_handler(void)
 *******************************************************************************/
 void app_glucose_meas_glucose_handler(void)
 {
+    WDOGn_Feed(WDOG0);
+
     // 如果测量间隔小于最小间隔,则设置为最小间隔
     if (g_ucGlucoseMeasInterval < APP_GLUCOSE_MEAS_MEAS_INTERVAL_MIN) g_ucGlucoseMeasInterval = APP_GLUCOSE_MEAS_MEAS_INTERVAL_MIN;
 
     // 如果当前到了测量间隔时间计数
     if (g_ucGlucoseMeasTimeCnt >= (g_ucGlucoseMeasInterval))
     {
-        //log_i("app_glucose_handle:%d\r\n", g_ucAvgElectricCurrentCalTempArrayCnt);
+        log_d("app_glucose_handle:%d\r\n", g_ucAvgElectricCurrentCalTempArrayCnt);
 
         // 计算当前电流平均值并调用血糖处理函数
         app_glucose_handle();
@@ -400,8 +403,8 @@ void app_glucose_meas_handler(void)
     // 计算当前RTC时间差值
     int32_t uiRtcTimeDiff = ucNowRtcTime - g_uiListRtcTime;
 
-    // 判断当前是否需要执行1S一次的数据采集
-    if (uiRtcTimeDiff >= 1000)
+    // 判断当前是否需要执行1S(0.99S)一次的数据采集
+    if (uiRtcTimeDiff >= 990)
     {
         // 更新RTC时间
     	g_uiListRtcTime = ucNowRtcTime;

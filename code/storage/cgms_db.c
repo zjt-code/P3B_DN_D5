@@ -706,33 +706,4 @@ void cmgs_db_force_write_flash(void)
     }
 }
 
-
-/*******************************************************************************
-*                           陈苏阳@2023-05-18
-* Function Name  :  cgms_db_write_hard_fault_info
-* Description    :  写入hard_fault信息
-* Input          :  hard_fault_info_t * pHardFaultInfo
-* Output         :  None
-* Return         :  void
-*******************************************************************************/
-void cgms_db_write_hard_fault_info(hard_fault_info_t* pHardFaultInfo)
-{
-    // 擦除目标page
-    cgms_db_flash_erase(HARD_FAULT_INFO_ADDR, cgm_db_flash_get_info()->usSectorByteSize);
-    cgms_db_flash_write(HARD_FAULT_INFO_ADDR, (uint8_t*)pHardFaultInfo, sizeof(hard_fault_info_t));
-}
-
-/*******************************************************************************
-*                           陈苏阳@2023-05-18
-* Function Name  :  cgms_db_read_hard_fault_info
-* Description    :  读取hard_fault信息
-* Input          :  hard_fault_info_t * pHardFaultInfo
-* Output         :  None
-* Return         :  void
-*******************************************************************************/
-void cgms_db_read_hard_fault_info(hard_fault_info_t* pHardFaultInfo)
-{
-    cgms_db_flash_read(HARD_FAULT_INFO_ADDR, (uint8_t*)pHardFaultInfo, sizeof(hard_fault_info_t));
-}
-
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/

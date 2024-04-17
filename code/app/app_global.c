@@ -30,6 +30,7 @@
 #include "afe.h"
 #include "btl_interface.h"
 #include "gatt_db.h"
+#include "cgms_debug_db.h"
 /* Private variables ---------------------------------------------------------*/
 app_state_t g_app_state;
 event_info_t g_EventInfoArray[APP_EVENT_MAX_NUM];

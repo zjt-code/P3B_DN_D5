@@ -7,6 +7,11 @@
 * Date               :  23/10/2023
 * Description        :  
 *******************************************************************************/
+#if !defined(LOG_TAG)
+#define LOG_TAG                "CGMS_DB_PORT"
+#endif
+#undef LOG_LVL
+#define LOG_LVL                ELOG_LVL_WARN
 
 /* Includes ------------------------------------------------------------------*/
 #include <stdbool.h>
@@ -14,6 +19,7 @@
 #include "string.h"
 #include "cgms_db_port.h"
 #include "em_msc.h"
+#include "elog.h"
 /* Private variables ---------------------------------------------------------*/
 
 
@@ -36,7 +42,7 @@
 uint8_t cgms_db_port_init(cgms_db_port_info_t* pInfo)
 {
     pInfo->ucAlignAtNByte = 4;
-    pInfo->uiAddroffset = 0x08096000;
+    pInfo->uiAddroffset = 0x8090000;
     pInfo->usSectorByteSize = 1024*8;
     return 0;
 }
@@ -53,9 +59,11 @@ uint8_t cgms_db_port_init(cgms_db_port_info_t* pInfo)
 * Return         :  uint8_t
 *******************************************************************************/
 uint8_t cgms_db_port_erase_sector(uint32_t uiAddr)
-{   
-  if(MSC_ErasePage((uint32_t*)uiAddr)==mscReturnOk)return 0;
-  return 1;
+{
+    //log_d("cgms_db_port_erase_sector:0x%x, MSC STATUS:0x%x", uiAddr,MSC->STATUS);
+    MSC_Status_TypeDef Ret = MSC_ErasePage((uint32_t*)uiAddr);
+    if (Ret == mscReturnOk)return 0;
+    return 1;
 }
 
 /*******************************************************************************
@@ -70,6 +78,8 @@ uint8_t cgms_db_port_erase_sector(uint32_t uiAddr)
 *******************************************************************************/
 uint8_t cgms_db_port_write(uint32_t uiAddr, uint8_t* pWriteData, uint16_t usWriteLen)
 {
+    //log_d("cgms_db_port_write:0x%x, MSC STATUS:0x%x", uiAddr,MSC->STATUS);
+    //elog_hexdump("data", 16, pWriteData, 16);
     if (MSC_WriteWord((uint32_t*)uiAddr, (uint32_t*)pWriteData, usWriteLen) == mscReturnOk)
     {
         return 0;
@@ -89,7 +99,9 @@ uint8_t cgms_db_port_write(uint32_t uiAddr, uint8_t* pWriteData, uint16_t usWrit
 *******************************************************************************/
 uint8_t cgms_db_port_read(uint32_t uiAddr, uint8_t* pReadData, uint16_t usReadLen)
 {
+    //log_d("cgms_db_port_read:0x%x, MSC STATUS:0x%x", uiAddr,MSC->STATUS);
     memcpy(pReadData, (uint32_t*)uiAddr, usReadLen);
+    //elog_hexdump("data", 16, pReadData, 16);
     return 0;
 }
 
