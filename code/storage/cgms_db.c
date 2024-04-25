@@ -243,7 +243,7 @@ ret_code_t cgms_db_init(void)
 
 
         log_d("cgms_db_get_flash_record_index g_uiRecordsNum:%d", g_uiRecordsNum);
-        log_d("cgms_db_get_flash_record_index sst_time_zone:%d", g_mRecordIndex.sst.time_zone);
+        log_d("cgms_db_get_flash_record_index sst_time_zone:%d", g_mRecordIndex.sst.date_time.time_zone);
         log_d("cgms_db_get_flash_record_index sst:%d/%d/%d   %d:%d:%d", g_mRecordIndex.sst.date_time.time_info.year, \
             g_mRecordIndex.sst.date_time.time_info.month, \
             g_mRecordIndex.sst.date_time.time_info.day, \
@@ -526,7 +526,7 @@ static ret_code_t cgms_db_record_get_raw_data(uint16_t usRecordIndex, cgms_meas_
             uint32_t uiReadAddr = MEAS_RECORD_ADDR + (usPageIndex * cgm_db_flash_get_info()->usSectorByteSize) + (usPosInPage * usOneRecordStorageUnitSize);
             cgms_db_flash_read(uiReadAddr, (uint8_t*)&TmpRecord, sizeof(one_record_storage_unit_t));
             log_i("cgms_db_record_get_raw_data3  0x%x", uiReadAddr);
-            elog_hexdump("data", 8, (uint8_t*)uiReadAddr, sizeof(one_record_storage_unit_t));
+            elog_hexdump("data", 8, (uint8_t*)&TmpRecord, sizeof(one_record_storage_unit_t));
         }
     }
 

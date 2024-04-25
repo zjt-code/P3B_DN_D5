@@ -39,7 +39,6 @@ typedef struct
 typedef struct
 {
     ble_date_time_t date_time; /**< Date and time. */
-    uint8_t         time_zone; /**< Time zone. */
     uint8_t         dst;       /**< Daylight saving time. */
 }__attribute__((packed)) ble_cgms_sst_t;// CGM会话启动时间信息结构体
 

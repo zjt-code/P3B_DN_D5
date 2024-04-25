@@ -30,7 +30,7 @@ typedef struct
     uint8_t hour;
     uint8_t minute;
     uint8_t sec;
-}time_info_t;
+}__attribute__((packed))time_info_t;
 
 
 /* Private variables ---------------------------------------------------------*/

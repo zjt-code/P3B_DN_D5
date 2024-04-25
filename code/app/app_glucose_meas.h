@@ -17,7 +17,7 @@
 
 /* Private define ------------------------------------------------------------*/
 #define APP_GLUCOSE_MEAS_AVG_ELECTRIC_CURRENT_CAL_TEMP_ARRAY_SIZE       30                 // 用于计算平均电流的临时数据数组的最大成员个数("最多N个数据做平均"中的N)
-#define APP_GLUCOSE_MEAS_MEAS_INTERVAL_MIN                              (20)               // 固件整体对外的最小测量间隔(单位:秒)(必须大于APP_GLUCOSE_MEAS_AFE_MEAS_INTERVAL_MIN)
+#define APP_GLUCOSE_MEAS_MEAS_INTERVAL_MIN                              (3*60)               // 固件整体对外的最小测量间隔(单位:秒)(必须大于APP_GLUCOSE_MEAS_AFE_MEAS_INTERVAL_MIN)
 #define APP_GLUCOSE_MEAS_SOFTIMER_INTERVAL                              (1000)             // 血糖测量软件定时器时间间隔
 /* Private typedef -----------------------------------------------------------*/
 typedef enum _afe_work_fsm_t

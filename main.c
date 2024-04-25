@@ -25,7 +25,7 @@
 #include <elog.h>
 #include "em_cmu.h"
 #include "em_wdog.h"
-
+#include "stdio.h"
 #include "pin_config.h"
 #include "app_glucose_meas.h"
 #include "cgms_prm.h"
@@ -177,7 +177,7 @@ int main(void)
     print_reset_cause(rest_dig_status);
 
     wdog_init();
-    cm_backtrace_init("P3A", "0.0.3", "0.0.3");
+    cm_backtrace_init("P3A", "0.0.1", SOFT_VER);
     // 初始化历史数据的flash接口
     cgms_db_flash_init();
 
@@ -238,6 +238,8 @@ void WDOG0_IRQHandler(void)
 {
     uint32_t call_stack[14] = { 0 };
     size_t i, depth = 0;
+    /* Clear and enable interrupts */
+    NVIC_ClearPendingIRQ(WDOG0_IRQn);
     /* 获取当前环境下的函数调用栈，每个元素将会以 32 位地址形式存储， depth 为函数调用栈实际深度 */
     depth = cm_backtrace_call_stack(call_stack, sizeof(call_stack), cmb_get_sp());
     log_i("WDOG0_IRQHandler");
@@ -265,6 +267,106 @@ void WDOG0_IRQHandler(void)
     g_ucWatchdogTriggerFlag = 1;
 }
 
+void NMI_Handler(void)
+{
+    uint32_t call_stack[14] = { 0 };
+    size_t i, depth = 0;
+    /* 获取当前环境下的函数调用栈，每个元素将会以 32 位地址形式存储， depth 为函数调用栈实际深度 */
+    depth = cm_backtrace_call_stack(call_stack, sizeof(call_stack), cmb_get_sp());
+    log_i("NMI_Handler");
+    log_i("backtrace_call_stack(%d):", depth);
+    // 清除所有键值对
+    cgms_debug_clear_all_kv();
+    for (i = 0; i < depth; i++)
+    {
+        elog_raw_output("%08x ", call_stack[i]);
+        char TmpKey[12];
+        sprintf(TmpKey, "BCS%02d", i);
+        // 先将键值对写到内存
+        cgms_debug_write_kv(TmpKey, (uint8_t*)&call_stack[i]);
+    }
+
+    // 写出到flash
+    cgms_debug_db_write();
+
+    while (1);
+}
+
+
+void BusFault_Handler(void)
+{
+    uint32_t call_stack[14] = { 0 };
+    size_t i, depth = 0;
+    /* 获取当前环境下的函数调用栈，每个元素将会以 32 位地址形式存储， depth 为函数调用栈实际深度 */
+    depth = cm_backtrace_call_stack(call_stack, sizeof(call_stack), cmb_get_sp());
+    log_i("BusFault_Handler");
+    log_i("backtrace_call_stack(%d):", depth);
+    // 清除所有键值对
+    cgms_debug_clear_all_kv();
+    for (i = 0; i < depth; i++)
+    {
+        elog_raw_output("%08x ", call_stack[i]);
+        char TmpKey[12];
+        sprintf(TmpKey, "BCS%02d", i);
+        // 先将键值对写到内存
+        cgms_debug_write_kv(TmpKey, (uint8_t*)&call_stack[i]);
+    }
+
+    // 写出到flash
+    cgms_debug_db_write();
+
+    while (1);
+}
+
+void UsageFault_Handler(void)
+{
+    uint32_t call_stack[14] = { 0 };
+    size_t i, depth = 0;
+    /* 获取当前环境下的函数调用栈，每个元素将会以 32 位地址形式存储， depth 为函数调用栈实际深度 */
+    depth = cm_backtrace_call_stack(call_stack, sizeof(call_stack), cmb_get_sp());
+    log_i("UsageFault_Handler");
+    log_i("backtrace_call_stack(%d):", depth);
+    // 清除所有键值对
+    cgms_debug_clear_all_kv();
+    for (i = 0; i < depth; i++)
+    {
+        elog_raw_output("%08x ", call_stack[i]);
+        char TmpKey[12];
+        sprintf(TmpKey, "BCS%02d", i);
+        // 先将键值对写到内存
+        cgms_debug_write_kv(TmpKey, (uint8_t*)&call_stack[i]);
+    }
+
+    // 写出到flash
+    cgms_debug_db_write();
+
+    while (1);
+}
+
+void ecureFault_Handler(void)
+{
+    uint32_t call_stack[14] = { 0 };
+    size_t i, depth = 0;
+    /* 获取当前环境下的函数调用栈，每个元素将会以 32 位地址形式存储， depth 为函数调用栈实际深度 */
+    depth = cm_backtrace_call_stack(call_stack, sizeof(call_stack), cmb_get_sp());
+    log_i("ecureFault_Handler");
+    log_i("backtrace_call_stack(%d):", depth);
+    // 清除所有键值对
+    cgms_debug_clear_all_kv();
+    for (i = 0; i < depth; i++)
+    {
+        elog_raw_output("%08x ", call_stack[i]);
+        char TmpKey[12];
+        sprintf(TmpKey, "BCS%02d", i);
+        // 先将键值对写到内存
+        cgms_debug_write_kv(TmpKey, (uint8_t*)&call_stack[i]);
+    }
+
+    // 写出到flash
+    cgms_debug_db_write();
+
+    while (1);
+}
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/
 
 

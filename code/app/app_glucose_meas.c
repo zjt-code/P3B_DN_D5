@@ -13,7 +13,7 @@
 #define LOG_TAG                   "APP_GLUCOSE_MEAS"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                    ELOG_LVL_DEBUG
+#define LOG_LVL                    ELOG_LVL_INFO
 
 
 #include <string.h>
@@ -579,7 +579,11 @@ void app_glucose_meas_record_send_handelr(void)
                 BleEventInfo.usHandle = gattdb_cgm_measurement;
 
                 // 发送历史数据
-                cgms_meas_send(BleEventInfo, HistoryRec);
+                if (cgms_meas_send(BleEventInfo, HistoryRec) != RET_CODE_SUCCESS)
+                {
+                    bSendSuccessFlag = false;
+                    log_i("cgms_meas_send err");
+                }
             }
             else
             {

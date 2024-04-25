@@ -178,13 +178,24 @@ ret_code_t cgms_meas_send(ble_event_info_t BleEventInfo, cgms_meas_t Rec)
 {
     if (ble_meas_notify_is_enable() && app_have_a_active_ble_connect())
     {
+        uint32_t uiTotalBytes;
+        uint32_t uiFreeBytes;
+        // 根据协议栈buffer的空余程度来决定是否发送数据
+        if (sl_bt_resource_get_status(&uiTotalBytes, &uiFreeBytes) == SL_STATUS_OK)
+        {
+            if (uiFreeBytes < uiTotalBytes / 2)
+            {
+                log_w("bluetooth stack memory buffer free bytes is too little:%d/%d", uiFreeBytes,uiTotalBytes);
+                return RET_CODE_FAIL;
+            }
+        }
         uint8_t ucDatapacketBuffer[20];
         uint8_t ucLen = cgms_meas_encode(Rec,ucDatapacketBuffer);
         elog_hexdump("cgms_meas_send", 8, ucDatapacketBuffer, ucLen);
         // 发送数据
         sl_status_t sc;
         sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucDatapacketBuffer);
-        if (sc == RET_CODE_SUCCESS)
+        if (sc == SL_STATUS_OK)
         {
             log_i("send OK");
             app_global_get_app_state()->bSentSocpSuccess = false;

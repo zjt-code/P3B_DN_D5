@@ -34,6 +34,7 @@ component:
 - {id: bluetooth_feature_connection}
 - {id: bluetooth_feature_gatt_server}
 - {id: bluetooth_feature_legacy_advertiser}
+- {id: bluetooth_feature_resource_report}
 - {id: bluetooth_feature_system}
 - {id: bluetooth_stack}
 - {id: bt_post_build}

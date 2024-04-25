@@ -392,22 +392,35 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     }
     case SOCP_READ_HARD_FAULT_INFO:// 读取硬错误信息
     {
-        for (uint8_t i = 0; i < 5; i++)
+        log_i("SOCP_READ_HARD_FAULT_INFO");
+        RspRequest.ucOpCode = SOCP_RSP_SUCCESS;
+        cgms_debug_db_read();
+        RspRequest.ucSizeVal = 0;
+        for (uint8_t i = 0; i < CGMS_DEBUG_MAX_KV_NUM; i++)
         {
             char cKey[12];
-            uint8_t ucData[4];
-            RspRequest.ucSizeVal = 0;
-            if (debug_get_kv(i, cKey, ucData))
+            uint32_t uiData;
+
+            if (debug_get_kv(i, cKey, (uint8_t*)&uiData))
             {
-                memcpy(&(RspRequest.ucRespVal[i*4]), ucData, 4);
-                RspRequest.ucSizeVal = i * 4;
+                log_i("index:%d key:%s val:0x%xd", i, cKey, uiData);
+                memcpy(&(RspRequest.ucRespVal[RspRequest.ucSizeVal]), &uiData, 4);
+                RspRequest.ucSizeVal += 4;
             }
             else
             {
                 break;
             }
+
+            if (RspRequest.ucSizeVal >=16)
+            {
+                socp_send(BleEventInfo, RspRequest);
+                RspRequest.ucSizeVal = 0;
         }
-        RspRequest.ucOpCode = SOCP_RSP_SUCCESS;
+        }
+        cgms_debug_clear_all_kv();
+
+        socp_send(BleEventInfo, RspRequest);
         break;
     }
     // 如果是停止CGM命令
