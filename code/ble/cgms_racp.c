@@ -132,11 +132,11 @@ uint8_t ble_racp_encode(ble_cgms_racp_datapacket_t* pRacpDatapacket, uint8_t* pD
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-24
-* Function Name  :  racp_response_code_send
+* Function Name  :  racp_response_send
 * Description    :  发送历史数据回应包
 * Input          :  ble_event_info_t BleEventInfo
-* Input          :  uint8_t ucOpcode
-* Input          :  uint8_t ucValue
+* Input          :  racp_response_t ResponseCode
+* Input          :  ble_cgms_racp_datapacket_t RacpRspDatapacket
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
@@ -174,11 +174,12 @@ void racp_response_send(ble_event_info_t BleEventInfo, racp_response_t ResponseC
 
     ucLen = ble_racp_encode(&Datapacket, ucEncodedRacp);
 
-    // 发送数据包
-    elog_hexdump("racp_send", 8, ucEncodedRacp, ucLen);
+
 
     if ((ble_racp_notify_is_enable()) && app_have_a_active_ble_connect())
     {
+        // 发送数据包
+        elog_hexdump("racp_send", 8, ucEncodedRacp, ucLen);
         sl_status_t sc;
         sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucEncodedRacp);
 		if (sc != SL_STATUS_OK)

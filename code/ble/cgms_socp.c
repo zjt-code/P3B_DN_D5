@@ -286,7 +286,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     RspRequest.ucRspCode = SOCP_RSP_OP_CODE_NOT_SUPPORTED;
     RspRequest.ucSizeVal = 0;
 
-
+    // 根据命令类型来做相应处理
     switch (SocpRequest.ucOpCode)
     {
         // 如果是写入CGM通讯间隔命令
@@ -375,6 +375,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     }
     case SOCP_START_FOTA:
     {
+    	// 触发进入OTA
         app_global_ota_start();
         RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
         break;

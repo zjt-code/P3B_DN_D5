@@ -35,11 +35,17 @@ ble_cgms_sst_t g_mSST;
 
 
 /*******************************************************************************
-*                           陈苏阳@2023-02-16
+*                           陈苏阳@2024-02-20
 * Function Name  :  cgms_update_sst_and_time_zone
 * Description    :  更新启动时间
-* Input          :  uint32_t uiStartTime
+* Input          :  uint16_t usYear
+* Input          :  uint8_t ucMonth
+* Input          :  uint8_t ucDay
+* Input          :  uint8_t ucHour
+* Input          :  uint8_t ucMinute
+* Input          :  uint8_t ucSecond
 * Input          :  uint8_t ucTimeZone
+* Input          :  uint8_t ucDataSaveingTime
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
