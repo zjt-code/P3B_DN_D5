@@ -142,9 +142,6 @@ int main(void)
 
     MSC_Init();
 
-    sl_sleeptimer_delay_millisecond(1000);
-
-
     // 初始化GPIO的时钟
     CMU_ClockEnable(cmuClock_GPIO, true);
     GPIO_PinModeSet(gpioPortC, 0, gpioModePushPull, 0);
