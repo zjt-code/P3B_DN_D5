@@ -19,6 +19,7 @@
 #include "afe.h"
 #include "bms003.h"
 #include "ltcgm1272.h"
+#include "cgms_prm.h"
 #include "sl_sleeptimer.h"
 #include <elog.h>
 /* Private variables ---------------------------------------------------------*/
@@ -144,8 +145,18 @@ bool afe_new_data_is_ready(void)
 *******************************************************************************/
 double afe_get_current_electric_current(void)
 {
+    double fAdcK = 1.000;
+    double fAdcB = 0.000;
+    if (g_PrmDb.AdcK != 0 && g_PrmDb.AdcK > 800 && g_PrmDb.AdcK < 1200)
+    {
+        fAdcK = (double)g_PrmDb.AdcK / 1000.0;
+    }
+    if (g_PrmDb.AdcB != 0 && g_PrmDb.AdcB > -10000 && g_PrmDb.AdcB < 10000)
+    {
+        fAdcB = (double)g_PrmDb.AdcB / 1000.0;
+    }
     // 返回当前电流
-    return g_fCurrElectricCurrent;
+    return fAdcK * g_fCurrElectricCurrent + fAdcB;
 }
 
 
@@ -161,12 +172,12 @@ bool afe_get_new_data(double* pNewData)
 {
 #if AFE_USE_BMS003
     bool Ret =  bms003_get_new_data(&g_fCurrElectricCurrent);
-    if (pNewData && Ret)*pNewData = g_fCurrElectricCurrent;
+    if (pNewData && Ret)*pNewData = afe_get_current_electric_current();
 #endif
 
 #if AFE_USE_LTCGM1272
     bool Ret = ltcgm1272_get_new_data(&g_fCurrElectricCurrent);
-    if (pNewData && Ret)*pNewData = g_fCurrElectricCurrent;
+    if (pNewData && Ret)*pNewData = afe_get_current_electric_current();
 #endif
     return Ret;
 }

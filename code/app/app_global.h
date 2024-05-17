@@ -19,7 +19,7 @@
 /* Private define ------------------------------------------------------------*/
 
 
-#define SOFT_VER         "0.0.6"              // 软件版本号
+#define SOFT_VER         "0.0.8"              // 软件版本号
 
 
 /*************************Main Loop事件ID*****************************/
@@ -104,7 +104,7 @@ typedef enum
 /* Private typedef -----------------------------------------------------------*/
 
 // 事件回调
-typedef void (*event_callback_t)(void);
+typedef void (*event_callback_t)(uint32_t uiArg);
 
 
 // 事件信息结构体
@@ -112,6 +112,7 @@ typedef struct
 {
     uint32_t uiEventId;
     event_callback_t CallBack;
+    uint32_t uiArg;
 }event_info_t;
 
 
@@ -224,7 +225,7 @@ void app_event_ble_param_updated_callback(uint16_t usConnectionHandle, uint16_t 
 void app_event_ble_disconnect_callback(uint16_t usConnectionHandle);
 void app_init(void);
 void event_init(void);
-uint8_t event_push(uint32_t uiEventId);
+uint8_t event_push(uint32_t uiEventId,uint32_t uiArg);
 uint8_t event_add(uint32_t uiEventId, event_callback_t CallBack);
 uint8_t event_handler(uint32_t uiEventId);
 uint32_t rtc_get_curr_time(void);

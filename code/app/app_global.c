@@ -345,11 +345,20 @@ void event_init(void)
 * Function Name  :  event_push
 * Description    :  推送事件
 * Input          :  uint32_t uiEventId
+* Input          :  uint32_t uiArg
 * Output         :  None
 * Return         :  uint8_t
 *******************************************************************************/
-uint8_t event_push(uint32_t uiEventId)
+uint8_t event_push(uint32_t uiEventId, uint32_t uiArg)
 {
+    for (uint32_t i = 0; i < APP_EVENT_MAX_NUM; i++)
+    {
+        if (g_EventInfoArray[i].uiEventId == (uint32_t)(0x01 << uiEventId))
+        {
+            g_EventInfoArray[i].uiArg = uiArg;
+            break;
+        }
+    }
     // 发送事件
     if (sl_bt_external_signal(uiEventId) == SL_STATUS_OK)return 1;
     return 0;
@@ -371,6 +380,7 @@ uint8_t event_add(uint32_t uiEventId, event_callback_t CallBack)
     {
         if (g_EventInfoArray[i].uiEventId == (uint32_t)(0x01 << uiEventId))
         {
+            g_EventInfoArray[i].uiArg = NULL;
             g_EventInfoArray[i].CallBack = CallBack;
             log_d("add event id:%d", uiEventId);
             return 1;
@@ -382,6 +392,7 @@ uint8_t event_add(uint32_t uiEventId, event_callback_t CallBack)
     {
         if (g_EventInfoArray[i].uiEventId == 0 && g_EventInfoArray[i].CallBack == NULL)
         {
+            g_EventInfoArray[i].uiArg = NULL;
             g_EventInfoArray[i].uiEventId = (0x01 << uiEventId);
             g_EventInfoArray[i].CallBack = CallBack;
             log_d("add event id:%d", uiEventId);
@@ -407,7 +418,7 @@ uint8_t event_handler(uint32_t uiEventId)
         if (g_EventInfoArray[i].uiEventId == (uint32_t)(0x01 << uiEventId) && g_EventInfoArray[i].CallBack != NULL)
         {
             log_d("event_handler:%d", uiEventId);
-            g_EventInfoArray[i].CallBack();
+            g_EventInfoArray[i].CallBack(g_EventInfoArray[i].uiArg);
             return 1;
         }
     }

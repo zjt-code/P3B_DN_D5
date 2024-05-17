@@ -22,6 +22,9 @@ typedef struct
 {
     uint8_t           prmWMY[4];
     uint16_t          SN;
+    int16_t           DacVolOffset;
+    int16_t           AdcK;
+    int16_t           AdcB;
     uint16_t          Crc16;
 } prm_t;
 
@@ -58,7 +61,6 @@ extern uint8_t g_ucSn[];
 ret_code_t cgms_prm_get_sn(char* buff);
 void cgms_prm_db_power_on_init(void);
 uint8_t* cgms_prm_get_sn_p(void);
-bool cgms_prm_get_bonded_flag(void);
 ret_code_t cgms_prm_db_write_flash(void);
 
 extern softreset_error_log_backup_t softreset_error_log;

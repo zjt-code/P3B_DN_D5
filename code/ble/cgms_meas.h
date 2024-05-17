@@ -42,7 +42,6 @@ typedef struct
     uint16_t usCRC16;
 }__attribute__((packed)) cgms_history_special_datapcket_t;
 
-
 // CGM测量数据结构体
 typedef struct
 {
@@ -51,6 +50,7 @@ typedef struct
     uint16_t usOffset;                              // 血糖数据的index(从启动CGM(=0)开始)
     uint16_t usCurrent;                             // 电极电流(nA * 100)
 }__attribute__((packed)) cgms_meas_t;
+
 
 
 /* Private variables ---------------------------------------------------------*/

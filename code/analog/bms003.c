@@ -21,7 +21,7 @@
 #include "spidrv.h"
 #include "sl_udelay.h"
 #include "sl_spidrv_instances.h"
-
+#include "cgms_prm.h"
 #include "cmsis_gcc.h"
 #include "pin_config.h"
 #include <elog.h>
@@ -47,7 +47,7 @@
 
 #define SLEEP_TIMER_INTERVAL    (10*1000)
 
-
+static uint16_t usWe1Vol = 0;                                          // WE1电压
 static uint8_t g_ucBms003NewDataFlag = 0;                              // BMS003有新数据标志位
 static uint32_t g_Bms003IrqInterrupt;                                  // BMS003中断引脚的中断号
 static bms003_irq_callback g_Bms003IrqCallbackFun = NULL;              // 中断回调函数
@@ -222,7 +222,7 @@ void bms003_wakeup_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* da
 {
     log_d("bms003_wakeup_timer_callback");
     // 发送事件
-    event_push(MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER);
+    event_push(MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER, NULL);
 }
 
 /*******************************************************************************
@@ -238,7 +238,7 @@ void bms003_measure_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* d
 {
     log_d("bms003_measure_timer_callback");
     // 发送事件
-    event_push(MAIN_LOOP_EVENT_AFE_MEASURE_TIMER);
+    event_push(MAIN_LOOP_EVENT_AFE_MEASURE_TIMER, NULL);
 }
 
 
@@ -403,6 +403,12 @@ void bms003_start(void)
     log_d("bms003_start");
     sl_status_t status;
 
+    usWe1Vol = (uint16_t)(CH1_DINWE_H2 << 8) + CH1_DINWE_L8;
+    if (g_PrmDb.DacVolOffset != 0)
+    {
+        usWe1Vol += g_PrmDb.DacVolOffset;
+    }
+
     // 唤醒bms003
     bms003_wakeup();
     bms003_delay_us(10*1000);
@@ -556,7 +562,7 @@ void bms003_int_irq_handler(void)
 void bms003_int_irq_callback(uint8_t intNo, void* ctx)
 {
     // 发送事件
-    event_push(MAIN_LOOP_EVENT_AFE_IRQ);
+    event_push(MAIN_LOOP_EVENT_AFE_IRQ,NULL);
 }
 
 
@@ -705,8 +711,8 @@ void bms003_booting_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x56 默认为0
     ucWriteBuffer[ucBufferIndex++] = 0x0;// addr:0x57 参比电极以及辅助电极使能
     ucWriteBuffer[ucBufferIndex++] = 0x1;// addr:0x58 工作电极的偏置电压由第一个DAC生成使能
-    ucWriteBuffer[ucBufferIndex++] = CH1_DINWE_L8;// addr:0x59 设置偏置电压[0:7]
-    ucWriteBuffer[ucBufferIndex++] = CH1_DINWE_H2;// addr:0x5A 设置偏置电压[8:9]
+    ucWriteBuffer[ucBufferIndex++] = usWe1Vol & 0xFF;// addr:0x59 设置偏置电压[0:7]
+    ucWriteBuffer[ucBufferIndex++] = (usWe1Vol >> 8) & 0x3;// addr:0x5A 设置偏置电压[8:9]
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5B 参比电极的偏置电压由第二个DAC生成使能[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5C 配置CE[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5D 配置CE[8:9]
@@ -769,8 +775,8 @@ void bms003_wakeup_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //56默认为0
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //57参比电极以及辅助电极使能
     ucWriteBuffer[ucBufferIndex++] = 0x01;                      //58工作电极的偏置电压由第一个DAC生成使能	
-    ucWriteBuffer[ucBufferIndex++] = CH1_DINWE_L8;              //59设置偏置电压[0:7]
-    ucWriteBuffer[ucBufferIndex++] = CH1_DINWE_H2;              //5A设置偏置电压[8:9]
+    ucWriteBuffer[ucBufferIndex++] = usWe1Vol&0xFF;             //59设置偏置电压[0:7]
+    ucWriteBuffer[ucBufferIndex++] = (usWe1Vol >> 8) & 0x3;     //5A设置偏置电压[8:9]
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5B参比电极的偏置电压由第二个DAC生成使能[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5C配置CE[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5C配置CE[8:9]

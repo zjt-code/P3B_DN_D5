@@ -99,7 +99,14 @@ void cgms_prm_db_power_on_init(void)
     // 读取参数
     cgms_prm_flash_read(0, (uint8_t*)&g_PrmDb, sizeof(g_PrmDb));
 
-    memset(g_ucSn, 0, sizeof(g_ucSn));
+    // 如果CRC错误,则将数据设为默认值
+    if (0x00 != do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb)))
+    {
+        g_PrmDb.AdcB = 0;
+        g_PrmDb.AdcK = 1000;
+        g_PrmDb.DacVolOffset = 0;
+    }
+
     cgms_prm_get_sn(g_ucSn);
 }
 

@@ -32,6 +32,7 @@
 #include "cgms_prm.h"
 #include "btl_interface.h"
 #include <elog.h>
+#include "app_glucose_meas.h"
 #include "cgms_debug_db.h"
 /* Private variables ---------------------------------------------------------*/
 #define NRF_BLE_CGMS_PLUS_INFINTE                     0x07FE
@@ -144,6 +145,7 @@ uint8_t ble_socp_encode(const ble_socp_rsp_t* pSocpRsp, uint8_t* pData)
             (pSocpRsp->ucOpCode != SOCP_READ_CGM_COMMUNICATION_INTERVAL_RESPONSE)
             && (pSocpRsp->ucOpCode != SOCP_READ_GLUCOSE_CALIBRATION_VALUE_RESPONSE)
             && (pSocpRsp->ucOpCode != SOCP_READ_PRM_RESPONSE)
+            && (pSocpRsp->ucOpCode!= SOCP_READ_AD_CALI_DATA)
             )
         {
             // 则直接在后面添加回应操作码以及回应结果码
@@ -213,30 +215,30 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
 *                           陈苏阳@2024-02-20
 * Function Name  :  cgms_socp_stop_session_event_callback
 * Description    :  停止测量事件回调
-* Input          :  void
+* Input          :  uint32_t uiArg
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_stop_session_event_callback(void)
+void cgms_socp_stop_session_event_callback(uint32_t uiArg)
 {
+    // 停止CGM
+    app_glucose_meas_stop_session_handler();
     app_glucose_meas_stop();
     cmgs_db_force_write_flash();
-    // 设置电极两端电压
-    //cem102_set_we1_dac(0);
 }
 
 /*******************************************************************************
 *                           陈苏阳@2024-02-22
 * Function Name  :  cgms_socp_start_session_event_callback
 * Description    :  开始测量事件回调
-* Input          :  void
+* Input          :  uint32_t uiArg
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_start_session_event_callback(void)
+void cgms_socp_start_session_event_callback(uint32_t uiArg)
 {
     // 血糖测量开始
-    app_glucose_meas_start();
+    app_glucose_meas_start(uiArg);
 
     // 清空历史数据
     cgms_db_reset();
@@ -253,11 +255,11 @@ void cgms_socp_start_session_event_callback(void)
 *                           陈苏阳@2024-02-22
 * Function Name  :  cgms_socp_write_cgm_communication_interval_event_callback
 * Description    :  写CGM通讯间隔事件回调
-* Input          :  void
+* Input          :  uint32_t uiArg
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_write_cgm_communication_interval_event_callback(void)
+void cgms_socp_write_cgm_communication_interval_event_callback(uint32_t uiArg)
 {
 
 }
@@ -289,55 +291,19 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     // 根据命令类型来做相应处理
     switch (SocpRequest.ucOpCode)
     {
-        // 如果是写入CGM通讯间隔命令
-    case SOCP_WRITE_CGM_COMMUNICATION_INTERVAL:
-        if (SocpRequest.ucDataLen > 3)
-        {
-            RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
-        }
-        else
-        {
-            RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-            /*
-                        // 如果写入间隔为0xFF
-                        if (p_cgms->comm_interval == 0xFF)
-                        {
-                            // 改回1
-                            p_cgms->comm_interval = 1;
-                        }
-                        // 如果当前CGM已经启动
-                        if (p_cgms->is_session_started)
-                        {
-                            //softStop(SENSOR_MANUAL_STOP);
-                        }
-                        // 如果当前要设置的通讯间隔不为0
-                        if (p_cgms->comm_interval != 0)
-                        {
-                            // todo:待重构后实现
-                            //app_env_cs.glucoseCommInterval = p_cgms->comm_interval;
-                        }
-                        */
-        }
-        break;
-        // 如果是读取CGM通讯间隔命令
-    case SOCP_READ_CGM_COMMUNICATION_INTERVAL:
-        RspRequest.ucRspCode = SOCP_READ_CGM_COMMUNICATION_INTERVAL_RESPONSE;
-        // todo:待重构后实现
-        RspRequest.ucSizeVal++;
-        break;
-        // 如果是开始CGM命令
+    // 如果是开始CGM命令
     case SOCP_START_THE_SESSION:
     {
-        if (app_global_get_app_state()->is_session_started)
+        if (app_global_is_session_runing())
         {
-            // CRC错误
+            // 状态错误
             RspRequest.ucRspCode = SOCP_RSP_PROCEDURE_NOT_COMPLETED;
         }
         else
         {
             log_i("!!SOCP_START_THE_SESSION   OK!!");
             RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-            event_push(MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT);
+            event_push(MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT, APP_GLUCOSE_MEAS_TYPE_USER_MEAS);
         }
         break;
     }
@@ -417,7 +383,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
             {
                 socp_send(BleEventInfo, RspRequest);
                 RspRequest.ucSizeVal = 0;
-        }
+            }
         }
         cgms_debug_clear_all_kv();
 
@@ -428,7 +394,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     case SOCP_STOP_THE_SESSION:
     {
         RspRequest.ucOpCode = SOCP_RSP_SUCCESS;
-        event_push(MAIN_LOOP_EVENT_SOCP_STOP_SESSION_EVENT);
+        event_push(MAIN_LOOP_EVENT_SOCP_STOP_SESSION_EVENT, NULL);
         break;
     }
     case SOCP_WRITE_GLUCOSE_CALIBRATION_VALUE: //write calibration
@@ -451,9 +417,34 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
             }
         }
         break;
-    case SOCP_READ_GLUCOSE_CALIBRATION_VALUE:
-
+    // 开始ADC校准
+    case SOCP_START_AD_CALI:
+    {
+        if (app_global_is_session_runing())
+        {
+            // 状态错误
+            RspRequest.ucRspCode = SOCP_RSP_PROCEDURE_NOT_COMPLETED;
+        }
+        else
+        {
+            log_i("!!SOCP_START_AD_CALI   OK!!");
+            RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
+            event_push(MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT, APP_GLUCOSE_MEAS_TYPE_FACTORY_MEAS);
+        }
         break;
+    }
+    // 读取ADC校准时的数据
+    case SOCP_READ_AD_CALI_DATA:
+    {
+        uint32_t uiMeasElectricCurrent = 0;
+        app_glucose_meas_get_factory_meas_electric_current(&uiMeasElectricCurrent);
+        log_i("read adc cali data:%d", uiMeasElectricCurrent);
+        memcpy(&(RspRequest.ucRespVal[0]), &uiMeasElectricCurrent, 4);
+        RspRequest.ucSizeVal = 4;
+        RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
+        calDataFlag = 0;
+        break;
+    }
     case SOCP_WRITE_PRM://add by woo set parameters 0x61
         // 如果是写入参数命令
         if (SocpRequest.ucDataLen > 16)
@@ -485,6 +476,27 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 
                 g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
             }
+            else if (PrmNo == 0x05)
+            {
+                RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
+                memcpy(&g_PrmDb.DacVolOffset, &(SocpRequest.pData[index++]), 2);
+                log_i("write dac vol offset:%d", g_PrmDb.DacVolOffset);
+                g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
+            }
+            else if (PrmNo == 0x06)
+            {
+                RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
+                memcpy(&g_PrmDb.AdcK, &(SocpRequest.pData[index++]), 2);
+                log_i("write adc k:%d", g_PrmDb.AdcK);
+                g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
+            }
+            else if (PrmNo == 0x07)
+            {
+                RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
+                memcpy(&g_PrmDb.AdcB, &(SocpRequest.pData[index++]), 2);
+                log_i("write adc b:%d", g_PrmDb.AdcB);
+                g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
+            }
             else if (PrmNo == 0xFA)// 写入启动时间
             {
                 ble_cgms_socp_write_start_time_datapacket_t SetStartTimeDatapcket;
@@ -493,47 +505,6 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
                 RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
 
                 cgms_update_sst_and_time_zone(SetStartTimeDatapcket.usYear, SetStartTimeDatapcket.ucMonth, SetStartTimeDatapcket.ucDay, SetStartTimeDatapcket.ucHour, SetStartTimeDatapcket.ucMinute, SetStartTimeDatapcket.ucSecond, SetStartTimeDatapcket.ucTimeZone, SetStartTimeDatapcket.ucDataSaveingTime);
-            }
-            else if (PrmNo == 0xFB)//write debug variable ������������õ�ͨ��Э��
-            {
-                RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-
-                app_glucose_meas_set_glucose_meas_interval(*(SocpRequest.pData + index)); //change measure interval
-                index += 1;
-                simMax = *(SocpRequest.pData + index); //��what is this
-                index += 1;
-                simMin = *(SocpRequest.pData + index);
-                index += 1;
-                simDelta = *(SocpRequest.pData + index);
-                index += 1;
-
-            }
-            else if (PrmNo == 0xFC)//cmd = 0x 61 FC XX XX CRC
-            {
-                RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-                uint16_t usBitCmd = uint16_decode(SocpRequest.pData + index);
-                if (usBitCmd & 0x0001)
-                {
-                    //cem102_set_we1_dac(ANALOG_ELECTRODE_POLARIZATION_VOL_LOW);
-                }
-                else
-                {
-                    //cem102_set_we1_dac(ANALOG_ELECTRODE_POLARIZATION_VOL_HIGH);
-                }	// high volts //不必等待极化可以直接设置高低电压
-
-                if (usBitCmd & 0x0004)
-                {
-
-                }
-                else
-                {
-
-
-                }//VPER_SHDN	 shut down //测试软件中的“关闭探头”
-            }
-            else if (PrmNo == 0xFD)//cmd = 0x 61 FD 5F A0
-            {
-                RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
             }
             else if (PrmNo == 0xFE)// 固化参数
             {

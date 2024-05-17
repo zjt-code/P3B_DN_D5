@@ -45,7 +45,7 @@ void ble_update_connect_param_timer_callback(sl_sleeptimer_timer_handle_t *handl
 {
     log_d("ble_update_connect_param_timer_callback");
     // 发送事件
-    event_push(MAIN_LOOP_EVENT_BLE_UPDATE_CONNECT_PARAMETERS);
+    event_push(MAIN_LOOP_EVENT_BLE_UPDATE_CONNECT_PARAMETERS,NULL);
 }
 
 
@@ -78,11 +78,11 @@ bool ble_update_connect_param_is_pass(uint16_t usConnectionHandle)
 *                           陈苏阳@2023-10-25
 * Function Name  :  ble_update_connect_param_handle
 * Description    :  更新连接参数
-* Input          :  None
+* Input          :  uint32_t uiArg
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void ble_update_connect_param_handle(void)
+void ble_update_connect_param_handle(uint32_t uiArg)
 {
     // 如果单签已经准备OTA,则放弃连接参数变更
     if (sl_bt_in_place_ota_dfu_is_boot_to_dfu())

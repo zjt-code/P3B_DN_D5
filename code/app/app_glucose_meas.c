@@ -36,6 +36,7 @@
 #include "em_wdog.h"
 /* Private variables ---------------------------------------------------------*/
 
+volatile static app_glucose_meas_type_t g_AppGlucoseMeasType = APP_GLUCOSE_MEAS_TYPE_USER_MEAS;  // 血糖测量类型
 volatile static uint8_t g_ucGlucoseMeasInterval = APP_GLUCOSE_MEAS_MEAS_INTERVAL_MIN;    // 血糖测量间隔(ADC测量间隔,默认30S)
 volatile static uint8_t g_ucGlucoseMeasTimeCnt = 0;                             // 血糖测量与转换定时器时间计数
 volatile static uint16_t g_usGlucoseRecordsCurrentOffset = 0;                   // 当前血糖记录索引(从0开始)
@@ -388,14 +389,11 @@ void app_glucose_meas_glucose_handler(void)
 *                           陈苏阳@2023-05-29
 * Function Name  :  app_glucose_meas_timer_handler
 * Description    :  血糖测量与转换定时处理函数(周期1S一次)
-* Input          :  ke_msg_id_t const msg_id
-* Input          :  void const * param
-* Input          :  ke_task_id_t const dest_id
-* Input          :  ke_task_id_t const src_id
+* Input          :  uint32_t uiArg
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void app_glucose_meas_handler(void)
+void app_glucose_meas_handler(uint32_t uiArg)
 {
     // 获取当前RTC时间
     uint32_t ucNowRtcTime = rtc_get_curr_time();
@@ -409,24 +407,45 @@ void app_glucose_meas_handler(void)
         // 更新RTC时间
     	g_uiListRtcTime = ucNowRtcTime;
 
-        // 测量电量
-        app_glucose_meas_battery_sub_handler();
-
-        // 如果当前记录已满且BLE的传感器状态属于正在采集的状态
-        if (g_usGlucoseRecordsCurrentOffset >= CGMS_DB_MAX_RECORDS && app_global_is_session_runing())
+        // 如果当前测量类型为用户测量
+        if (g_AppGlucoseMeasType == APP_GLUCOSE_MEAS_TYPE_USER_MEAS)
         {
-            log_i("app_glucose_meas_stop_session_handler");
+            // 测量电量
+            app_glucose_meas_battery_sub_handler();
 
-            // 停止CGM
-            app_glucose_meas_stop_session_handler();
+            // 如果当前记录已满且BLE的传感器状态属于正在采集的状态
+            if (g_usGlucoseRecordsCurrentOffset >= CGMS_DB_MAX_RECORDS && app_global_is_session_runing())
+            {
+                log_i("app_glucose_meas_stop_session_handler");
 
-            // 停止本定时器
-            app_glucose_meas_stop();
+                // 停止CGM
+                app_glucose_meas_stop_session_handler();
+
+                // 停止本定时器
+                app_glucose_meas_stop();
+            }
+
+            log_d("app_global_is_session_runing:%d", app_global_is_session_runing() ? 1 : 0);
+            // 如果当前已经开始了一次血糖测量周期
+            if (app_global_is_session_runing())
+            {
+                // 如果AFE还未开始工作,则启动AFE
+                if (afe_is_working() == false)
+                {
+                    afe_start();
+                }
+                else
+                {
+                    // 测量处理
+                    app_glucose_meas_afe_meas_handler();
+                }
+
+                // 血糖处理
+                app_glucose_meas_glucose_handler();
+            }
         }
-
-        log_d("app_global_is_session_runing:%d", app_global_is_session_runing()?1:0);
-        // 如果当前已经开始了一次血糖测量周期
-        if (app_global_is_session_runing())
+        // 如果是工厂测量
+        else
         {
             // 如果AFE还未开始工作,则启动AFE
             if (afe_is_working() == false)
@@ -438,13 +457,28 @@ void app_glucose_meas_handler(void)
                 // 测量处理
                 app_glucose_meas_afe_meas_handler();
             }
-
-            // 血糖处理
-            app_glucose_meas_glucose_handler();
         }
     }
 }
-
+/*******************************************************************************
+*                           陈苏阳@2024-05-09
+* Function Name  :  app_glucose_meas_get_factory_meas_electric_current
+* Description    :  获取工厂测量电流
+* Input          :  uint32_t * pMeasElectricCurrent
+* Output         :  None
+* Return         :  bool
+*******************************************************************************/
+bool app_glucose_meas_get_factory_meas_electric_current(uint32_t* pMeasElectricCurrent)
+{
+    if (pMeasElectricCurrent)
+    {
+        app_glucose_avg_electric_current_get_electric_current_array();
+        uint32_t uiElectricCurrent = (uint32_t)(g_dAvgElectricCurrentCalTempArray[17] * 1000.0);
+        *pMeasElectricCurrent = uiElectricCurrent;
+        return true;
+    }
+    return false;
+}
 /*******************************************************************************
 *                           陈苏阳@2023-11-15
 * Function Name  :  app_glucose_meas_timer_callback
@@ -457,7 +491,7 @@ void app_glucose_meas_handler(void)
 void app_glucose_meas_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 {
     log_d("app_glucose_meas_timer_callback");
-    event_push(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_1S_TIMER);
+    event_push(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_1S_TIMER, NULL);
 }
 
 
@@ -465,12 +499,13 @@ void app_glucose_meas_timer_callback(sl_sleeptimer_timer_handle_t* handle, void*
 *                           陈苏阳@2022-12-22
 * Function Name  :  app_glucose_meas_start
 * Description    :  血糖测量开始
-* Input          :  void
+* Input          :  app_glucose_meas_type_t GlucoseMeasType
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void app_glucose_meas_start(void)
+void app_glucose_meas_start(app_glucose_meas_type_t GlucoseMeasType)
 {
+    g_AppGlucoseMeasType = GlucoseMeasType;
     log_d("app glucose meas start");
     // 启动一个1S的循环定时器
     sl_status_t status = sl_sleeptimer_start_periodic_timer(&g_AppGlucoseMeasTimer, sl_sleeptimer_ms_to_tick(1000), app_glucose_meas_timer_callback, (void*)NULL, 0, 0);
@@ -478,6 +513,8 @@ void app_glucose_meas_start(void)
     {
         log_e("sl_sleeptimer_start_timer failed");
     }
+    // 初始化平均电流计算
+    app_glucose_avg_electric_current_cal_init();
 }
 
 
@@ -508,7 +545,7 @@ void app_glucose_meas_stop(void)
 void app_glucose_meas_record_send_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 {
     log_d("app_glucose_meas_record_send_timer_callback");
-    event_push(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_RECORD_SEND_TIMER);
+    event_push(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_RECORD_SEND_TIMER, NULL);
 }
 
 /*******************************************************************************
@@ -553,11 +590,11 @@ void app_glucose_meas_record_send_stop(void)
 *                           陈苏阳@2022-12-15
 * Function Name  :  app_glucose_meas_record_send_handelr
 * Description    :  发送记录定时处理函数
-* Input          :  None
+* Input          :  uint32_t uiArg
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void app_glucose_meas_record_send_handelr(void)
+void app_glucose_meas_record_send_handelr(uint32_t uiArg)
 {
     bool bSendSuccessFlag = true;
     log_i("app_glucose_meas_record_send_handler:%d", app_global_get_app_state()->bRecordSendFlag);
@@ -653,11 +690,11 @@ void app_glucose_meas_record_send_handelr(void)
 *                           陈苏阳@2023-11-15
 * Function Name  :  app_battery_meas_handelr
 * Description    :  应用层电量测量定时处理
-* Input          :  void
+* Input          :  uint32_t uiArg
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void app_battery_meas_handelr(void)
+void app_battery_meas_handelr(uint32_t uiArg)
 {
     sl_status_t status;
     // 如果当前已经开始CGM,则关闭本定时器,由CGM定时函数来做电量检测
@@ -703,7 +740,7 @@ void app_battery_meas_handelr(void)
 void app_battery_meas_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 {
     log_d("app_battery_meas_timer_callback");
-    event_push(MAIN_LOOP_EVENT_APP_BATTERY_MEAS_TIMER);
+    event_push(MAIN_LOOP_EVENT_APP_BATTERY_MEAS_TIMER, NULL);
 }
 
 

@@ -27,7 +27,7 @@
 
 /* Private function prototypes -----------------------------------------------*/
 bool ble_update_connect_param_is_pass(uint16_t usConnectionHandle);
-void ble_update_connect_param_handle(void);
+void ble_update_connect_param_handle(uint32_t uiArg);
 void ble_update_connect_param_stop(void);
 void ble_update_connect_param_start(void);
 #endif /* __BLE_UPDATE_CONNECT_PARAM_H */

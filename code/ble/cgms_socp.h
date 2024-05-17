@@ -173,6 +173,7 @@ typedef enum
     SOCP_WRITE_PRM = 0x61,                                             // 写入参数
     SOCP_READ_PRM = 0x62,                                              // 读取参数
     SOCP_START_AD_CALI = 0x63,                                         // 校准ADC
+    SOCP_READ_AD_CALI_DATA = 0x64,                                     // 读取校准ADC时的数据
     SOCP_TEST_API = 0x67,   // 0x67,0x01,0x03,0x38,0x9b
     SOCP_WRITE_DFU_SECU = 0x68,
     SOCP_DFU_AUTH = 0x69,
@@ -280,9 +281,9 @@ typedef enum
 /* Private function prototypes -----------------------------------------------*/
 void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t* pData);
 
-void cgms_socp_stop_session_event_callback(void);
-void cgms_socp_start_session_event_callback(void);
-void cgms_socp_write_cgm_communication_interval_event_callback(void);
+void cgms_socp_stop_session_event_callback(uint32_t uiArg);
+void cgms_socp_start_session_event_callback(uint32_t uiArg);
+void cgms_socp_write_cgm_communication_interval_event_callback(uint32_t uiArg);
 void ble_socp_notify_enable(void);
 void ble_socp_notify_disable(void);
 bool ble_socp_notify_is_enable(void);
