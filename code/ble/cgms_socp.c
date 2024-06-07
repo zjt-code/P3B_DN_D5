@@ -34,6 +34,7 @@
 #include <elog.h>
 #include "app_glucose_meas.h"
 #include "cgms_debug_db.h"
+#include "simplegluco.h"
 /* Private variables ---------------------------------------------------------*/
 #define NRF_BLE_CGMS_PLUS_INFINTE                     0x07FE
 #define NRF_BLE_CGMS_MINUS_INFINTE                    0x0802
@@ -317,7 +318,8 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
         // 更新CGM状态char的内容
         att_update_cgm_status_char_data();
         //设置传感器Code
-        //sensorK = ((float)usSensorCode / 1000);
+        sensorK = (float)usSensorCode / 100.0f;
+        cur_get_cur_error_value(sensorK);
         log_i("sensorcode update:%d", usSensorCode);
 
         // 如果Code为0,则说明Code无效
@@ -405,9 +407,9 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
             if (usLen == 13)
             {
                 uint16_t concentration = uint16_decode(SocpRequest.pData);
-                //usBfFlg = 1;
-                //sfCurrBg = (float)concentration / 100.0f;
-                //log_i("sfCurrBg:%f\r\n", sfCurrBg);
+                usBfFlg = 1;
+                sfCurrBg = (float)concentration / 100.0f;
+                log_i("sfCurrBg:%f\r\n", sfCurrBg);
                 RspRequest.ucOpCode = SOCP_RSP_SUCCESS;  //response is 1C 04(opcode) 01(response) EC 6F (CRC)
 
             }

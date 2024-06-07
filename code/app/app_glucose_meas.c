@@ -34,6 +34,7 @@
 #include <elog.h>
 #include "gatt_db.h"
 #include "em_wdog.h"
+#include "simplegluco.h"
 /* Private variables ---------------------------------------------------------*/
 
 volatile static app_glucose_meas_type_t g_AppGlucoseMeasType = APP_GLUCOSE_MEAS_TYPE_USER_MEAS;  // 血糖测量类型
@@ -41,7 +42,7 @@ volatile static uint8_t g_ucGlucoseMeasInterval = APP_GLUCOSE_MEAS_MEAS_INTERVAL
 volatile static uint8_t g_ucGlucoseMeasTimeCnt = 0;                             // 血糖测量与转换定时器时间计数
 volatile static uint16_t g_usGlucoseRecordsCurrentOffset = 0;                   // 当前血糖记录索引(从0开始)
 volatile static uint16_t g_usGlucoseElectricCurrent = 0;                        // 测量计算出来的血糖浓度质量(在这里实际用于存储电流值,单位:0.01nA)
-volatile static double g_fGlucoseConcentration = 0.0f;                           // 测量计算出来的实时血糖浓度(单位:mmol/L)
+volatile static float g_fGlucoseConcentration = 0.0f;                           // 测量计算出来的实时血糖浓度(单位:mmol/L)
 volatile static uint8_t g_ucAvgElectricCurrentCalTempArrayCnt = 0;              // 当前用于计算平均电流的临时数据数量
 volatile static double g_dAvgElectricCurrentCalTempArray[APP_GLUCOSE_MEAS_AVG_ELECTRIC_CURRENT_CAL_TEMP_ARRAY_SIZE];                   // 用于计算平均电流的临时数据数组
 static uint16_t g_usAppBatteryTimeDiv = 0;	                            // 电量检测定时任务分频计数
@@ -232,7 +233,10 @@ static void app_glucose_handle(void)
     simpleGlucoCalc(&g_fGlucoseConcentration);
     */
     g_usGlucoseElectricCurrent = app_glucose_avg_electric_current_cal_get() * 100.0;
-    g_fGlucoseConcentration = app_glucose_avg_electric_current_cal_get();
+
+    sfCurrI0 = (float)g_usGlucoseElectricCurrent;
+    usSampleCnt  = g_usGlucoseRecordsCurrentOffset;
+    simpleGlucoCalc(&g_fGlucoseConcentration, usSampleCnt);
 
     cgms_meas_t rec;
     memset(&rec, 0, sizeof(cgms_meas_t));
@@ -758,6 +762,9 @@ void app_glucose_meas_init(void)
     event_add(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_1S_TIMER, app_glucose_meas_handler);
     event_add(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_RECORD_SEND_TIMER, app_glucose_meas_record_send_handelr);
     event_add(MAIN_LOOP_EVENT_APP_BATTERY_MEAS_TIMER, app_battery_meas_handelr);
+
+    // 初始化血糖算法
+    simpleGlucoInit();
 
     // 启动一个500ms的单次定时器
     sl_status_t status = sl_sleeptimer_start_timer(&g_AppBatteryMeasTimer, sl_sleeptimer_ms_to_tick(500), app_battery_meas_timer_callback, (void*)NULL, 0, 0);
