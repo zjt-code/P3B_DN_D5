@@ -221,16 +221,16 @@ static void app_glucose_handle(void)
         log_d("index:%d,%f", i, pAvgElectricCurrentCalTempArray[i]);
     }
 
-    g_usGlucoseElectricCurrent = app_glucose_avg_electric_current_cal_get() * 100.0;
 
-    sfCurrI0 = (float)g_usGlucoseElectricCurrent;
+    sfCurrI0 = app_glucose_avg_electric_current_cal_get();
     usSampleCnt  = g_usGlucoseRecordsCurrentOffset;
     simpleGlucoCalc(&g_fGlucoseConcentration, usSampleCnt);
-
+    log_i("simpleGlucoCalc(%f,%d)  sfCurrI0:%f", g_fGlucoseConcentration, usSampleCnt, sfCurrI0);
     cgms_meas_t rec;
     memset(&rec, 0, sizeof(cgms_meas_t));
-    rec.usGlucose = (uint16_t)(g_fGlucoseConcentration * 10.0);
-    rec.usCurrent = g_usGlucoseElectricCurrent;
+    rec.usGlucose = (uint16_t)(g_fGlucoseConcentration * 100.0);
+    rec.usCurrent = (uint16_t)(sfCurrI0 * 100.0);
+    g_usGlucoseElectricCurrent = rec.usCurrent;
     rec.usOffset = g_usGlucoseRecordsCurrentOffset;
     rec.usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_REAL;
 

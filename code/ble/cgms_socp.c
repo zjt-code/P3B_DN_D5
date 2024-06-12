@@ -318,8 +318,9 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
         // 更新CGM状态char的内容
         att_update_cgm_status_char_data();
         //设置传感器Code
-        sensorK = (float)usSensorCode / 100.0f;
+        sensorK = (float)usSensorCode / 1000.0f;
         cur_get_cur_error_value(sensorK);
+        log_i("cur_get_cur_error_value(%f)", sensorK);
         log_i("sensorcode update:%d", usSensorCode);
 
         // 如果Code为0,则说明Code无效
