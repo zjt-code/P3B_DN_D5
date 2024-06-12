@@ -221,17 +221,6 @@ static void app_glucose_handle(void)
         log_d("index:%d,%f", i, pAvgElectricCurrentCalTempArray[i]);
     }
 
-
-    /*
-    // 提供下标
-    usSampleCnt = g_usGlucoseRecordsCurrentOffset;
-
-    sfCurrI0 = cur_filter(pAvgElectricCurrentCalTempArray, g_usGlucoseRecordsCurrentOffset);
-    g_usGlucoseQuality = (uint16_t)(sfCurrI0);  //0.01nA
-
-    // 计算并输出血糖结果
-    simpleGlucoCalc(&g_fGlucoseConcentration);
-    */
     g_usGlucoseElectricCurrent = app_glucose_avg_electric_current_cal_get() * 100.0;
 
     sfCurrI0 = (float)g_usGlucoseElectricCurrent;
