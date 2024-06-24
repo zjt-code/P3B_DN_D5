@@ -134,7 +134,27 @@ typedef enum
     RET_CODE_FAIL = 0x01,
 }ret_code_t;
 
-// CGM测量传感器状态通告
+#if USE_GN_2_PROTOCOL
+
+// CGM测量传感器状态
+typedef enum
+{
+    CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING = 0x00,                         // CGM运行中
+    CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED = 0x01,                         // CGM结束
+    CGM_MEASUREMENT_SENSOR_STATUS_SESSION_COMMAND_STOPPED = 0x02,                 // 由于APP发送停止命令导致的停止
+    CGM_MEASUREMENT_SENSOR_STATUS_SESSION_HARDFAULT_STOPPED = 0x04,               // MCU硬故障复位
+    CGM_MEASUREMENT_SENSOR_STATUS_SESSION_M3RESET_STOPPED = 0x05,                 // 由于MCU复位导致的停止
+    CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED = 0x08,                         // CGM到期停止
+    CGM_MEASUREMENT_SENSOR_STATUS_SESSION_SENSOR_ABNORMAL = 0x22,                 // 传感器异常,等待恢复(预设3小时)
+    CGM_MEASUREMENT_SENSOR_STATUS_SESSION_SENSOR_ERROR = 0x23,                    // 传感器错误,请更换
+    CGM_MEASUREMENT_SENSOR_STATUS_SESSION_INEFFECTIVE_IMPLANTATION = 0x31,        // 无效植入,请更换传感器(数据停止采样,蓝牙广播继续)
+    CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP = 0x33,                         // 极化中
+    CGM_MEASUREMENT_SENSOR_STATUS_UNEXPECTED_STOP1 = 0x0E,                        // 意外停止(情况1)
+    CGM_MEASUREMENT_SENSOR_STATUS_UNEXPECTED_STOP2 = 0x0F                         // 意外停止(情况2)
+}cgm_measurement_sensor_state_t;
+
+#else
+// CGM测量传感器状态
 typedef enum
 {
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING = 0x00,                         // CGM运行中
@@ -142,7 +162,7 @@ typedef enum
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_M3RESET_STOPPED = 0x01,                 // 由于MCU复位导致的停止
     CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED = 0x80,                         // CGM到期停止
 }cgm_measurement_sensor_state_t;
-
+#endif
 
 // 血糖质量
 typedef enum 

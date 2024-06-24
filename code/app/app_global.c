@@ -297,7 +297,6 @@ void app_init(void)
     event_add(MAIN_LOOP_EVENT_BLE_UPDATE_CONNECT_PARAMETERS, ble_update_connect_param_handle);
     event_add(MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT, cgms_socp_start_session_event_callback);
     event_add(MAIN_LOOP_EVENT_SOCP_STOP_SESSION_EVENT, cgms_socp_stop_session_event_callback);
-    event_add(MAIN_LOOP_EVENT_SOCP_WRITE_CGM_COMMUNICATION_INTERVAL_EVENT, cgms_socp_write_cgm_communication_interval_event_callback);
 
     // 初始化血糖算法
     //simpleGlucoInit();

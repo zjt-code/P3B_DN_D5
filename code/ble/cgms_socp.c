@@ -39,6 +39,9 @@
 #define NRF_BLE_CGMS_PLUS_INFINTE                     0x07FE
 #define NRF_BLE_CGMS_MINUS_INFINTE                    0x0802
 static bool g_bBleSocpNotifyIsEnableFlag = false;						// BLE SOCP通知使能标志位
+#if USE_GN_2_PROTOCOL
+staticboolg_bProduction=false;
+#endif
 //extern float sfCurrBg;//add by woo
 uint8_t	caliTag;
 uint8_t calData[15];
@@ -184,6 +187,22 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
     // 发送数据包
     elog_hexdump("socp_send", 8, EncodedRespDatapacketBuffer, ucLen);
 
+#if USE_GN_2_PROTOCOL
+    uint8_tucCipher[16];
+    //如果当前处理的是生产命令,则跳过加密,如果是正常命令,则走加密流程发包
+    if(g_bProduction==false)
+    {
+    mbedtls_aes_pkcspadding(EncodedRespDatapacketBuffer,16);
+    cgms_aes128_encrpty(EncodedRespDatapacketBuffer,ucCipher);
+    memcpy(EncodedRespDatapacketBuffer,ucCipher,16);
+
+    //如果加密就是需要凑足16个字节
+    ucLen=16;
+    }
+    //发送数据包
+    elog_hexdump("socp_send(encrpty)",8,EncodedRespDatapacketBuffer,ucLen);
+#endif
+
 	if ((ble_socp_notify_is_enable()) && app_have_a_active_ble_connect())
 	{
 		sl_status_t sc;
@@ -256,15 +275,566 @@ void cgms_socp_start_session_event_callback(uint32_t uiArg)
 *                           陈苏阳@2024-02-22
 * Function Name  :  cgms_socp_write_cgm_communication_interval_event_callback
 * Description    :  写CGM通讯间隔事件回调
-* Input          :  uint32_t uiArg
-* Output         :  None
+* Input          :  ble_event_info_t BleEventInfo,
+* Input          :  ble_socp_datapacket_t SocpRequest
+* Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_write_cgm_communication_interval_event_callback(uint32_t uiArg)
+void cgms_socp_write_cgm_communication_interval_event_callback(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
+    // 给回应包添加默认的回应码
+    pRspRequest->ucRspCode = SOCP_GENERAL_RSP_SUCCESS;
 
+    // 如果数据长度不正确
+    if (SocpRequest.ucDataLen > 3)
+    {
+        // 返回无效命令
+        pRspRequest->ucRspCode = SOCP_GENERAL_RSP_INVALID_OPERAND;
+    }
 }
 
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-24
+* Function Name  :  cgms_socp_write_glucose_calibration_value
+* Description    :  写入血糖校准值
+* Input          :  ble_event_info_t BleEventInfo,
+* Input          :  ble_socp_datapacket_t SocpRequest
+* Output         :  ble_socp_rsp_t * pRspRequest
+* Return         :  void
+*******************************************************************************/
+void cgms_socp_write_glucose_calibration_value(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+{
+#if USE_GN_2_PROTOCOL
+    // 判断长度是否正确
+    if (usLen < 7)
+    {
+        // 命令长度错误
+        pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_COMMAND_LEN_ERR;
+        break;
+    }
+
+    // 效验命令的CRC
+    if (do_crc(pData, sizeof(ble_cgms_socp_write_glucose_calibration_datapacket_t)) != 0)
+    {
+        // CRC错误
+        pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_CRC_ERR;
+        break;
+    }
+
+    // 填充结构体
+    ble_cgms_socp_write_glucose_calibration_datapacket_t SocpWriteGlucoseCalibrationDatapacket;
+    memcpy(&SocpWriteGlucoseCalibrationDatapacket, pData, sizeof(SocpWriteGlucoseCalibrationDatapacket));
+
+    // 判断当前血糖趋势是否稳定
+    if ((app_global_get_app_state()->ucCgmTrend != CGM_TREND_DOWN_DOWN) && (app_global_get_app_state()->ucCgmTrend != CGM_TREND_STABLE) && (app_global_get_app_state()->ucCgmTrend != CGM_TREND_SLOW_UP))
+    {
+        pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_GLUCOSE_FLUCTUATE;
+        break;
+    }
+
+    // 判断当前运行状态是否为正常
+    if (att_get_cgm_status()->ucRunStatus != CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING)
+    {
+        pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_SENSOR_ABNORMAL;
+        break;
+    }
+
+    // 判断校准值是否在合理区间
+    if ((SocpWriteGlucoseCalibrationDatapacket.usCalibration >= 222) || (SocpWriteGlucoseCalibrationDatapacket.usCalibration <= 22))
+    {
+        pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_RANGE_OUT;
+        break;
+    }
+    pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_SUCCESS;
+
+#else
+    calDataFlag = 1;
+    uint16_t concentration = uint16_decode(SocpRequest.pData);
+    usBfFlg = 1;
+    sfCurrBg = (float)concentration / 100.0f;
+    log_i("sfCurrBg:%f\r\n", sfCurrBg);
+    pRspRequest->ucOpCode = SOCP_RSP_SUCCESS;  //response is 1C 04(opcode) 01(response) EC 6F (CRC)
+#endif
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-24
+* Function Name  :  cgms_socp_start_the_session
+* Description    :  开始新的CGM测量周期
+* Input          :  ble_event_info_t BleEventInfo,
+* Input          :  ble_socp_datapacket_t SocpRequest
+* Output         :  ble_socp_rsp_t * pRspRequest
+* Return         :  void
+*******************************************************************************/
+void cgms_socp_start_the_session(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+{
+#if USE_GN_2_PROTOCOL
+    // 效验命令的CRC
+    if (do_crc(pData, 15) != 0)
+    {
+        // CRC错误
+        pRspRequest->ucRspCode = SOCP_START_THE_SESSION_RSP_CODE_CRC_ERR;
+        break;
+    }
+
+    // 填充结构体
+    ble_cgms_socp_start_the_session_datapacket_t SocpStartTheSessionDatapacket;
+    memcpy(&SocpStartTheSessionDatapacket, pData, sizeof(SocpStartTheSessionDatapacket));
+
+    // 如果当前CGM已经运行或者处于极化中
+    if ((att_get_cgm_status()->ucRunStatus == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING) || (att_get_cgm_status()->ucRunStatus == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP))
+    {
+        // 返回对应错误码
+        pRspRequest->ucRspCode = SOCP_START_THE_SESSION_RSP_CODE_IS_STARTED;
+    }
+    else
+    {
+        // 如果CGM因为APP的停止命令而处于已经停止的状态
+        if (att_get_cgm_status()->ucRunStatus == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_COMMAND_STOPPED)
+        {
+            // 则不能重新启动,返回错误码
+            pRspRequest->ucRspCode = SOCP_START_THE_SESSION_RSP_CODE_IS_STOPED;
+            break;
+        }
+
+        // 如果CGM已到期
+        if (att_get_cgm_status()->ucRunStatus == CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED)
+        {
+            // 则不能重新启动,返回错误码
+            pRspRequest->ucRspCode = SOCP_START_THE_SESSION_RSP_CODE_IS_END;
+            break;
+        }
+
+        // 计算工厂校准码
+        float fTmpSensorK = (float)SocpStartTheSessionDatapacket.usFactoryCode / 1000.0f;
+        log_d("SensorK:%f", fTmpSensorK);
+        // 如果工厂校准码不合法
+        if ((fTmpSensorK < SOCP_SET_SENSOR_CODE_MIN_ERR_VAL) || (fTmpSensorK > SOCP_SET_SENSOR_CODE_MAX_ERR_VAL))
+        {
+            log_w("SensorK err");
+            // 返回错误码
+            pRspRequest->ucRspCode = SOCP_START_THE_SESSION_RSP_CODE_SENSOR_CODE_ERR;
+            break;
+        }
+        else
+        {
+            // 生效工厂校准码
+            // todo: sensorK = fTmpSensorK;
+
+            // 更新CGM Status中的工厂校准码
+            att_get_cgm_status()->usFactoryCode = SocpStartTheSessionDatapacket.usFactoryCode;
+        }
+
+        // 设置返回结果
+        pRspRequest->ucRspCode = SOCP_START_THE_SESSION_RSP_CODE_SUCCESS;
+
+        // 更新feature char中的启动来源(高四位)
+        att_get_feature()->ucStartBy = SocpStartTheSessionDatapacket.ucFrom << 4;
+
+        // 更新start time char中的启动时间
+        att_get_start_time()->uiStartTime = SocpStartTheSessionDatapacket.uiStartTime;
+
+        // 更新start time char中的时区
+        att_get_start_time()->ucTimeZone = SocpStartTheSessionDatapacket.ucTimeZone;
+
+        // 更新CGM Status中的运行状态为极化中
+        app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP;
+        att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->status;
+
+        // 更新Feature char的CRC
+        att_update_feature_char_data_crc();
+
+        // 更新Start Time char的CRC
+        att_update_start_time_char_data_crc();
+
+        // 更新CGM Status char的CRC
+        att_update_cgm_status_char_data_crc();
+
+        // 更新启动时间
+        cgms_update_sst_and_time_zone(SocpStartTheSessionDatapacket.uiStartTime, SocpStartTheSessionDatapacket.ucTimeZone);
+
+        // 更新record_index中的SST
+        cgms_db_record_index_update_sst(g_mSST);
+
+        // 清空历史数据
+        cgms_db_reset();
+
+        log_i("!!SOCP_START_THE_SESSION   OK!!");
+
+        // 开始应用层血糖测量
+        app_glucose_meas_start();
+    }
+
+#else
+    if (app_global_is_session_runing())
+    {
+        // 状态错误
+        pRspRequest->ucRspCode = SOCP_RSP_PROCEDURE_NOT_COMPLETED;
+    }
+    else
+    {
+        log_i("!!SOCP_START_THE_SESSION   OK!!");
+        pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+        event_push(MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT, APP_GLUCOSE_MEAS_TYPE_USER_MEAS);
+    }
+#endif
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-24
+* Function Name  :  cgms_socp_stop_the_session
+* Description    :  停止当前的CGM测量周期
+* Input          :  ble_event_info_t BleEventInfo,
+* Input          :  ble_socp_datapacket_t SocpRequest
+* Output         :  ble_socp_rsp_t * pRspRequest
+* Return         :  void
+*******************************************************************************/
+void cgms_socp_stop_the_session(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+{
+#if USE_GN_2_PROTOCOL
+
+    uint8_t ucIsStopedFlag = 0;
+    // 判断发射器当前是否已经处于停止状态
+    switch (att_get_cgm_status()->ucRunStatus)
+    {
+    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED:							// CGM结束
+    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_COMMAND_STOPPED:					// 由于APP发送停止命令导致的停止
+    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_HARDFAULT_STOPPED:				// MCU硬故障复位
+    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_M3RESET_STOPPED:					// 由于MCU复位导致的停止
+    case CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED:							// CGM到期停止
+    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_SENSOR_ABNORMAL:					// 传感器异常,等待恢复(预设3小时)
+    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_INEFFECTIVE_IMPLANTATION:		// 无效植入,请更换传感器(数据停止采样,蓝牙广播继续)
+    case CGM_MEASUREMENT_SENSOR_STATUS_UNEXPECTED_STOP1:						// 意外停止(情况1)
+    case CGM_MEASUREMENT_SENSOR_STATUS_UNEXPECTED_STOP2:						// 意外停止(情况2)
+    {
+        // 发射器已经处于停止状态
+        ucIsStopedFlag = 1;
+        break;
+    }
+    default:
+    {
+        break;
+    }
+    }
+
+    // 发射器已经处于停止状态
+    if (ucIsStopedFlag)
+    {
+        // 返回错误码
+        pRspRequest->ucRspCode = SOCP_STOP_THE_SESSION_RSP_CODE_IS_STOPED;
+        break;
+    }
+
+    // 清除算法参数 todo:
+    //sfCurrK = 0;
+    //sensorK = sfCurrK;
+
+    // 更新CGM Status中的运行状态为停止状态
+    att_get_cgm_status()->ucRunStatus = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_COMMAND_STOPPED;
+
+    // 更新CGM Status char的CRC
+    att_update_cgm_status_char_data_crc();
+
+    // 停止血糖测量
+    app_glucose_meas_stop();
+
+#else
+    pRspRequest->ucOpCode = SOCP_RSP_SUCCESS;
+    event_push(MAIN_LOOP_EVENT_SOCP_STOP_SESSION_EVENT, NULL);
+#endif
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-24
+* Function Name  :  cgms_socp_read_hard_fault_info
+* Description    :  读取硬错误信息
+* Input          :  ble_event_info_t BleEventInfo,
+* Input          :  ble_socp_datapacket_t SocpRequest
+* Output         :  ble_socp_rsp_t * pRspRequest
+* Return         :  void
+*******************************************************************************/
+void cgms_socp_read_hard_fault_info(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+{
+    log_i("SOCP_READ_HARD_FAULT_INFO");
+    pRspRequest->ucOpCode = SOCP_RSP_SUCCESS;
+    cgms_debug_db_read();
+    pRspRequest->ucSizeVal = 0;
+    for (uint8_t i = 0; i < CGMS_DEBUG_MAX_KV_NUM; i++)
+    {
+        char cKey[12];
+        uint32_t uiData;
+
+        if (debug_get_kv(i, cKey, (uint8_t*)&uiData))
+        {
+            log_i("index:%d key:%s val:0x%xd", i, cKey, uiData);
+            memcpy(&(pRspRequest->ucRespVal[pRspRequest->ucSizeVal]), &uiData, 4);
+            pRspRequest->ucSizeVal += 4;
+        }
+        else
+        {
+            break;
+        }
+
+        if (pRspRequest->ucSizeVal >= 16)
+        {
+            socp_send(BleEventInfo,(*pRspRequest));
+            pRspRequest->ucSizeVal = 0;
+        }
+    }
+    cgms_debug_clear_all_kv();
+
+    socp_send(BleEventInfo, *pRspRequest);
+}
+
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-24
+* Function Name  :  cgms_socp_write_sensor_code
+* Description    :  写入传感器Code
+* Input          :  ble_event_info_t BleEventInfo,
+* Input          :  ble_socp_datapacket_t SocpRequest
+* Output         :  ble_socp_rsp_t * pRspRequest
+* Return         :  void
+*******************************************************************************/
+void cgms_socp_write_sensor_code(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+{
+    uint16_t usSensorCode;
+    usSensorCode = uint16_decode(SocpRequest.pData + 1);
+
+    // 更新CGM Status中的工厂校准码
+    att_get_cgm_status()->usFactoryCode = usSensorCode;
+    // 更新CGM状态char的内容
+    att_update_cgm_status_char_data();
+    //设置传感器Code
+    sensorK = (float)usSensorCode / 1000.0f;
+    cur_get_cur_error_value(sensorK);
+    log_i("cur_get_cur_error_value(%f)", sensorK);
+    log_i("sensorcode update:%d", usSensorCode);
+
+    // 如果Code为0,则说明Code无效
+    if (usSensorCode == 0)
+    {
+        pRspRequest->ucRspCode = SOCP_RSP_INVALID_OPERAND;
+    }
+    else
+    {
+        log_i("sensor code update done");
+        pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+        app_global_get_app_state()->isfs = true;
+        //cur_get_cur_error_value(sensorK);
+
+          // 在CGM status Char中设置code码
+        att_get_cgm_status()->usFactoryCode = usSensorCode;
+        // 更新CGM状态char的内容
+        att_update_cgm_status_char_data();
+    }
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-24
+* Function Name  :  cgms_socp_start_fota
+* Description    :  触发固件升级
+* Input          :  ble_event_info_t BleEventInfo,
+* Input          :  ble_socp_datapacket_t SocpRequest
+* Output         :  ble_socp_rsp_t * pRspRequest
+* Return         :  void
+*******************************************************************************/
+void cgms_socp_start_fota(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+{
+    // 触发进入OTA
+    app_global_ota_start();
+    pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+}
+
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-24
+* Function Name  :  cgms_socp_read_reset_reg
+* Description    :  读取复位原因寄存器
+* Input          :  ble_event_info_t BleEventInfo,
+* Input          :  ble_socp_datapacket_t SocpRequest
+* Output         :  ble_socp_rsp_t * pRspRequest
+* Return         :  void
+*******************************************************************************/
+void cgms_socp_read_reset_reg(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+{
+    extern uint32_t rest_dig_status;
+    extern uint32_t acs_reset_status;
+    memcpy(&(pRspRequest->ucRespVal[0]), &rest_dig_status, 4);
+    memcpy(&(pRspRequest->ucRespVal[4]), &acs_reset_status, 4);
+    pRspRequest->ucSizeVal = 8;
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-24
+* Function Name  :  cgms_socp_start_ad_cali
+* Description    :  校准ADC
+* Input          :  ble_event_info_t BleEventInfo,
+* Input          :  ble_socp_datapacket_t SocpRequest
+* Output         :  ble_socp_rsp_t * pRspRequest
+* Return         :  void
+*******************************************************************************/
+void cgms_socp_start_ad_cali(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+{
+    if (app_global_is_session_runing())
+    {
+        // 状态错误
+        pRspRequest->ucRspCode = SOCP_RSP_PROCEDURE_NOT_COMPLETED;
+    }
+    else
+    {
+        log_i("!!SOCP_START_AD_CALI   OK!!");
+        pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+        event_push(MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT, APP_GLUCOSE_MEAS_TYPE_FACTORY_MEAS);
+    }
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-24
+* Function Name  :  cgms_socp_read_ad_cali_data
+* Description    :  读取校准ADC时的数据
+* Input          :  ble_event_info_t BleEventInfo,
+* Input          :  ble_socp_datapacket_t SocpRequest
+* Output         :  ble_socp_rsp_t * pRspRequest
+* Return         :  void
+*******************************************************************************/
+void cgms_socp_read_ad_cali_data(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+{
+    uint32_t uiMeasElectricCurrent = 0;
+    app_glucose_meas_get_factory_meas_electric_current(&uiMeasElectricCurrent);
+    log_i("read adc cali data:%d", uiMeasElectricCurrent);
+    memcpy(&(pRspRequest->ucRespVal[0]), &uiMeasElectricCurrent, 4);
+    pRspRequest->ucSizeVal = 4;
+    pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+    calDataFlag = 0;
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-24
+* Function Name  :  cgms_socp_write_prm
+* Description    :  写入参数
+* Input          :  ble_event_info_t BleEventInfo,
+* Input          :  ble_socp_datapacket_t SocpRequest
+* Output         :  ble_socp_rsp_t * pRspRequest
+* Return         :  void
+*******************************************************************************/
+void cgms_socp_write_prm(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+{
+    if (SocpRequest.ucDataLen > 16)
+    {
+        pRspRequest->ucRspCode = SOCP_RSP_INVALID_OPERAND;
+    }
+    else
+    {
+        uint8_t ucIndex = 0;
+        uint8_t ucPrmNo = 0;
+        int16_t sTmp;
+        ucPrmNo = SocpRequest.pData[ucIndex++];
+
+        switch (ucPrmNo)
+        {
+        // 写SN
+        case SOCP_PRM_NO_WRITE_SN:
+        {
+            pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+            g_PrmDb.prmWMY[0] = *(SocpRequest.pData + ucIndex);
+            ucIndex += 1;
+            g_PrmDb.prmWMY[1] = *(SocpRequest.pData + ucIndex);
+            ucIndex += 1;
+            g_PrmDb.prmWMY[2] = *(SocpRequest.pData + ucIndex);
+            ucIndex += 1;
+            g_PrmDb.prmWMY[3] = 0;
+            sTmp = uint16_decode(SocpRequest.pData + ucIndex);
+            g_PrmDb.SN = (int16_t)sTmp;
+            ucIndex += 2;
+            g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
+            break;
+        }
+        // 写启动时间
+        case SOCP_PRM_NO_WRITE_START_TIME:
+        {
+            ble_cgms_socp_write_start_time_datapacket_data_t SetStartTimeData;
+            memcpy(&SetStartTimeData, SocpRequest.pData, sizeof(SetStartTimeData));
+            pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+            cgms_update_sst_and_time_zone(SetStartTimeData.usYear, SetStartTimeData.ucMonth, SetStartTimeData.ucDay, SetStartTimeData.ucHour, SetStartTimeData.ucMinute, SetStartTimeData.ucSecond, SetStartTimeData.ucTimeZone, SetStartTimeData.ucDataSaveingTime);
+            break;
+        }
+        // 保存参数
+        case SOCP_PRM_NO_SAVE_PRM:
+        {
+            cgms_prm_db_write_flash();
+            pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+            break;
+        }
+        // 未知命令
+        default:
+        {
+            pRspRequest->ucRspCode = SOCP_RSP_INVALID_OPERAND;
+            break;
+        }
+        }
+    }
+}
+
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-24
+* Function Name  :  cgms_socp_read_prm
+* Description    :  读取参数
+* Input          :  ble_event_info_t BleEventInfo,
+* Input          :  ble_socp_datapacket_t SocpRequest
+* Output         :  ble_socp_rsp_t * pRspRequest
+* Return         :  void
+*******************************************************************************/
+void cgms_socp_read_prm(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+{
+    if (SocpRequest.ucDataLen > 4)
+    {
+        pRspRequest->ucRspCode = SOCP_RSP_INVALID_OPERAND;
+    }
+    else
+    {
+        uint8_t ucIndex = 0;
+        uint8_t ucPrmNo = 0;
+        ucPrmNo = SocpRequest.pData[0];
+        switch (ucPrmNo)
+        {
+            // 读启动时间
+        case SOCP_PRM_NO_READ_START_TIME:
+        {
+            pRspRequest->ucOpCode = SOCP_READ_PRM_RESPONSE;
+            *(pRspRequest->ucRespVal) = ucPrmNo;
+            ucIndex += 1;
+            uint16_encode(g_mSST.date_time.time_info.year, pRspRequest->ucRespVal + ucIndex);
+            ucIndex += 2;
+            *(pRspRequest->ucRespVal + ucIndex) = g_mSST.date_time.time_info.month;
+            ucIndex += 1;
+            *(pRspRequest->ucRespVal + ucIndex) = g_mSST.date_time.time_info.day;
+            ucIndex += 1;
+            *(pRspRequest->ucRespVal + ucIndex) = g_mSST.date_time.time_info.hour;
+            ucIndex += 1;
+            *(pRspRequest->ucRespVal + ucIndex) = g_mSST.date_time.time_info.minute;
+            ucIndex += 1;
+            *(pRspRequest->ucRespVal + ucIndex) = g_mSST.date_time.time_info.sec;
+            ucIndex += 1;
+            *(pRspRequest->ucRespVal + ucIndex) = g_mSST.date_time.time_zone;
+            ucIndex += 1;
+            *(pRspRequest->ucRespVal + ucIndex) = g_mSST.date_time.time_info.month;
+            ucIndex += 1;
+            *(pRspRequest->ucRespVal + ucIndex) = g_mSST.dst;
+            ucIndex += 1;
+            pRspRequest->ucSizeVal = ucIndex;
+            break;
+        }
+        default:
+        {
+            pRspRequest->ucRspCode = SOCP_RSP_INVALID_OPERAND;
+            break;
+        }
+        }
+    }
+}
 /*******************************************************************************
 *                           陈苏阳@2023-10-18
 * Function Name  :  on_socp_value_write
@@ -280,6 +850,81 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     ble_socp_datapacket_t  SocpRequest;
     ble_socp_rsp_t  RspRequest;
 
+#if USE_GN_2_PROTOCOL
+    uint8_t ucTempDatapacketBuffer[16];
+    
+	if (cgms_socp_check_production_cmd(pData, usLen))
+	    {
+	        log_d("check production cmd.");
+	        g_bProduction = true;
+	    }
+	    else
+	    {
+	        // 如果不是生产测试命令
+	
+	    // 如果设置了密码
+	        if (att_get_feature()->ucPasswordExist)
+	        {
+	            log_d("password is seted.");
+	            // 走解密流程
+	#ifdef CGMS_ENCRYPT_ENABLE
+	            cgms_aes128_decrpty(pData, ucTempDatapacketBuffer);
+	            memcpy(pData, ucTempDatapacketBuffer, 16);
+	#endif
+	
+	            // 如果当前的命令不是密码验证命令,且当前密码还未验证成功
+	            if ((pData[0] != SOCP_VERIFY_PWD) && (app_global_get_app_state()->bCgmsPwdVerifyOk == false))
+	            {
+	                // 返回操作非法回应包
+	                RspRequest.ucOpCode = SOCP_RESPONSE_ILLEGAL_CODE;
+	                RspRequest.ucReqOpcode = 0X00;
+	                RspRequest.ucRspCode = 0X00;
+	                RspRequest.ucSizeVal = 0;
+	                socp_send(BleEventInfo, RspRequest);
+	                return;
+	            }
+	        }
+	        // 如果还没设置密码
+	        else
+	        {
+	            log_d("no valid password");
+	            // 如果也不是设置密码命令
+	            if ((pData[0] != SOCP_SET_PASSWORD))
+	            {
+	                RspRequest.ucOpCode = SOCP_RESPONSE_ILLEGAL_CODE;
+	                RspRequest.ucReqOpcode = 0X00;
+	                RspRequest.ucRspCode = 0X00;
+	                RspRequest.ucSizeVal = 0;
+	                socp_send(BleEventInfo, RspRequest);
+	                return;
+	            }
+	            else
+	            {
+	                // 如果是设置密码命令
+	
+	                // 长度不正确,返回报错
+	                if (usLen != 17)
+	                {
+	                    log_d("Len is Err");
+	                    RspRequest.ucOpCode = SOCP_RESPONSE_CODE;
+	                    RspRequest.ucReqOpcode = SOCP_SET_PASSWORD;
+	                    RspRequest.ucRspCode = 0X03;
+	                    RspRequest.ucSizeVal = 0;
+	                    socp_send(BleEventInfo, RspRequest);
+	                    return;
+	                }
+	                else
+	                {
+	                    cgms_aes128_decrpty(&pData[1], ucTempDatapacketBuffer);
+	                    memcpy(&pData[1], ucTempDatapacketBuffer, 16);
+	                    elog_hexdump("datapacket decode", 8, pData, 16);
+	                }
+	            }
+	        }
+	    }
+#endif
+
+	// 解码SOCP数据包并填充结构体
     ble_socp_decode(usLen, pData, &SocpRequest);
     elog_hexdump("socp_rav", 8, pData, usLen);
     log_i("socp_request.opcode:%d", SocpRequest.ucOpCode);
@@ -292,316 +937,77 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     // 根据命令类型来做相应处理
     switch (SocpRequest.ucOpCode)
     {
-    // 如果是开始CGM命令
+    // 开始CGM
     case SOCP_START_THE_SESSION:
     {
-        if (app_global_is_session_runing())
-        {
-            // 状态错误
-            RspRequest.ucRspCode = SOCP_RSP_PROCEDURE_NOT_COMPLETED;
-        }
-        else
-        {
-            log_i("!!SOCP_START_THE_SESSION   OK!!");
-            RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-            event_push(MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT, APP_GLUCOSE_MEAS_TYPE_USER_MEAS);
-        }
+        cgms_socp_start_the_session(BleEventInfo,SocpRequest,&RspRequest);
         break;
     }
+    // 写入传感器code
     case SOCP_SENSOR_CODE:
     {
-        uint16_t usSensorCode;
-        usSensorCode = uint16_decode(SocpRequest.pData + 1);
-
-        // 更新CGM Status中的工厂校准码
-        att_get_cgm_status()->usFactoryCode = usSensorCode;
-        // 更新CGM状态char的内容
-        att_update_cgm_status_char_data();
-        //设置传感器Code
-        sensorK = (float)usSensorCode / 1000.0f;
-        cur_get_cur_error_value(sensorK);
-        log_i("cur_get_cur_error_value(%f)", sensorK);
-        log_i("sensorcode update:%d", usSensorCode);
-
-        // 如果Code为0,则说明Code无效
-        if (usSensorCode == 0)
-        {
-            RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
-        }
-        else
-        {
-            log_i("sensor code update done");
-            RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-            app_global_get_app_state()->isfs = true;
-            //cur_get_cur_error_value(sensorK);
-
-              // 在CGM status Char中设置code码
-            att_get_cgm_status()->usFactoryCode = usSensorCode;
-            // 更新CGM状态char的内容
-            att_update_cgm_status_char_data();
-        }
+        cgms_socp_write_sensor_code(BleEventInfo, SocpRequest, &RspRequest);
         break;
     }
+    // 触发固件升级
     case SOCP_START_FOTA:
     {
-    	// 触发进入OTA
-        app_global_ota_start();
-        RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
+        cgms_socp_start_fota(BleEventInfo, SocpRequest, &RspRequest);
         break;
     }
-    case SOCP_READ_RESET_REG:// 读取复位原因寄存器
+    // 读取复位原因寄存器
+    case SOCP_READ_RESET_REG:
     {
-
-          extern uint32_t rest_dig_status;
-          extern uint32_t acs_reset_status;
-          memcpy(&(RspRequest.ucRespVal[0]), &rest_dig_status, 4);
-          memcpy(&(RspRequest.ucRespVal[4]), &acs_reset_status, 4);
-          RspRequest.ucSizeVal = 8;
-
+        cgms_socp_read_reset_reg(BleEventInfo, SocpRequest, &RspRequest);
         break;
     }
-    case SOCP_READ_HARD_FAULT_INFO:// 读取硬错误信息
+    // 读取硬错误信息
+    case SOCP_READ_HARD_FAULT_INFO:
     {
-        log_i("SOCP_READ_HARD_FAULT_INFO");
-        RspRequest.ucOpCode = SOCP_RSP_SUCCESS;
-        cgms_debug_db_read();
-        RspRequest.ucSizeVal = 0;
-        for (uint8_t i = 0; i < CGMS_DEBUG_MAX_KV_NUM; i++)
-        {
-            char cKey[12];
-            uint32_t uiData;
-
-            if (debug_get_kv(i, cKey, (uint8_t*)&uiData))
-            {
-                log_i("index:%d key:%s val:0x%xd", i, cKey, uiData);
-                memcpy(&(RspRequest.ucRespVal[RspRequest.ucSizeVal]), &uiData, 4);
-                RspRequest.ucSizeVal += 4;
-            }
-            else
-            {
-                break;
-            }
-
-            if (RspRequest.ucSizeVal >=16)
-            {
-                socp_send(BleEventInfo, RspRequest);
-                RspRequest.ucSizeVal = 0;
-            }
-        }
-        cgms_debug_clear_all_kv();
-
-        socp_send(BleEventInfo, RspRequest);
+        cgms_socp_read_hard_fault_info(BleEventInfo, SocpRequest, &RspRequest);
         break;
     }
-    // 如果是停止CGM命令
+    // 停止CGM
     case SOCP_STOP_THE_SESSION:
     {
-        RspRequest.ucOpCode = SOCP_RSP_SUCCESS;
-        event_push(MAIN_LOOP_EVENT_SOCP_STOP_SESSION_EVENT, NULL);
+        cgms_socp_stop_the_session(BleEventInfo, SocpRequest, &RspRequest);
         break;
     }
-    case SOCP_WRITE_GLUCOSE_CALIBRATION_VALUE: //write calibration
-        if (usLen >= 13)
-        {
-            memcpy((void*)calData, (void*)(pData + 1), 10);
-            calDataFlag = 1;
-            if (usLen == 13)
-            {
-                uint16_t concentration = uint16_decode(SocpRequest.pData);
-                usBfFlg = 1;
-                sfCurrBg = (float)concentration / 100.0f;
-                log_i("sfCurrBg:%f\r\n", sfCurrBg);
-                RspRequest.ucOpCode = SOCP_RSP_SUCCESS;  //response is 1C 04(opcode) 01(response) EC 6F (CRC)
-
-            }
-            else
-            {
-                RspRequest.ucOpCode = SOCP_RSP_INVALID_OPERAND;
-            }
-        }
+    // 写入血糖校准值
+    case SOCP_WRITE_GLUCOSE_CALIBRATION_VALUE:
+    {
+        cgms_socp_write_glucose_calibration_value(BleEventInfo, SocpRequest, &RspRequest);
         break;
+    }
     // 开始ADC校准
     case SOCP_START_AD_CALI:
     {
-        if (app_global_is_session_runing())
-        {
-            // 状态错误
-            RspRequest.ucRspCode = SOCP_RSP_PROCEDURE_NOT_COMPLETED;
-        }
-        else
-        {
-            log_i("!!SOCP_START_AD_CALI   OK!!");
-            RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-            event_push(MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT, APP_GLUCOSE_MEAS_TYPE_FACTORY_MEAS);
-        }
+        cgms_socp_start_ad_cali(BleEventInfo, SocpRequest, &RspRequest);
         break;
     }
     // 读取ADC校准时的数据
     case SOCP_READ_AD_CALI_DATA:
     {
-        uint32_t uiMeasElectricCurrent = 0;
-        app_glucose_meas_get_factory_meas_electric_current(&uiMeasElectricCurrent);
-        log_i("read adc cali data:%d", uiMeasElectricCurrent);
-        memcpy(&(RspRequest.ucRespVal[0]), &uiMeasElectricCurrent, 4);
-        RspRequest.ucSizeVal = 4;
-        RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-        calDataFlag = 0;
+        cgms_socp_read_ad_cali_data(BleEventInfo, SocpRequest, &RspRequest);
         break;
     }
-    case SOCP_WRITE_PRM://add by woo set parameters 0x61
-        // 如果是写入参数命令
-        if (SocpRequest.ucDataLen > 16)
-        {
-            RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
-        }
-        else
-        {
-            uint8_t index = 0;
-            uint8_t PrmNo = 0;
-            int16_t tmp;
-            PrmNo = SocpRequest.pData[index++];
-
-            if (PrmNo == 0x04)//write SN time part
-            {
-                RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-
-                g_PrmDb.prmWMY[0] = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.prmWMY[1] = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.prmWMY[2] = *(SocpRequest.pData + index);
-                index += 1;
-                g_PrmDb.prmWMY[3] = 0;
-
-                tmp = uint16_decode(SocpRequest.pData + index);
-                g_PrmDb.SN = (int16_t)tmp;
-                index += 2;
-
-                g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
-            }
-            else if (PrmNo == 0x05)
-            {
-                RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-                memcpy(&g_PrmDb.DacVolOffset, &(SocpRequest.pData[index++]), 2);
-                log_i("write dac vol offset:%d", g_PrmDb.DacVolOffset);
-                g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
-            }
-            else if (PrmNo == 0x06)
-            {
-                RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-                memcpy(&g_PrmDb.AdcK, &(SocpRequest.pData[index++]), 2);
-                log_i("write adc k:%d", g_PrmDb.AdcK);
-                g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
-            }
-            else if (PrmNo == 0x07)
-            {
-                RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-                memcpy(&g_PrmDb.AdcB, &(SocpRequest.pData[index++]), 2);
-                log_i("write adc b:%d", g_PrmDb.AdcB);
-                g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
-            }
-            else if (PrmNo == 0xFA)// 写入启动时间
-            {
-                ble_cgms_socp_write_start_time_datapacket_t SetStartTimeDatapcket;
-                memcpy(&SetStartTimeDatapcket, pData, sizeof(SetStartTimeDatapcket));
-
-                RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-
-                cgms_update_sst_and_time_zone(SetStartTimeDatapcket.usYear, SetStartTimeDatapcket.ucMonth, SetStartTimeDatapcket.ucDay, SetStartTimeDatapcket.ucHour, SetStartTimeDatapcket.ucMinute, SetStartTimeDatapcket.ucSecond, SetStartTimeDatapcket.ucTimeZone, SetStartTimeDatapcket.ucDataSaveingTime);
-            }
-            else if (PrmNo == 0xFE)// 固化参数
-            {
-                cgms_prm_db_write_flash();
-                RspRequest.ucRspCode = SOCP_RSP_SUCCESS;
-            }
-            else
-            {
-                RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
-            }
-
-        }
+    // 写入参数
+    case SOCP_WRITE_PRM:
+    {
+        cgms_socp_write_prm(BleEventInfo, SocpRequest, &RspRequest);
         break;
-    case SOCP_READ_PRM://add by woo // ��ȡ���� 0x62
-        if (SocpRequest.ucDataLen > 4)
-        {
-            RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
-        }
-        else
-        {
-            uint8_t index = 0;
-            uint8_t PrmNo = 0;
-            PrmNo = SocpRequest.pData[0];
-            
-            if (PrmNo == 0xA0)//read sst
-            {
-                RspRequest.ucOpCode = SOCP_READ_PRM_RESPONSE;
-
-                *(RspRequest.ucRespVal) = PrmNo;
-                index += 1;
-
-                uint16_encode(g_mSST.date_time.time_info.year, RspRequest.ucRespVal + index);
-                index += 2;
-                *(RspRequest.ucRespVal + index) = g_mSST.date_time.time_info.month;
-                index += 1;
-                *(RspRequest.ucRespVal + index) = g_mSST.date_time.time_info.day;
-                index += 1;
-                *(RspRequest.ucRespVal + index) = g_mSST.date_time.time_info.hour;
-                index += 1;
-                *(RspRequest.ucRespVal + index) = g_mSST.date_time.time_info.minute;
-                index += 1;
-                *(RspRequest.ucRespVal + index) = g_mSST.date_time.time_info.sec;
-                index += 1;
-                *(RspRequest.ucRespVal + index) = g_mSST.date_time.time_zone;
-                index += 1;
-                *(RspRequest.ucRespVal + index) = g_mSST.date_time.time_info.month;
-                index += 1;
-                *(RspRequest.ucRespVal + index) = g_mSST.dst;
-                index += 1;
-
-                RspRequest.ucSizeVal = index;
-            }
-            else if (PrmNo == 0xA3)//read sim parameters ����
-            {
-                RspRequest.ucOpCode = SOCP_READ_PRM_RESPONSE;
-
-                *(RspRequest.ucRespVal) = PrmNo;
-                index += 1;
-
-                *(RspRequest.ucRespVal + index) = simMax;//
-                index += 1;
-                *(RspRequest.ucRespVal + index) = simMin;//
-                index += 1;
-                *(RspRequest.ucRespVal + index) = simDelta;//
-                index += 1;
-
-                RspRequest.ucSizeVal = index;
-            }
-            else if (PrmNo == 0xA4)////difference in i3 //"��ȡ�����" ����ǰ�ȫ��
-            {
-                RspRequest.ucOpCode = SOCP_READ_PRM_RESPONSE;
-
-                *(RspRequest.ucRespVal) = PrmNo;
-                index += 1;
-
-                //Get_TRNG(p_cgms->socp_response.resp_val+index, 4, 1);
-                RspRequest.ucRespVal[1] = 0x11;
-                RspRequest.ucRespVal[2] = 0x22;
-                RspRequest.ucRespVal[3] = 0x33;
-                RspRequest.ucRespVal[4] = 0x44;
-
-                index += 4;
-                RspRequest.ucSizeVal = index;
-            }
-
-            else
-            {
-                RspRequest.ucRspCode = SOCP_RSP_INVALID_OPERAND;
-            }
-        }
+    }
+    // 读取参数
+    case SOCP_READ_PRM:
+    {
+        cgms_socp_read_prm(BleEventInfo, SocpRequest, &RspRequest);
         break;
+    }
     default:
+    {
         RspRequest.ucRspCode = SOCP_RSP_OP_CODE_NOT_SUPPORTED;
         break;
+    }
     }
 
     socp_send(BleEventInfo, RspRequest);
@@ -625,7 +1031,13 @@ bool cgms_socp_check_production_cmd(uint8_t* pData, uint16_t usLen)
     if ((pData[0] == SOCP_WRITE_PRM) && (pData[1] == 0xFE) && (usLen == 4))return true;//Set parameter permanently
     if ((pData[0] == SOCP_READ_PRM) && (pData[1] == 0x01) && (usLen == 4))return true;//read cal parameters
     if ((pData[0] == SOCP_READ_PRM) && (pData[1] == 0xA4) && (usLen == 4))return true;//Get radom num
-
+#if USE_GN_2_PROTOCOL
+    //sec bond command
+    if ((pData[0] == SOCP_WRITE_BOND_SECU) && (pData[1] == 0xf1) && (usLen == 18))return true;//Bond_step1
+    if ((pData[0] == SOCP_WRITE_BOND_SECU) && (pData[1] == 0xf2) && (usLen == 18))return true;//Bond_step2
+    if ((pData[0] == SOCP_NOMAL_AUTH) && (pData[1] == 0xf1) && (usLen == 18))return true;//sec normal step1
+    if ((pData[0] == SOCP_NOMAL_AUTH) && (pData[1] == 0xf2) && (usLen == 18))return true;//sec normal step2
+#endif
     if ((pData[0] == SOCP_START_THE_SESSION) && (pData[1] == 0) && (usLen == 4))return true;// start senssor
     if ((pData[0] == SOCP_STOP_THE_SESSION) && (pData[1] == 0) && (usLen == 4))return true;// STOP senssor
     if ((pData[0] == SOCP_START_AD_CALI) && (pData[1] == 0) && (usLen == 4))return true;

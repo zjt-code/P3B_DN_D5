@@ -55,11 +55,9 @@ typedef struct
 
 
 
-// SOCP数据包_设置启动时间数据包_结构体
+// SOCP数据包_设置启动时间数据包数据部分_结构体
 typedef struct
 {
-    uint8_t ucOpCode;                               // 操作码
-    uint8_t ucPrmNo;                                // 参数号
     uint16_t usYear;
     uint8_t ucMonth;
     uint8_t ucDay;
@@ -68,7 +66,7 @@ typedef struct
     uint8_t ucSecond;
     uint8_t ucTimeZone;
     uint8_t ucDataSaveingTime;
-}__attribute__((packed)) ble_cgms_socp_write_start_time_datapacket_t;
+}__attribute__((packed)) ble_cgms_socp_write_start_time_datapacket_data_t;
 
 
 // SOCP数据包_输入参比血糖命令包_结构体
@@ -143,17 +141,6 @@ typedef struct
     uint16_t usCRC16;                               // CRC16
 }__attribute__((packed)) ble_cgms_socp_verify_password_datapacket_t;
 
-
-
-// SOCP数据包_写入参数_参数类型
-typedef enum
-{
-    BLE_CGMS_SOCP_WRITE_PRM_WRITE_CAL_PARA = 0x01,
-    BLE_CGMS_SOCP_WRITE_PRM_WRITE_ALGORITHM_COFF = 0x03,
-    BLE_CGMS_SOCP_WRITE_PRM_WRITE_SN = 0x04,
-    BLE_CGMS_SOCP_WRITE_PRM_WRITE_PARA_TO_FLASH = 0xFE,
-}ble_cgms_socp_write_prm_type_t;
-
 typedef enum
 {
     SOCP_OPCODE_RESERVED = 0x00,                                       // 保留,暂未使用
@@ -191,6 +178,15 @@ typedef enum
     SOCP_RSP_BOND_SUCCESS = 0x00,    //difference in i3
 }socp_opcode_t;
 
+// 参数类型
+typedef enum
+{
+    SOCP_PRM_NO_WRITE_SN = 0x04,                                    // 写SN
+    SOCP_PRM_NO_WRITE_START_TIME = 0xFA,                            // 写启动时间
+    SOCP_PRM_NO_SAVE_PRM = 0xFE,                                    // 保存参数
+    SOCP_PRM_NO_READ_START_TIME = 0xA0,                             // 读启动时间
+
+}socp_prm_no_t;
 
 // SOCP回应包的回应码
 typedef enum
@@ -283,7 +279,6 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 
 void cgms_socp_stop_session_event_callback(uint32_t uiArg);
 void cgms_socp_start_session_event_callback(uint32_t uiArg);
-void cgms_socp_write_cgm_communication_interval_event_callback(uint32_t uiArg);
 void ble_socp_notify_enable(void);
 void ble_socp_notify_disable(void);
 bool ble_socp_notify_is_enable(void);
