@@ -222,6 +222,10 @@ typedef struct
 typedef struct
 {
     BleConnectInfo_t BleConnectInfo[BLE_MAX_CONNECTED_NUM];            // 当前BLE连接信息数组
+    #if USE_GN_2_PROTOCOL
+    bool bCgmsPwdVerifyOk;                                             // 当前密码是否验证成功
+    uint16_t usPasswordSaved;                                          // 保存的密码
+    #endif
     bool bSentRacpSuccess;                                             // RACP发送完成标志位
     bool bSentSocpSuccess;                                             // COAP发送完成标志位
     bool bSentMeasSuccess;                                             // MEAS发送完成标志位

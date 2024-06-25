@@ -272,29 +272,6 @@ void cgms_socp_start_session_event_callback(uint32_t uiArg)
 }
 
 /*******************************************************************************
-*                           陈苏阳@2024-02-22
-* Function Name  :  cgms_socp_write_cgm_communication_interval_event_callback
-* Description    :  写CGM通讯间隔事件回调
-* Input          :  ble_event_info_t BleEventInfo,
-* Input          :  ble_socp_datapacket_t SocpRequest
-* Output         :  ble_socp_rsp_t * pRspRequest
-* Return         :  void
-*******************************************************************************/
-void cgms_socp_write_cgm_communication_interval_event_callback(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
-{
-    // 给回应包添加默认的回应码
-    pRspRequest->ucRspCode = SOCP_GENERAL_RSP_SUCCESS;
-
-    // 如果数据长度不正确
-    if (SocpRequest.ucDataLen > 3)
-    {
-        // 返回无效命令
-        pRspRequest->ucRspCode = SOCP_GENERAL_RSP_INVALID_OPERAND;
-    }
-}
-
-
-/*******************************************************************************
 *                           陈苏阳@2024-06-24
 * Function Name  :  cgms_socp_write_glucose_calibration_value
 * Description    :  写入血糖校准值

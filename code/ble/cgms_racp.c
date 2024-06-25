@@ -124,12 +124,56 @@ uint8_t ble_racp_encode(ble_cgms_racp_datapacket_t* pRacpDatapacket, uint8_t* pD
 
 		for (uint8_t i = 0; i < pRacpDatapacket->ucDataLen; i++)pData[ucLen++] = pRacpDatapacket->ucData[i];
 	}
-
+#if USE_GN_2_PROTOCOL
+	uint16_t usCrcValue = do_crc(pData, ucLen);
+	ucLen += uint16_encode(usCrcValue, &pData[ucLen]);
+#endif
 	return ucLen;
 }
 
 
+#if USE_GN_2_PROTOCOL
+/*******************************************************************************
+*                           陈苏阳@2023-10-24
+* Function Name  :  racp_response_code_send
+* Description    :  发送历史数据回应包
+* Input          :  ble_event_info_t BleEventInfo
+* Input          :  uint8_t ucOpcode
+* Input          :  uint8_t ucValue
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void racp_response_code_send(ble_event_info_t BleEventInfo, uint8_t ucOpcode, uint8_t ucValue)
+{
+	uint8_t ucEncodedRacp[25];
+    uint8_t  ucLen;
+	ble_cgms_racp_datapacket_t RacpDatapacket;
+	RacpDatapacket.ucOpCode = RACP_OPCODE_RESPONSE;
+	RacpDatapacket.ucOperator = ucOpcode;
+	RacpDatapacket.pData = &ucValue;
+	RacpDatapacket.ucDataLen = 1;
 
+    ucLen = ble_racp_encode(&RacpDatapacket, ucEncodedRacp);
+
+#ifdef CGMS_ENCRYPT_ENABLE
+    uint8_t cipher[16];
+    mbedtls_aes_pkcspadding(ucEncodedRacp, ucLen);
+    ucLen = 16;
+    cgms_aes128_encrpty(ucEncodedRacp, cipher);
+    memcpy(ucEncodedRacp, cipher, 16);
+#endif
+
+    if ((ble_racp_notify_is_enable()) && (app_global_get_app_state()->bBleConnected == true))
+    {
+        sl_status_t sc;
+        sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucEncodedRacp);
+		if (sc != SL_STATUS_OK)
+		{
+			log_e("sl_bt_gatt_server_send_notification fail:%d",sc);
+		}
+    }
+}
+#endif
 /*******************************************************************************
 *                           陈苏阳@2023-10-24
 * Function Name  :  racp_response_send
@@ -215,63 +259,213 @@ void racp_response_send(ble_event_info_t BleEventInfo, racp_response_t ResponseC
 *******************************************************************************/
 static uint8_t racp_findMeasDB(uint8_t filter, uint16_t operand1, uint16_t operand2)
 {
+    if (0 == cgms_db_get_records_num())return  0;
+    switch (filter)
+    {
+    case RACP_OPERATOR_GREATER_OR_EQUAL:
+    {
+        if (operand1 >= cgms_db_get_records_num())
+        {
+            app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = 0;
+            return 0;
+        }
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex = cgms_db_get_records_num() - 1;
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex = operand1;
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = (app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex - app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex + 1);
+        return 1;
+    }
+    case RACP_OPERATOR_FIRST:
+    {
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex = 0;
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex = 0;
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = 1;
+        return 1;
+    }
+    case RACP_OPERATOR_LAST:
+    {
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex = cgms_db_get_records_num() - 1;
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex = app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex;
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = 1;
+        return 1;
+    }
+    case RACP_OPERATOR_LESS_OR_EQUAL:
+    {
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex = operand1 > (cgms_db_get_records_num() - 1) ? (cgms_db_get_records_num() - 1) : operand1;
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex = 0;
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = (app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex - app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex + 1);
+        return 1;
+    }
+    case RACP_OPERATOR_ALL:
+    case RACP_OPERATOR_RANGE:
+    {
+        if (operand1 > operand2)return 0;
+        if (operand1 >= cgms_db_get_records_num())
+        {
+            app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = 0;
+            return 0;
+        }
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex = operand2 > (cgms_db_get_records_num() - 1) ? (cgms_db_get_records_num() - 1) : operand2;
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex = operand1;
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = (app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex - app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex + 1);
+        return 1;
+    }
+    default:
+        break;
+    }
+    return 0;
+}
 
-	if (0 == cgms_db_get_records_num())return  0;
 
+/*******************************************************************************
+*                           陈苏阳@2024-06-25
+* Function Name  :  cgms_racp_report_num_recs
+* Description    :  报告当前历史数据数量
+* Input          :  ble_event_info_t BleEventInfo
+* Input          :  ble_cgms_racp_datapacket_t RacpDatapacket
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void cgms_racp_report_num_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapacket_t RacpDatapacket)
+{
+    racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+    ble_cgms_racp_datapacket_t RspDatapacket;
+    memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
+    uint16_t usRacpRecordCnt = cgms_db_get_records_num();
+    RspDatapacket.ucData[0] = usRacpRecordCnt & 0xFF;
+    RspDatapacket.ucData[1] = (usRacpRecordCnt >> 8) & 0xFF;
+    RspDatapacket.ucDataLen = 2;
+    log_i("report record number:%d", usRacpRecordCnt);
+    ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+    // 发送回应包
+    racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+}
 
-	switch (filter)
-	{
-	case RACP_OPERATOR_GREATER_OR_EQUAL:
-	{
-		if (operand1 >= cgms_db_get_records_num())
-		{
-			app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = 0;
-			return 0;
-		}
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex = cgms_db_get_records_num() - 1;
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex = operand1;
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = (app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex - app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex + 1);
-		return 1;
-	}
-	case RACP_OPERATOR_FIRST:
-	{
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex = 0;
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex = 0;
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = 1;
-		return 1;
-	}
-	case RACP_OPERATOR_LAST:
-	{
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex = cgms_db_get_records_num() - 1;
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex = app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex;
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = 1;
-		return 1;
-	}
-	case RACP_OPERATOR_LESS_OR_EQUAL:
-	{
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex = operand1 > (cgms_db_get_records_num() - 1) ? (cgms_db_get_records_num() - 1) : operand1;
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex = 0;
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = (app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex - app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex + 1);
-		return 1;
-	}
-	case RACP_OPERATOR_ALL:
-	case RACP_OPERATOR_RANGE:
-	{
-		if (operand1 > operand2)return 0;
-		if (operand1 >= cgms_db_get_records_num())
-		{
-			app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = 0;
-			return 0;
-		}
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex = operand2 > (cgms_db_get_records_num() - 1) ? (cgms_db_get_records_num() - 1) : operand2;
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex = operand1;
-		app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = (app_global_get_app_state()->RecordOptInfo.usRacpRecordEndIndex - app_global_get_app_state()->RecordOptInfo.usRacpRecordStartIndex + 1);
-		return 1;
-	}
-	default:
-		break;
-	}
-	return 0;
+/*******************************************************************************
+*                           陈苏阳@2024-06-25
+* Function Name  :  cgms_racp_delete_recs
+* Description    :  删除历史数据
+* Input          :  ble_event_info_t BleEventInfo
+* Input          :  ble_cgms_racp_datapacket_t RacpDatapacket
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void cgms_racp_delete_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapacket_t RacpDatapacket)
+{
+    racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+    ble_cgms_racp_datapacket_t RspDatapacket;
+    memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
+    ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+    // 发送回应包
+    racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-25
+* Function Name  :  cgms_racp_report_recs
+* Description    :  上报历史数据
+* Input          :  ble_event_info_t BleEventInfo
+* Input          :  ble_cgms_racp_datapacket_t RacpDatapacket
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapacket_t RacpDatapacket)
+{
+    racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+    uint16_t usfilterData1 = 0x00;
+    uint16_t usfilterData2 = 0x00;
+    ble_cgms_racp_datapacket_t RspDatapacket;
+    memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
+    // 效验CRC
+    if (0 == RacpDatapacket.ucOperator)
+    {
+        log_w("RACP_RESPONSE_RESULT_INVALID_OPERATOR");
+        ResponseCode = RACP_RESPONSE_RESULT_INVALID_OPERATOR;
+        // 发送回应包
+        racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+    }
+
+    // 发送历史数据发送结束数据包
+    if (RacpDatapacket.ucOperator >= 7)
+    {
+        log_w("RACP_RESPONSE_RESULT_OPERATOR_UNSUPPORTED");
+        ResponseCode = RACP_RESPONSE_RESULT_OPERATOR_UNSUPPORTED;
+        // 发送回应包
+        racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+    }
+
+    if (RacpDatapacket.ucOperator == RACP_OPERATOR_LESS_OR_EQUAL || RacpDatapacket.ucOperator == RACP_OPERATOR_GREATER_OR_EQUAL || RacpDatapacket.ucOperator == RACP_OPERATOR_RANGE)
+    {
+
+        if (RacpDatapacket.ucData[0] != 0x01)
+        {
+            log_w("RACP_RESPONSE_RESULT_OPERAND_UNSUPPORTED");
+            ResponseCode = RACP_RESPONSE_RESULT_OPERAND_UNSUPPORTED;
+            // 发送回应包
+            racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+        }
+        usfilterData1 = uint16_decode(&RacpDatapacket.ucData[1]);
+    }
+
+    if (RacpDatapacket.ucOperator == RACP_OPERATOR_RANGE) usfilterData2 = uint16_decode(&RacpDatapacket.ucData[3]);
+
+    //Test the operands are valid
+    if ((RacpDatapacket.ucOperator == RACP_OPERATOR_ALL && RacpDatapacket.ucDataLen > 0) || (RacpDatapacket.ucOperator == RACP_OPERATOR_RANGE && usfilterData1 > usfilterData2))
+    {
+        log_w("RACP_RESPONSE_RESULT_INVALID_OPERAND");
+        ResponseCode = RACP_RESPONSE_RESULT_INVALID_OPERAND;
+        // 发送回应包
+        racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+    }
+
+    log_i("racp_findMeasDB %d/%d", usfilterData1, usfilterData2);
+    //Get the starting and ending index of the record meeting requriement  
+    if (racp_findMeasDB(RacpDatapacket.ucOperator, usfilterData1, usfilterData2))
+    {
+
+        ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+
+        // 清空发送累计
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordSendCnt = 0;
+
+        // 记录本次历史数据操作的BLE事件信息
+        app_global_get_app_state()->RecordOptInfo.BleEventInfo = BleEventInfo;
+
+        // 开始发送数据记录
+        app_glucose_meas_record_send_start();
+        return;
+
+    }
+    //If search is not successful, indicate the result.
+    else
+    {
+        log_w("RACP_RESPONSE_RESULT_NO_RECORDS_FOUND");
+        ResponseCode = RACP_RESPONSE_RESULT_NO_RECORDS_FOUND;
+
+        // 发送回应包
+        racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+    }
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-25
+* Function Name  :  cgms_racp_abort_operation
+* Description    :  中止操作
+* Input          :  ble_event_info_t BleEventInfo
+* Input          :  ble_cgms_racp_datapacket_t RacpDatapacket
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void cgms_racp_abort_operation(ble_event_info_t BleEventInfo, ble_cgms_racp_datapacket_t RacpDatapacket)
+{
+    racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+    ble_cgms_racp_datapacket_t RspDatapacket;
+    memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
+    // 停止发送数据记录
+    app_glucose_meas_record_send_stop();
+    ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+
+    // 发送回应包
+    racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
 }
 
 
@@ -289,12 +483,86 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 {
     ble_cgms_racp_datapacket_t RacpDatapacket;
     ble_cgms_racp_datapacket_t RspDatapacket;
-
     racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+    memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
+#ifdef USE_GN_2_PROTOCOL
+    // 如果数据长度不合法
+    if (usLen != 16)
+    {
+        RacpDatapacket.ucOpCode = pData[0];
+        ResponseCode = RACP_RESPONSE_RESULT_COMMAND_LEN_ERR;
+        // 发送回应包
+        racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+        return;
+    }
+    else
+    {
+        uint8_t decipher[16];
+        cgms_aes128_decrpty(pData, decipher);
+        memcpy(pData, decipher, usLen);
+    }
+#endif
 
-    uint16_t usfilterData1 = 0x00;
-    uint16_t usfilterData2 = 0x00;
+#ifdef USE_GN_2_PROTOCOL
+    if ((RacpDatapacket.ucOpCode == RACP_OPCODE_REPORT_RECS) && (RacpDatapacket.pData[RacpDatapacket.ucDataLen - 1] != 8))  //decrped cmd, len=16, && AES-pading7
+    {
+        ResponseCode = RACP_RESPONSE_RESULT_COMMAND_LEN_ERR;
+    }
+    else if (RacpDatapacket.ucOpCode != RACP_OPCODE_REPORT_RECS)
+    {
+        ResponseCode = RACP_RESPONSE_RESULT_COMMAND_FORMAT_ERR;
+    }
+    else
+    {
+        // 效验CRC
+        if (do_crc(pData, 8) != 0)
+        {
+            ResponseCode = RACP_RESPONSE_RESULT_COMMAND_OTHER_ERR;
+        }
+        else
+        {
+            // 判断当前是否有历史数据操作在执行
+            if (app_global_get_app_state()->bRecordSendFlag == true)
+            {
+                ResponseCode = RACP_RESPONSE_RESULT_COMMAND_BUSY;
+            }
+            else
+            {
+                uint16_t usOpand1Start, usOprand2End;
+                // 提取开始和结束的index
+                usOpand1Start = uint16_decode(RacpDatapacket.pData);
+                usOprand2End = uint16_decode(&RacpDatapacket.pData[2]);
 
+                // 寻找符合条件的历史数据
+                uint8_t ucRet = racp_findMeasDB(RacpDatapacket.ucOpCode, usOpand1Start, usOprand2End);
+
+                // 如果找不到符合的数据
+                if (ucRet == 0)
+                {
+                    ResponseCode = RACP_RESPONSE_RESULT_COMMAND_START_INDEX_RANGE_OUT;
+                }
+                else
+                {
+                    ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+
+                    app_global_get_app_state()->bRecordSendFlag = true;
+
+                    // 清空发送累计
+                    app_global_get_app_state()->RecordOptInfo.usRacpRecordSendCnt = 0;
+
+                    // 记录本次历史数据操作的BLE事件信息
+                    app_global_get_app_state()->RecordOptInfo.BleEventInfo = BleEventInfo;
+
+                    // 开始发送数据记录
+                    app_glucose_meas_record_send_start();
+                }
+            }
+        }
+    }
+    }
+    // 发送回应包
+    racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+#else
     ble_racp_decode(usLen, pData, &RacpDatapacket);
     elog_hexdump("racp_rav", 16, pData, usLen);
     RspDatapacket.ucOpCode = RacpDatapacket.ucOpCode;
@@ -302,122 +570,39 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     switch (RacpDatapacket.ucOpCode)
     {
     case RACP_OPCODE_REPORT_RECS:
-    case RACP_OPCODE_REPORT_NUM_RECS:
-    case RACP_OPCODE_DELETE_RECS:
     {
-        // 效验CRC
-        if ((0 == RacpDatapacket.ucOperator) || (usLen <= 1))
-        {
-            log_w("RACP_RESPONSE_RESULT_INVALID_OPERATOR");
-            ResponseCode = RACP_RESPONSE_RESULT_INVALID_OPERATOR;
-            break;
-        }
-
-
-        // 发送历史数据发送结束数据包
-        if (RacpDatapacket.ucOperator >= 7)
-        {
-            log_w("RACP_RESPONSE_RESULT_OPERATOR_UNSUPPORTED");
-            ResponseCode = RACP_RESPONSE_RESULT_OPERATOR_UNSUPPORTED;
-            break;
-        }
-
-
-
-        if (RacpDatapacket.ucOperator == RACP_OPERATOR_LESS_OR_EQUAL || RacpDatapacket.ucOperator == RACP_OPERATOR_GREATER_OR_EQUAL || RacpDatapacket.ucOperator == RACP_OPERATOR_RANGE)
-        {
-
-            if (RacpDatapacket.ucData[0] != 0x01)
-            {
-                log_w("RACP_RESPONSE_RESULT_OPERAND_UNSUPPORTED");
-                ResponseCode = RACP_RESPONSE_RESULT_OPERAND_UNSUPPORTED;
-                break;
-            }
-            usfilterData1 = uint16_decode(&RacpDatapacket.ucData[1]);
-        }
-
-
-
-        if (RacpDatapacket.ucOperator == RACP_OPERATOR_RANGE) usfilterData2 = uint16_decode(&RacpDatapacket.ucData[3]);
-
-        //Test the operands are valid
-        if ((RacpDatapacket.ucOperator == RACP_OPERATOR_ALL && RacpDatapacket.ucDataLen > 0) || (RacpDatapacket.ucOperator == RACP_OPERATOR_RANGE && usfilterData1 > usfilterData2))
-        {
-            log_w("RACP_RESPONSE_RESULT_INVALID_OPERAND");
-            ResponseCode = RACP_RESPONSE_RESULT_INVALID_OPERAND;
-            break;
-        }
-
-        log_i("racp_findMeasDB %d/%d", usfilterData1, usfilterData2);
-        //Get the starting and ending index of the record meeting requriement  
-        if (racp_findMeasDB(RacpDatapacket.ucOperator, usfilterData1, usfilterData2))
-        {
-            if (RacpDatapacket.ucOpCode == RACP_OPCODE_REPORT_RECS)
-            {
-                ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
-
-                // 清空发送累计
-                app_global_get_app_state()->RecordOptInfo.usRacpRecordSendCnt = 0;
-
-                // 记录本次历史数据操作的BLE事件信息
-                app_global_get_app_state()->RecordOptInfo.BleEventInfo = BleEventInfo;
-
-                // 开始发送数据记录
-                app_glucose_meas_record_send_start();
-                return;
-            }
-            //If we only need to report the number count, we can prepare the send the packet right away.
-            else if (RacpDatapacket.ucOpCode == RACP_OPCODE_REPORT_NUM_RECS)
-            {
-                uint16_t usRacpRecordCnt = cgms_db_get_records_num();
-                RspDatapacket.ucData[0] = usRacpRecordCnt & 0xFF;
-                RspDatapacket.ucData[1] = (usRacpRecordCnt >> 8) & 0xFF;
-                RspDatapacket.ucDataLen = 2;
-                log_i("report record number:%d", usRacpRecordCnt);
-                ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
-            }
-            //If we need to delete the record, the record delete function is called.
-            else if (RacpDatapacket.ucOpCode == RACP_OPCODE_DELETE_RECS)
-            {
-                ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
-            }
-        }
-        //If search is not successful, indicate the result.
-        else
-        {
-            if (RacpDatapacket.ucOpCode == RACP_OPCODE_REPORT_NUM_RECS)
-            {
-                RspDatapacket.ucData[0] = 0x00;
-                RspDatapacket.ucData[1] = 0x00;
-                RspDatapacket.ucDataLen = 2;
-                ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
-            }
-            else
-            {
-                log_w("RACP_RESPONSE_RESULT_NO_RECORDS_FOUND");
-                ResponseCode = RACP_RESPONSE_RESULT_NO_RECORDS_FOUND;
-            }
-        }
+        cgms_racp_report_recs(BleEventInfo, RacpDatapacket);
         break;
     }
-    case RACP_OPCODE_EXIT:
-        ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+    case RACP_OPCODE_REPORT_NUM_RECS:
+    {
+        cgms_racp_report_num_recs(BleEventInfo, RacpDatapacket);
         break;
+    }
+    case RACP_OPCODE_DELETE_RECS:
+    {
+        cgms_racp_delete_recs(BleEventInfo, RacpDatapacket);
+        break;
+    }
     case RACP_OPCODE_ABORT_OPERATION:
 
-        // 停止发送数据记录
-        app_glucose_meas_record_send_stop();
-        ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+        cgms_racp_abort_operation(BleEventInfo, RacpDatapacket);
         break;
     default:
-
+    {
+        ble_cgms_racp_datapacket_t RspDatapacket;
+        memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
         log_w("RACP_RESPONSE_RESULT_OPCODE_UNSUPPORTED");
         // Respond with error code
         ResponseCode = RACP_RESPONSE_RESULT_OPCODE_UNSUPPORTED;
+        // 发送回应包
+        racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
         break;
+    }
     }
     // 发送回应包
     racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+#endif
 }
 
 

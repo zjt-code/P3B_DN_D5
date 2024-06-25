@@ -19,6 +19,10 @@
 // 历史数据操作码
 typedef enum
 {
+	#if USE_GN_2_PROTOCOL
+	RACP_OPCODE_REPORT_RECS = 0x01,                 // 读取历史数据
+    RACP_OPCODE_RESPONSE = 0x1C,                    // 回应包
+	#else
     RACP_OPCODE_REPORT_RECS = 0x01,                 // 读取历史数据
     RACP_OPCODE_RESERVED = 0x00,       /**< Record Access Control Point opcode - Reserved for future use. */
     RACP_OPCODE_DELETE_RECS = 0x02,       /**< Record Access Control Point opcode - Delete stored records. */
@@ -27,6 +31,7 @@ typedef enum
     RACP_OPCODE_NUM_RECS_RESPONSE = 0x05,       /**< Record Access Control Point opcode - Number of stored records response. */
     RACP_OPCODE_RESPONSE_CODE = 0x06,       /**< Record Access Control Point opcode - Response code. */
     RACP_OPCODE_EXIT = 0X62,
+    #endif
 }racp_opcode_t;
 
 
@@ -46,6 +51,13 @@ typedef enum
 {
     RACP_RESPONSE_RESULT_RESERVED = 0x00,                              // 保留未使用
     RACP_RESPONSE_RESULT_SUCCESS = 0x01,                               // 执行成功
+    #if USE_GN_2_PROTOCOL
+    RACP_RESPONSE_RESULT_COMMAND_FORMAT_ERR = 0x02,                    // 命令格式不正确
+    RACP_RESPONSE_RESULT_COMMAND_LEN_ERR = 0x03,                       // 命令长度不正确
+    RACP_RESPONSE_RESULT_COMMAND_START_INDEX_RANGE_OUT = 0x04,         // 起始序列号超过最大值
+    RACP_RESPONSE_RESULT_COMMAND_OTHER_ERR = 0x05,                     // 其他错误
+    RACP_RESPONSE_RESULT_COMMAND_BUSY = 0x06,                          // 前一条获取历史数据命令处理中
+    #else
     RACP_RESPONSE_RESULT_OPCODE_UNSUPPORTED = 0x02,                 // 命令不支持
     RACP_RESPONSE_RESULT_INVALID_OPERATOR = 0x03,                   // 无效操作数
     RACP_RESPONSE_RESULT_OPERATOR_UNSUPPORTED = 0x04,               // 操作数不支持
@@ -54,7 +66,7 @@ typedef enum
     RACP_RESPONSE_RESULT_ABORT_FAILED = 0x07,       /**< Record Access Control Point response code - Abort could not be completed. */
     RACP_RESPONSE_RESULT_PROCEDURE_NOT_DONE = 0x08,       /**< Record Access Control Point response code - Procedure could not be completed. */
     RACP_RESPONSE_RESULT_OPERAND_UNSUPPORTED = 0x09,       /**< Record Access Control Point response code - Unsupported operand. */
-
+	#endif
 }racp_response_t;
 
 
