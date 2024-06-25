@@ -98,6 +98,26 @@ cgm_session_start_time_char_data_t* att_get_start_time(void)
     return &(cs_att_db.CgmSessionStartTimeValue);
 }
 
+
+#if USE_GN_2_PROTOCOL
+/*******************************************************************************
+*                           陈苏阳@2023-10-19
+* Function Name  :  att_update_start_time_char_data_crc
+* Description    :  更新ATT表中的启动时间Char数据的CRC
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void att_update_start_time_char_data_crc(void)
+{
+    // 计算CRC
+    uint16_t usCrc16 = do_crc(&(cs_att_db.CgmSessionStartTimeValue), sizeof(cs_att_db.CgmSessionStartTimeValue) - sizeof(cs_att_db.CgmSessionStartTimeValue.usCrc16));
+    // 赋值CRC
+    cs_att_db.CgmSessionStartTimeValue.usCrc16 = usCrc16;
+
+    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_session_start_time, 0, sizeof(cs_att_db.CgmSessionStartTimeValue), &(cs_att_db.CgmSessionStartTimeValue));
+}
+#else
 /*******************************************************************************
 *                           陈苏阳@2023-10-19
 * Function Name  :  att_update_start_time_char_data
@@ -110,8 +130,29 @@ void att_update_start_time_char_data(void)
 {
     sl_bt_gatt_server_write_attribute_value(gattdb_cgm_session_start_time, 0, sizeof(cs_att_db.CgmSessionStartTimeValue), &(cs_att_db.CgmSessionStartTimeValue));
 }
+#endif
 
 
+
+#if USE_GN_2_PROTOCOL
+/*******************************************************************************
+*                           陈苏阳@2023-10-19
+* Function Name  :  att_update_cgm_status_char_data_crc
+* Description    :  更新ATT表中的CGM状态Char数据的CRC
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void att_update_cgm_status_char_data_crc(void)
+{
+    // 计算CRC
+    uint16_t usCrc16 = do_crc(&(cs_att_db.CgmStatusValue), sizeof(cs_att_db.CgmStatusValue) - sizeof(cs_att_db.CgmStatusValue.usCrc16));
+    // 赋值CRC
+    cs_att_db.CgmStatusValue.usCrc16 = usCrc16;
+
+    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_status, 0, sizeof(cs_att_db.CgmStatusValue), &(cs_att_db.CgmStatusValue));
+}
+#else
 /*******************************************************************************
 *                           陈苏阳@2023-10-19
 * Function Name  :  att_get_cgm_status
@@ -124,6 +165,27 @@ cgm_status_char_data_t* att_get_cgm_status(void)
 {
     return &(cs_att_db.CgmStatusValue);
 }
+#endif
+
+#if USE_GN_2_PROTOCOL
+/*******************************************************************************
+*                           陈苏阳@2023-10-19
+* Function Name  :  att_update_feature_char_data_crc
+* Description    :  更新ATT表中的特征Char数据的CRC
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void att_update_feature_char_data_crc(void)
+{
+    // 计算CRC
+    uint16_t usCrc16 = do_crc(&(cs_att_db.CgmFeatureValue), sizeof(cs_att_db.CgmFeatureValue) - sizeof(cs_att_db.CgmFeatureValue.usCrc16));
+    // 赋值CRC
+    cs_att_db.CgmFeatureValue.usCrc16 = usCrc16;
+
+    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_feature, 0, sizeof(cs_att_db.CgmFeatureValue), &(cs_att_db.CgmFeatureValue));
+}
+#endif
 
 /*******************************************************************************
 *                           陈苏阳@2024-03-12

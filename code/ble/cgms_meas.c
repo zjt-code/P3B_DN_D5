@@ -91,6 +91,16 @@ ret_code_t cgms_meas_special_send(ble_event_info_t BleEventInfo, cgms_history_sp
         uint8_t ucDatapacketBuffer[20];
         memcpy(ucDatapacketBuffer, &CgmsHistorySpecialDatapcket, ucLen);
         elog_hexdump("cgms_meas_send", 16, ucDatapacketBuffer, ucLen);
+
+#if USE_GN_2_PROTOCOL
+
+        mbedtls_aes_pkcspadding(&CgmsHistorySpecialDatapcket, ucLen);
+        ucLen = 16;
+        uint8_t cipher[16];
+        cgms_aes128_encrpty(ucDatapacketBuffer, cipher);
+        memcpy(ucDatapacketBuffer, cipher, 16);
+#endif
+
         // 发送数据
         sl_status_t sc;
         sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucDatapacketBuffer);
@@ -176,6 +186,7 @@ uint8_t cgms_meas_encode(cgms_meas_t Rec, uint8_t* pEncodeedData)
 *******************************************************************************/
 ret_code_t cgms_meas_send(ble_event_info_t BleEventInfo, cgms_meas_t Rec)
 {
+	uint8_t ucDatapacketBuffer[20];
     if (ble_meas_notify_is_enable() && app_have_a_active_ble_connect())
     {
         uint32_t uiTotalBytes;
@@ -189,9 +200,21 @@ ret_code_t cgms_meas_send(ble_event_info_t BleEventInfo, cgms_meas_t Rec)
                 return RET_CODE_FAIL;
             }
         }
-        uint8_t ucDatapacketBuffer[20];
+
+        
+#if USE_GN_2_PROTOCOL
+        memcpy(ucDatapacketBuffer, &Rec, ucLen);
+        mbedtls_aes_pkcspadding(&Rec, ucLen);
+        ucLen = 16;
+        uint8_t cipher[16];
+        cgms_aes128_encrpty(ucDatapacketBuffer, cipher);
+        memcpy(ucDatapacketBuffer, cipher, 16);
+		elog_hexdump("cgms_meas_send(encrpty)", 8, ucDatapacketBuffer, ucLen);
+#else
         uint8_t ucLen = cgms_meas_encode(Rec,ucDatapacketBuffer);
         elog_hexdump("cgms_meas_send", 8, ucDatapacketBuffer, ucLen);
+        
+#endif
         // 发送数据
         sl_status_t sc;
         sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucDatapacketBuffer);

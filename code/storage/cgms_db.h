@@ -33,7 +33,11 @@
 typedef struct
 {
     cgms_meas_t Record;// 历史数据内容
+    #if USE_GN_2_PROTOCOL
+    
+    #else
     uint8_t ucNone[7];// 填充
+    #endif
     uint16_t usChecksum;// 校验
 }__attribute__((packed))  one_record_storage_unit_t;// 单个历史数据存储结构体
 

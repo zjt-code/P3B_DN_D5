@@ -39,6 +39,9 @@ typedef struct
 typedef struct
 {
     ble_date_time_t date_time; /**< Date and time. */
+    #if USE_GN_2_PROTOCOL
+	uint8_t         time_zone; /**< Time zone. */
+    #endif
     uint8_t         dst;       /**< Daylight saving time. */
 }__attribute__((packed)) ble_cgms_sst_t;// CGM会话启动时间信息结构体
 
@@ -46,7 +49,11 @@ typedef struct
 extern ble_cgms_sst_t g_mSST;
 
 /* Private function prototypes -----------------------------------------------*/
+#if USE_GN_2_PROTOCOL
+void cgms_update_sst_and_time_zone(uint32_t uiStartTime, uint8_t ucTimeZone);
+#else
 void cgms_update_sst_and_time_zone(uint16_t usYear, uint8_t ucMonth, uint8_t ucDay, uint8_t ucHour, uint8_t ucMinute, uint8_t ucSecond, uint8_t ucTimeZone, uint8_t ucDataSaveingTime);
+#endif
 uint32_t cgms_sst_init(void);
 void cgms_sst_recover(ble_cgms_sst_t SST);
 #endif /* __CGMS_SST_H */
