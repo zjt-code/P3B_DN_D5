@@ -111,7 +111,6 @@ static void ble_socp_decode(uint8_t ucDataLen, uint8_t* pData, ble_socp_datapack
     pSocpDatapacket->ucOpCode = 0xFF;
     pSocpDatapacket->ucDataLen = 0;
     pSocpDatapacket->pData = NULL;
-
     // 如果数据包长度大于0
     if (ucDataLen > 0)
     {

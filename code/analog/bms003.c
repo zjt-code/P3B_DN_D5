@@ -42,22 +42,25 @@
 
 // 修改ICLK&PCLK&CIC
 #define CLK                                         0x16
-#define CIC                                         0x61
+#define CIC                                         0x41
 
 
-#define SLEEP_TIMER_INTERVAL    (10*1000)
+#define SLEEP_TIMER_INTERVAL                        (10*1000)
+#define SHOT_SLEEP_TIMER_INTERVAL                   (3*1000)
 
-static uint16_t usWe1Vol = 0;                                          // WE1电压
-static uint8_t g_ucBms003NewDataFlag = 0;                              // BMS003有新数据标志位
-static uint32_t g_Bms003IrqInterrupt;                                  // BMS003中断引脚的中断号
-static bms003_irq_callback g_Bms003IrqCallbackFun = NULL;              // 中断回调函数
-static fifo_t g_NewDataFifo;                                           // 新数据fifo
-static double g_fNewDataFifoBuffer[17];                                // 新数据fifo所使用的buffer
-static uint32_t g_uiChipEnTime = 0;                                    // 芯片使能时间
-static bool g_bWakeupFlag = false;                                     // 唤醒标志位
-static uint16_t ucIrqCnt = 0;                                          // 中断计数
-static uint16_t ucOnePeriodSampCnt = 0;                                // 单周期采样次数计数
-static uint16_t g_BaseWeVol = 0;                                       // WE1校准电压
+static uint16_t usWe1Vol = 0;                                       // WE1电压
+static uint8_t g_ucBms003NewDataFlag = 0;                           // BMS003有新数据标志位
+static uint32_t g_Bms003IrqInterrupt;                               // BMS003中断引脚的中断号
+static bms003_irq_callback g_Bms003IrqCallbackFun = NULL;           // 中断回调函数
+static fifo_t g_NewDataFifo;                                        // 新数据fifo
+static double g_fNewDataFifoBuffer[17];                             // 新数据fifo所使用的buffer
+static uint32_t g_uiChipEnTime = 0;                                 // 芯片使能时间
+static bool g_bWakeupFlag = false;                                  // 唤醒标志位
+static uint16_t ucIrqCnt = 0;                                       // 中断计数
+static uint16_t ucOnePeriodSampCnt = 0;                             // 单周期采样次数计数
+static uint16_t g_BaseWeVol = 0;                                    // WE1校准电压
+static uint8_t g_ucSampleingCnt = 0;                                // 采样次数
+static afe_run_mode_t g_AfeRunMode = AFE_RUN_MODE_CONTINUOUS;       // AFE运行模式
 sl_sleeptimer_timer_handle_t g_Bms003WakeupTimer;
 sl_sleeptimer_timer_handle_t g_Bms003MeasureTimer;
 
@@ -70,7 +73,7 @@ void bms003_int_irq_callback(uint8_t intNo, void* ctx);
 void bms003_imeas_irq_config_and_reading(void);
 void bms003_measure_timer_handler(void);
 void bms003_wakeup_timer_handler(void);
-void bms003_start(void);
+void bms003_start(afe_run_mode_t RunMode);
 void bms003_stop(void);
 void bms003_wakeup(void);
 void bms003_sleep(void);
@@ -220,6 +223,20 @@ void bms003_disable(void)
 *******************************************************************************/
 void bms003_wakeup_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 {
+    // 如果是猝发模式,则管理采样次数
+    if (g_AfeRunMode == AFE_RUN_MODE_SHOT)
+    {
+        if (g_ucSampleingCnt)
+        {
+            g_ucSampleingCnt--;
+        }
+        else
+        {
+            sl_sleeptimer_stop_timer(&g_Bms003WakeupTimer);
+            return;
+        }
+    }
+
     log_d("bms003_wakeup_timer_callback");
     // 发送事件
     event_push(MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER, NULL);
@@ -289,7 +306,6 @@ void bms003_init(void)
     bms003_enable();
 
     g_uiChipEnTime = rtc_get_curr_time();
-
 }
 
 
@@ -394,11 +410,11 @@ void bms003_wakeup_timer_handler(void)
 *                           陈苏阳@2023-11-02
 * Function Name  :  bms003_start
 * Description    :  BMS003开始工作
-* Input          :  void
+* Input          :  afe_run_mode_t RunMode
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void bms003_start(void)
+void bms003_start(afe_run_mode_t RunMode)
 {
     log_d("bms003_start");
     sl_status_t status;
@@ -426,12 +442,18 @@ void bms003_start(void)
     // 设置AFE的INT引脚中断
     GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
 
-    status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, sl_sleeptimer_ms_to_tick(SLEEP_TIMER_INTERVAL), bms003_wakeup_timer_callback, (void*)NULL, 0, 0);
-    if (status != SL_STATUS_OK)
+    // 如果采样次数为0,说明是连续采样,则直接开定时器
+    if (RunMode == AFE_RUN_MODE_CONTINUOUS)
     {
-        log_e("sl_sleeptimer_start_periodic_timer failed");
-        return;
+        status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, sl_sleeptimer_ms_to_tick(SLEEP_TIMER_INTERVAL), bms003_wakeup_timer_callback, (void*)NULL, 0, 0);
+        if (status != SL_STATUS_OK)
+        {
+            log_e("sl_sleeptimer_start_periodic_timer failed");
+            return;
+        }
     }
+    g_AfeRunMode = RunMode;
+
     // 按初次配置来进行
     g_bWakeupFlag = false;
 
@@ -439,6 +461,42 @@ void bms003_start(void)
     bms003_booting_config();
 }
 
+/*******************************************************************************
+*                           陈苏阳@2024-06-25
+* Function Name  :  bms003_shot
+* Description    :  BMS003猝发采样
+* Input          :  uint8_t ucSampleingCnt
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void bms003_shot(uint8_t ucSampleingCnt)
+{
+    if (g_AfeRunMode == AFE_RUN_MODE_SHOT)
+    {
+        sl_status_t status;
+
+        g_ucSampleingCnt = ucSampleingCnt;
+        status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, sl_sleeptimer_ms_to_tick(SHOT_SLEEP_TIMER_INTERVAL), bms003_wakeup_timer_callback, (void*)NULL, 0, 0);
+        if (status != SL_STATUS_OK)
+        {
+            log_e("sl_sleeptimer_start_periodic_timer failed");
+            return;
+        }
+    }
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-26
+* Function Name  :  bms003_get_residue_samplingCnt
+* Description    :  获取剩余的采样次数
+* Input          :  void
+* Output         :  None
+* Return         :  uint8_t
+*******************************************************************************/
+uint8_t bms003_get_residue_samplingCnt(void)
+{
+    return g_ucSampleingCnt;
+}
 
 /*******************************************************************************
 *                           陈苏阳@2023-11-02

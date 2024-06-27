@@ -23,8 +23,10 @@
 #include "sl_sleeptimer.h"
 #include <elog.h>
 /* Private variables ---------------------------------------------------------*/
-double g_fCurrElectricCurrent = 0.00;               // 当前电流
-bool g_bAfeisWorking = false;                       // AFE工作状态
+double g_fCurrElectricCurrent = 0.00;                               // 当前电流
+bool g_bAfeisWorking = false;                                       // AFE工作状态
+afe_run_mode_t g_AfeRunMode = AFE_RUN_MODE_CONTINUOUS;              // AFE运行模式
+uint8_t g_ucAfeShotCnt = 0;                                         // AFE猝发剩余次数
 /* Private function prototypes -----------------------------------------------*/
 
 
@@ -95,25 +97,46 @@ void afe_stop(void)
 *                           陈苏阳@2023-11-14
 * Function Name  :  afe_start
 * Description    :  AFE开始测量
-* Input          :  void
+* Input          :  afe_run_mode_t RunMode
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void afe_start(void)
+void afe_start(afe_run_mode_t RunMode)
 {
     log_d("afe_start");
 #if AFE_USE_BMS003
     // bms003开始工作
-    bms003_start();
+    bms003_start(RunMode);
 #endif
 #if AFE_USE_LTCGM1272
     // LTCGM1272开始工作
-    ltcgm1272_start();
+    ltcgm1272_start(RunMode);
 #endif
 
     g_bAfeisWorking = true;
 }
 
+
+
+/*******************************************************************************
+*                           陈苏阳@2024-06-25
+* Function Name  :  afe_shot
+* Description    :  AFE多次采集
+* Input          :  uint8_t ucSampleingCnt
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void afe_shot(uint8_t ucSampleingCnt)
+{
+    log_d("afe_shot");
+#if AFE_USE_BMS003
+    // bms003计次工作
+    bms003_shot(ucSampleingCnt);
+#endif
+#if AFE_USE_LTCGM1272
+    
+#endif
+}
 
 /*******************************************************************************
 *                           陈苏阳@2023-11-14

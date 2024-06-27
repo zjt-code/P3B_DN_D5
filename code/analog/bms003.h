@@ -208,7 +208,9 @@ void bms003_init(void);
 bool bms003_new_data_is_ready(void);
 bool bms003_get_new_data(double* pNewData);
 void bms003_register_irq_callback(bms003_irq_callback callback);
-void bms003_start(void);
+void bms003_start(afe_run_mode_t RunMode);
+void bms003_shot(uint8_t ucSampleingCnt);
+uint8_t bms003_get_residue_samplingCnt(void);
 void bms003_stop(void);
 #endif
 #endif /* __BMS003_H */

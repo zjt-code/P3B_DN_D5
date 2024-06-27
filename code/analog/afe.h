@@ -25,6 +25,12 @@
 
 typedef void (*afe_irq_callback)(void);
 
+
+typedef enum
+{
+    AFE_RUN_MODE_CONTINUOUS = 0x00,                                 // 连续模式
+    AFE_RUN_MODE_SHOT = 0x01                                        // 猝发模式
+}afe_run_mode_t;
 /* Private variables ---------------------------------------------------------*/
 
 
@@ -34,7 +40,8 @@ typedef void (*afe_irq_callback)(void);
 bool afe_is_working(void);
 void afe_init(void);
 void afe_stop(void);
-void afe_start(void);
+void afe_start(afe_run_mode_t RunMode);
+void afe_shot(uint8_t ucSampleingCnt);
 bool afe_new_data_is_ready(void);
 bool afe_get_new_data(double* pNewData);
 void afe_register_irq_callback(afe_irq_callback callback);

@@ -13,7 +13,7 @@
 #define LOG_TAG                   "APP_GLUCOSE_MEAS"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                    ELOG_LVL_INFO
+#define LOG_LVL                    ELOG_LVL_DEBUG
 
 
 #include <string.h>
@@ -367,7 +367,7 @@ void app_glucose_meas_glucose_handler(void)
 
     // 如果测量间隔小于最小间隔,则设置为最小间隔
     if (g_ucGlucoseMeasInterval < APP_GLUCOSE_MEAS_MEAS_INTERVAL_MIN) g_ucGlucoseMeasInterval = APP_GLUCOSE_MEAS_MEAS_INTERVAL_MIN;
-
+    log_d("g_ucGlucoseMeasTimeCnt:%d\r\n", g_ucGlucoseMeasTimeCnt);
     // 如果当前到了测量间隔时间计数
     if (g_ucGlucoseMeasTimeCnt >= (g_ucGlucoseMeasInterval))
     {
@@ -381,6 +381,12 @@ void app_glucose_meas_glucose_handler(void)
 
         // 清零测量间隔时间计数
         g_ucGlucoseMeasTimeCnt = 0;
+    }
+    // 如果到达了猝发采样的开始时间点
+    else if (g_ucGlucoseMeasTimeCnt == (APP_GLUCOSE_MEAS_MEAS_INTERVAL_MIN - 3 * 18 - 1))
+    {
+        // 开始18次猝发采样
+        afe_shot(18);
     }
 
     // 累计时间
@@ -444,7 +450,8 @@ void app_glucose_meas_handler(uint32_t uiArg)
                 // 如果AFE还未开始工作,则启动AFE
                 if (afe_is_working() == false)
                 {
-                    afe_start();
+                    // 开始AFE,使用猝发采样模式
+                    afe_start(AFE_RUN_MODE_SHOT);
                 }
                 else
                 {
@@ -462,7 +469,8 @@ void app_glucose_meas_handler(uint32_t uiArg)
             // 如果AFE还未开始工作,则启动AFE
             if (afe_is_working() == false)
             {
-                afe_start();
+                // 开始采样,使用连续采样模式
+                afe_start(AFE_RUN_MODE_CONTINUOUS);
             }
             else
             {

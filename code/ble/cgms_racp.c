@@ -330,6 +330,7 @@ void cgms_racp_report_num_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_data
     racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
     ble_cgms_racp_datapacket_t RspDatapacket;
     memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
+    RspDatapacket.ucOpCode = RacpDatapacket.ucOpCode;
     uint16_t usRacpRecordCnt = cgms_db_get_records_num();
     RspDatapacket.ucData[0] = usRacpRecordCnt & 0xFF;
     RspDatapacket.ucData[1] = (usRacpRecordCnt >> 8) & 0xFF;
@@ -354,6 +355,7 @@ void cgms_racp_delete_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapack
     racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
     ble_cgms_racp_datapacket_t RspDatapacket;
     memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
+    RspDatapacket.ucOpCode = RacpDatapacket.ucOpCode;
     ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
     // 发送回应包
     racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
@@ -375,6 +377,7 @@ void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapack
     uint16_t usfilterData2 = 0x00;
     ble_cgms_racp_datapacket_t RspDatapacket;
     memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
+    RspDatapacket.ucOpCode = RacpDatapacket.ucOpCode;
     // 效验CRC
     if (0 == RacpDatapacket.ucOperator)
     {
@@ -572,22 +575,22 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     case RACP_OPCODE_REPORT_RECS:
     {
         cgms_racp_report_recs(BleEventInfo, RacpDatapacket);
-        break;
+        return;
     }
     case RACP_OPCODE_REPORT_NUM_RECS:
     {
         cgms_racp_report_num_recs(BleEventInfo, RacpDatapacket);
-        break;
+        return;
     }
     case RACP_OPCODE_DELETE_RECS:
     {
         cgms_racp_delete_recs(BleEventInfo, RacpDatapacket);
-        break;
+        return;
     }
     case RACP_OPCODE_ABORT_OPERATION:
 
         cgms_racp_abort_operation(BleEventInfo, RacpDatapacket);
-        break;
+        return;
     default:
     {
         ble_cgms_racp_datapacket_t RspDatapacket;
@@ -597,7 +600,7 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
         ResponseCode = RACP_RESPONSE_RESULT_OPCODE_UNSUPPORTED;
         // 发送回应包
         racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
-        break;
+        return;
     }
     }
     // 发送回应包

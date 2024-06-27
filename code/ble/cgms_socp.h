@@ -58,6 +58,7 @@ typedef struct
 // SOCP数据包_设置启动时间数据包数据部分_结构体
 typedef struct
 {
+    uint8_t ucPrmNo;                                // 参数号
     uint16_t usYear;
     uint8_t ucMonth;
     uint8_t ucDay;
