@@ -35,6 +35,7 @@
 #include "app_glucose_meas.h"
 #include "cgms_debug_db.h"
 #include "simplegluco.h"
+#include "cur_filter.h"
 /* Private variables ---------------------------------------------------------*/
 #define NRF_BLE_CGMS_PLUS_INFINTE                     0x07FE
 #define NRF_BLE_CGMS_MINUS_INFINTE                    0x0802
@@ -586,8 +587,13 @@ void cgms_socp_write_sensor_code(ble_event_info_t BleEventInfo, ble_socp_datapac
     sensorK = (float)usSensorCode / 1000.0f;
     cur_get_cur_error_value(sensorK);
     log_i("cur_get_cur_error_value(%f)", sensorK);
-    log_i("sensorcode update:%d", usSensorCode);
+    log_i("sensor code update:%d", usSensorCode);
 
+    extern float cur_error_min_value;
+    extern float cur_error_max_value;
+
+    log_i("cur_error_min_value(%f)", cur_error_min_value);
+    log_i("cur_error_max_value(%f)", cur_error_max_value);
     // 如果Code为0,则说明Code无效
     if (usSensorCode == 0)
     {

@@ -40,7 +40,6 @@ typedef struct
 uint8_t uint16_encode(uint16_t value, uint8_t* p_encoded_data);
 uint16_t uint16_decode(const uint8_t* p_encoded_data);
 uint8_t uint24_encode(uint32_t value, uint8_t* p_encoded_data);
-void swmLogHex(uint32_t ucLevl, uint8_t* pData, uint32_t uiLen);
 uint32_t get_second_time(time_info_t* pDateTime);
 void get_date_time_from_second(uint32_t lSec, time_info_t* pDateTime);
 #endif /* __APP_UTIL_H */

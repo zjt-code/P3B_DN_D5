@@ -15,7 +15,7 @@
 #undef LOG_LVL
 #define LOG_LVL                    ELOG_LVL_INFO
 
-
+#include "sl_bt_api.h"
 #include "em_common.h"
 #include "app_assert.h"
 #include <elog.h>
@@ -108,7 +108,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         static char cSn[14];
         memset(cSn, 0x00, sizeof(cSn));
         cgms_prm_get_sn(cSn);
-        sl_bt_gatt_server_write_attribute_value(gattdb_device_name, 0, sizeof(cSn), cSn);
+        sl_bt_gatt_server_write_attribute_value(gattdb_device_name, 0, sizeof(cSn),(uint8_t*) cSn);
 
         // 调用应用层的回调
         app_event_ble_connected_callback(evt->data.evt_connection_opened.connection);

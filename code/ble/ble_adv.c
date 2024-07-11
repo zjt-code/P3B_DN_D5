@@ -50,7 +50,7 @@ void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint8_t* pAdvDataLen)
     if (pAdvDataBuffer)
     {
         // 获取存储的SN
-        cgms_prm_get_sn((unsigned char*)g_cAdvSnStr);
+        cgms_prm_get_sn((char*)g_cAdvSnStr);
 
 #ifndef RSL15_CID            // 如果是RSL15平台的,就不需要添加flag字段,不然会发不出广播
         // 添加Flag

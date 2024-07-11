@@ -45,7 +45,6 @@ volatile static uint16_t g_usGlucoseElectricCurrent = 0;                        
 volatile static float g_fGlucoseConcentration = 0.0f;                           // 测量计算出来的实时血糖浓度(单位:mmol/L)
 volatile static uint8_t g_ucAvgElectricCurrentCalTempArrayCnt = 0;              // 当前用于计算平均电流的临时数据数量
 volatile static double g_dAvgElectricCurrentCalTempArray[APP_GLUCOSE_MEAS_AVG_ELECTRIC_CURRENT_CAL_TEMP_ARRAY_SIZE];                   // 用于计算平均电流的临时数据数组
-static uint16_t g_usAppBatteryTimeDiv = 0;	                            // 电量检测定时任务分频计数
 volatile  uint8_t g_ucAppBatteryInitMeasDoneFlag = 0;                     // 电量初始转换完成标志位
 static uint32_t g_uiListRtcTime = 0;                                   // 最后一次的RTC时间
 

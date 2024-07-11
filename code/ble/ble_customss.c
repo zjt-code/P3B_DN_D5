@@ -20,7 +20,7 @@
 #include "cgms_racp.h"
 //#include "cgms_db.h"
 #include "cgms_crc.h"
-
+#include "sl_bt_api.h"
 /* Private variables ---------------------------------------------------------*/
 
 static struct ble_customss_service_att_database  cs_att_db;
@@ -128,7 +128,7 @@ void att_update_start_time_char_data_crc(void)
 *******************************************************************************/
 void att_update_start_time_char_data(void)
 {
-    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_session_start_time, 0, sizeof(cs_att_db.CgmSessionStartTimeValue), &(cs_att_db.CgmSessionStartTimeValue));
+    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_session_start_time, 0, sizeof(cs_att_db.CgmSessionStartTimeValue), (uint8_t*)&(cs_att_db.CgmSessionStartTimeValue));
 }
 #endif
 
@@ -197,7 +197,7 @@ void att_update_feature_char_data_crc(void)
 *******************************************************************************/
 void att_update_cgm_status_char_data(void)
 {
-    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_status, 0, sizeof(cs_att_db.CgmStatusValue), &(cs_att_db.CgmStatusValue));
+    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_status, 0, sizeof(cs_att_db.CgmStatusValue), (uint8_t*)&(cs_att_db.CgmStatusValue));
 }
 
 
@@ -211,7 +211,7 @@ void att_update_cgm_status_char_data(void)
 *******************************************************************************/
 void att_update_feature_char_data(void)
 {
-    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_feature, 0, sizeof(cs_att_db.CgmFeatureValue), &(cs_att_db.CgmFeatureValue));
+    sl_bt_gatt_server_write_attribute_value(gattdb_cgm_feature, 0, sizeof(cs_att_db.CgmFeatureValue), (uint8_t*)&(cs_att_db.CgmFeatureValue));
 }
 
 

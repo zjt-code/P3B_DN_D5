@@ -74,21 +74,6 @@ uint8_t uint24_encode(uint32_t value, uint8_t* p_encoded_data)
 
 
 
-void swmLogHex(uint32_t ucLevl, uint8_t* pData, uint32_t uiLen)
-{
-    uint8_t ucTmpBuffer[128];
-    memset(ucTmpBuffer, 0x00, sizeof(ucTmpBuffer));
-    uint8_t ucOneByteHexStr[4];
-    for (uint32_t i = 0; i < uiLen; i++)
-    {
-        sprintf((char*)ucOneByteHexStr, "%02X ", pData[i]);
-        strcat((char*)ucTmpBuffer, (char*)ucOneByteHexStr);
-    }
-    swmLogInfo("%s\r\n", ucTmpBuffer);
-}
-
-
-
 
 /*******************************************************************************
 *                           陈苏阳@2019-06-11

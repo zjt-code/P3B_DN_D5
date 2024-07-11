@@ -38,7 +38,7 @@ ret_code_t cgms_prm_db_write_flash()
         return ucResult;
     }
     // 写入参数结构体
-    ucResult = cgms_prm_flash_write(0, (uint32_t*)&g_PrmDb, sizeof(g_PrmDb));
+    ucResult = cgms_prm_flash_write(0, (uint8_t*)&g_PrmDb, sizeof(g_PrmDb));
     if (ucResult)
     {
         log_e("cgms_prm_flash_write fail:%d", ucResult);
@@ -107,7 +107,7 @@ void cgms_prm_db_power_on_init(void)
         g_PrmDb.DacVolOffset = 0;
     }
 
-    cgms_prm_get_sn(g_ucSn);
+    cgms_prm_get_sn((char*)g_ucSn);
 }
 
 /*******************************************************************************

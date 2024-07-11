@@ -17,7 +17,10 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-
+extern uint8_t cgms_prm_port_init(void);
+extern uint8_t cgms_prm_port_erase_sector(uint32_t uiAddr);
+extern uint8_t cgms_prm_port_write(uint32_t uiAddr, uint8_t* pWriteData, uint16_t usWriteLen);
+extern uint8_t cgms_prm_port_read(uint32_t uiAddr, uint8_t* pReadData, uint16_t usReadLen);
 
 /* Private functions ---------------------------------------------------------*/
 
