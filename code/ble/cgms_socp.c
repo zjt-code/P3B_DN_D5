@@ -36,6 +36,7 @@
 #include "cgms_debug_db.h"
 #include "simplegluco.h"
 #include "cur_filter.h"
+#include "afe.h"
 /* Private variables ---------------------------------------------------------*/
 #define NRF_BLE_CGMS_PLUS_INFINTE                     0x07FE
 #define NRF_BLE_CGMS_MINUS_INFINTE                    0x0802
@@ -239,7 +240,7 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_stop_session_event_callback(uint32_t uiArg)
+void cgms_socp_stop_session_event_callback(__attribute__((unused))  uint32_t uiArg)
 {
     // 停止CGM
     app_glucose_meas_stop_session_handler();
@@ -280,7 +281,7 @@ void cgms_socp_start_session_event_callback(uint32_t uiArg)
 * Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_write_glucose_calibration_value(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+void cgms_socp_write_glucose_calibration_value(__attribute__((unused))  ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
 #if USE_GN_2_PROTOCOL
     // 判断长度是否正确
@@ -344,7 +345,7 @@ void cgms_socp_write_glucose_calibration_value(ble_event_info_t BleEventInfo, bl
 * Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_start_the_session(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+void cgms_socp_start_the_session(__attribute__((unused))  ble_event_info_t BleEventInfo,__attribute__((unused)) ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
 #if USE_GN_2_PROTOCOL
     // 效验命令的CRC
@@ -467,7 +468,7 @@ void cgms_socp_start_the_session(ble_event_info_t BleEventInfo, ble_socp_datapac
 * Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_stop_the_session(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+void cgms_socp_stop_the_session(__attribute__((unused))  ble_event_info_t BleEventInfo,__attribute__((unused))  ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
 #if USE_GN_2_PROTOCOL
 
@@ -531,7 +532,7 @@ void cgms_socp_stop_the_session(ble_event_info_t BleEventInfo, ble_socp_datapack
 * Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_read_hard_fault_info(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+void cgms_socp_read_hard_fault_info(ble_event_info_t BleEventInfo,__attribute__((unused))  ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
     log_i("SOCP_READ_HARD_FAULT_INFO");
     pRspRequest->ucOpCode = SOCP_RSP_SUCCESS;
@@ -574,7 +575,7 @@ void cgms_socp_read_hard_fault_info(ble_event_info_t BleEventInfo, ble_socp_data
 * Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_write_sensor_code(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+void cgms_socp_write_sensor_code(__attribute__((unused)) ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
     uint16_t usSensorCode;
     usSensorCode = uint16_decode(SocpRequest.pData + 1);
@@ -622,7 +623,7 @@ void cgms_socp_write_sensor_code(ble_event_info_t BleEventInfo, ble_socp_datapac
 * Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_start_fota(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+void cgms_socp_start_fota(__attribute__((unused)) ble_event_info_t BleEventInfo, __attribute__((unused)) ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
     // 触发进入OTA
     app_global_ota_start();
@@ -639,7 +640,7 @@ void cgms_socp_start_fota(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  
 * Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_read_reset_reg(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+void cgms_socp_read_reset_reg(__attribute__((unused)) ble_event_info_t BleEventInfo,__attribute__((unused))  ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
     extern uint32_t rest_dig_status;
     extern uint32_t acs_reset_status;
@@ -657,7 +658,7 @@ void cgms_socp_read_reset_reg(ble_event_info_t BleEventInfo, ble_socp_datapacket
 * Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_start_ad_cali(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+void cgms_socp_start_ad_cali(__attribute__((unused)) ble_event_info_t BleEventInfo,__attribute__((unused))  ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
     if (app_global_is_session_runing())
     {
@@ -681,7 +682,7 @@ void cgms_socp_start_ad_cali(ble_event_info_t BleEventInfo, ble_socp_datapacket_
 * Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_read_ad_cali_data(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+void cgms_socp_read_ad_cali_data(__attribute__((unused)) ble_event_info_t BleEventInfo,__attribute__((unused))  ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
     uint32_t uiMeasElectricCurrent = 0;
     app_glucose_meas_get_factory_meas_electric_current(&uiMeasElectricCurrent);
@@ -701,7 +702,7 @@ void cgms_socp_read_ad_cali_data(ble_event_info_t BleEventInfo, ble_socp_datapac
 * Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_write_prm(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+void cgms_socp_write_prm(__attribute__((unused)) ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
     if (SocpRequest.ucDataLen > 16)
     {
@@ -730,6 +731,36 @@ void cgms_socp_write_prm(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  S
             sTmp = uint16_decode(SocpRequest.pData + ucIndex);
             g_PrmDb.SN = (int16_t)sTmp;
             ucIndex += 2;
+            g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
+            break;
+        }
+        // 写AFE电压偏移
+        case SOCP_PRM_WRITE_AFE_VOL_OFFISET:
+        {
+            pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+            memcpy(&g_PrmDb.DacVolOffset, &(SocpRequest.pData[ucIndex]), 2);
+            log_i("write dac vol offset:%d", g_PrmDb.DacVolOffset);
+            g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
+
+            // 准实时地更新AFE的电压偏移
+            update_vol_offset(g_PrmDb.DacVolOffset);
+            break;
+        }
+        // 写AFE系数K
+        case SOCP_PRM_WRITE_AFE_COEFFICIENT_K:
+        {
+            pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+            memcpy(&g_PrmDb.AdcK, &(SocpRequest.pData[ucIndex]), 2);
+            log_i("write adc k:%d", g_PrmDb.AdcK);
+            g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
+            break;
+        }
+        // 写AFE系数B
+        case SOCP_PRM_WRITE_AFE_COEFFICIENT_B:
+        {
+            pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+            memcpy(&g_PrmDb.AdcB, &(SocpRequest.pData[ucIndex]), 2);
+            log_i("write adc b:%d", g_PrmDb.AdcB);
             g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
             break;
         }
@@ -769,7 +800,7 @@ void cgms_socp_write_prm(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  S
 * Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_read_prm(ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
+void cgms_socp_read_prm(__attribute__((unused)) ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
     if (SocpRequest.ucDataLen > 4)
     {

@@ -407,6 +407,20 @@ void bms003_wakeup_timer_handler(void)
 }
 
 /*******************************************************************************
+*                           陈苏阳@2024-08-01
+* Function Name  :  bms0003_update_vol_offset
+* Description    :  BMS0003更新电压偏移
+* Input          :  int16_t sVolOffset
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void bms0003_update_vol_offset(int16_t sVolOffset)
+{
+    usWe1Vol = (uint16_t)(CH1_DINWE_H2 << 8) + CH1_DINWE_L8;
+    usWe1Vol += sVolOffset;
+}
+
+/*******************************************************************************
 *                           陈苏阳@2023-11-02
 * Function Name  :  bms003_start
 * Description    :  BMS003开始工作

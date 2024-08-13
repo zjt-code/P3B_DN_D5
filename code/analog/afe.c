@@ -33,7 +33,21 @@ uint8_t g_ucAfeShotCnt = 0;                                         // AFE猝发
 
 /* Private functions ---------------------------------------------------------*/
 
-
+/*******************************************************************************
+*                           陈苏阳@2024-08-01
+* Function Name  :  update_vol_offset
+* Description    :  更新电压偏移
+* Input          :  int16_t sVolOffset
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void update_vol_offset(int16_t sVolOffset)
+{
+#if AFE_USE_BMS003
+    // 更新电压偏移
+    bms0003_update_vol_offset(sVolOffset);
+#endif
+}
 /*******************************************************************************
 *                           陈苏阳@2023-11-15
 * Function Name  :  afe_is_working

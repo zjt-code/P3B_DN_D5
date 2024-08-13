@@ -208,6 +208,7 @@ void bms003_init(void);
 bool bms003_new_data_is_ready(void);
 bool bms003_get_new_data(double* pNewData);
 void bms003_register_irq_callback(bms003_irq_callback callback);
+void bms0003_update_vol_offset(int16_t sVolOffset);
 void bms003_start(afe_run_mode_t RunMode);
 void bms003_shot(uint8_t ucSampleingCnt);
 uint8_t bms003_get_residue_samplingCnt(void);

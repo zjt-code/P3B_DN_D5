@@ -183,6 +183,9 @@ typedef enum
 typedef enum
 {
     SOCP_PRM_NO_WRITE_SN = 0x04,                                    // 写SN
+    SOCP_PRM_WRITE_AFE_VOL_OFFISET = 0x05,                          // 写AFE电压偏移
+    SOCP_PRM_WRITE_AFE_COEFFICIENT_K = 0x06,                          // 写AFE系数K
+    SOCP_PRM_WRITE_AFE_COEFFICIENT_B = 0x07,                          // 写AFE系数B
     SOCP_PRM_NO_WRITE_START_TIME = 0xFA,                            // 写启动时间
     SOCP_PRM_NO_SAVE_PRM = 0xFE,                                    // 保存参数
     SOCP_PRM_NO_READ_START_TIME = 0xA0,                             // 读启动时间

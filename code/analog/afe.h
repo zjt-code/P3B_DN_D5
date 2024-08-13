@@ -36,10 +36,12 @@ typedef enum
 
 
 
+
 /* Private function prototypes -----------------------------------------------*/
 bool afe_is_working(void);
 void afe_init(void);
 void afe_stop(void);
+void update_vol_offset(int16_t sVolOffset);
 void afe_start(afe_run_mode_t RunMode);
 void afe_shot(uint8_t ucSampleingCnt);
 bool afe_new_data_is_ready(void);
