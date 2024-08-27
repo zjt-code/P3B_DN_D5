@@ -61,6 +61,7 @@ static uint16_t ucOnePeriodSampCnt = 0;                             // 单周期
 static uint16_t g_BaseWeVol = 0;                                    // WE1校准电压
 static uint8_t g_ucSampleingCnt = 0;                                // 采样次数
 static afe_run_mode_t g_AfeRunMode = AFE_RUN_MODE_CONTINUOUS;       // AFE运行模式
+static bool g_bFirstDataFlag = 0;                                   // 第一个数据标志位
 sl_sleeptimer_timer_handle_t g_Bms003WakeupTimer;
 sl_sleeptimer_timer_handle_t g_Bms003MeasureTimer;
 
@@ -354,7 +355,16 @@ void bms003_imeas_irq_config_and_reading(void)
             // 数据推入FIFO
             double fData = ((double)(buff - g_BaseWeVol) / 32768.0 * 1.2 * 100) / 1.11291;
             log_i("buff:%d   g_BaseWeVol:%d  fData:%f", buff, g_BaseWeVol, fData);
-            fifo_in(&g_NewDataFifo, &fData, 1);
+            if (g_bFirstDataFlag==false)
+            {
+                log_d("send_fifo");
+                fifo_in(&g_NewDataFifo, &fData, 1);
+            }
+            else
+            {
+                g_bFirstDataFlag = false;
+            }
+            
         }
     }
 
@@ -471,6 +481,9 @@ void bms003_start(afe_run_mode_t RunMode)
     // 按初次配置来进行
     g_bWakeupFlag = false;
 
+    // 设置第一次数据标志位
+    g_bFirstDataFlag = true;
+
     // bms003配置
     bms003_booting_config();
 }
@@ -487,6 +500,7 @@ void bms003_shot(uint8_t ucSampleingCnt)
 {
     if (g_AfeRunMode == AFE_RUN_MODE_SHOT)
     {
+        log_d("bms003_shot(%d)", ucSampleingCnt);
         sl_status_t status;
 
         g_ucSampleingCnt = ucSampleingCnt;

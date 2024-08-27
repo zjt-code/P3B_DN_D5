@@ -144,18 +144,6 @@ int main(void)
 
     // 初始化GPIO的时钟
     CMU_ClockEnable(cmuClock_GPIO, true);
-    GPIO_PinModeSet(gpioPortC, 0, gpioModePushPull, 0);
-    GPIO_PinModeSet(gpioPortC, 1, gpioModePushPull, 0);
-    GPIO_PinModeSet(gpioPortC, 2, gpioModePushPull, 0);
-    GPIO_PinModeSet(gpioPortC, 5, gpioModePushPull, 0);
-
-    GPIO_PinModeSet(gpioPortA, 0, gpioModePushPull, 0);
-    GPIO_PinModeSet(gpioPortA, 4, gpioModePushPull, 0);
-    GPIO_PinModeSet(gpioPortA, 6, gpioModePushPull, 0);
-
-    GPIO_PinModeSet(gpioPortB, 0, gpioModePushPull, 0);
-
-
     // 初始化log
     SEGGER_RTT_Init();
     SEGGER_RTT_SetTerminal(0);
