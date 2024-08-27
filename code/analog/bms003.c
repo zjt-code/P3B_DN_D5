@@ -164,7 +164,7 @@ void bms003_delay_us(uint32_t uiUs)
 *******************************************************************************/
 void bms003_spi_transfer(uint8_t* pTxBuffer,uint8_t* pRxBuffer,uint8_t ucLen)
 {
-    SPIDRV_MTransferB(sl_spidrv_usart_AfeSpiInst_handle, pTxBuffer, pRxBuffer, ucLen);
+    SPIDRV_MTransferB(sl_spidrv_eusart_AfeSpiInst_handle, pTxBuffer, pRxBuffer, ucLen);
 }
 
 /*******************************************************************************
@@ -178,7 +178,7 @@ void bms003_spi_transfer(uint8_t* pTxBuffer,uint8_t* pRxBuffer,uint8_t ucLen)
 *******************************************************************************/
 void bms003_spi_write_data(uint8_t* pTxBuffer, uint8_t ucLen)
 {
-    SPIDRV_MTransmitB(sl_spidrv_usart_AfeSpiInst_handle, pTxBuffer, ucLen);
+    SPIDRV_MTransmitB(sl_spidrv_eusart_AfeSpiInst_handle, pTxBuffer, ucLen);
 }
 
 /*******************************************************************************

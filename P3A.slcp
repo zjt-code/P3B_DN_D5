@@ -51,7 +51,7 @@ component:
 - {id: rail_util_rf_path}
 - {id: segger_rtt}
 - instance: [AfeSpiInst]
-  id: spidrv_usart
+  id: spidrv_eusart
 - {id: udelay}
 other_file:
 - {path: 'C:/SiliconLabs/SimplicityStudio/v5/developer/sdks/gecko_sdk_suite/v4.4.0/app/bluetooth/example/bt_soc_blinky/image/readme_img0.png',

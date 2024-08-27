@@ -74,38 +74,6 @@
 // [TIMER4]$
 
 // $[USART0]
-// USART0 CLK on PC06
-#ifndef USART0_CLK_PORT                         
-#define USART0_CLK_PORT                          gpioPortC
-#endif
-#ifndef USART0_CLK_PIN                          
-#define USART0_CLK_PIN                           6
-#endif
-
-// USART0 CS on PC04
-#ifndef USART0_CS_PORT                          
-#define USART0_CS_PORT                           gpioPortC
-#endif
-#ifndef USART0_CS_PIN                           
-#define USART0_CS_PIN                            4
-#endif
-
-// USART0 RX on PC02
-#ifndef USART0_RX_PORT                          
-#define USART0_RX_PORT                           gpioPortC
-#endif
-#ifndef USART0_RX_PIN                           
-#define USART0_RX_PIN                            2
-#endif
-
-// USART0 TX on PC05
-#ifndef USART0_TX_PORT                          
-#define USART0_TX_PORT                           gpioPortC
-#endif
-#ifndef USART0_TX_PIN                           
-#define USART0_TX_PIN                            5
-#endif
-
 // [USART0]$
 
 // $[USART1]
@@ -133,6 +101,54 @@
 // [I2C0]$
 
 // $[EUSART0]
+// EUSART0 CS on PC04
+#ifndef EUSART0_CS_PORT                         
+#define EUSART0_CS_PORT                          gpioPortC
+#endif
+#ifndef EUSART0_CS_PIN                          
+#define EUSART0_CS_PIN                           4
+#endif
+
+// EUSART0 CTS on PA02
+#ifndef EUSART0_CTS_PORT                        
+#define EUSART0_CTS_PORT                         gpioPortA
+#endif
+#ifndef EUSART0_CTS_PIN                         
+#define EUSART0_CTS_PIN                          2
+#endif
+
+// EUSART0 RTS on PA03
+#ifndef EUSART0_RTS_PORT                        
+#define EUSART0_RTS_PORT                         gpioPortA
+#endif
+#ifndef EUSART0_RTS_PIN                         
+#define EUSART0_RTS_PIN                          3
+#endif
+
+// EUSART0 RX on PC02
+#ifndef EUSART0_RX_PORT                         
+#define EUSART0_RX_PORT                          gpioPortC
+#endif
+#ifndef EUSART0_RX_PIN                          
+#define EUSART0_RX_PIN                           2
+#endif
+
+// EUSART0 SCLK on PC06
+#ifndef EUSART0_SCLK_PORT                       
+#define EUSART0_SCLK_PORT                        gpioPortC
+#endif
+#ifndef EUSART0_SCLK_PIN                        
+#define EUSART0_SCLK_PIN                         6
+#endif
+
+// EUSART0 TX on PC05
+#ifndef EUSART0_TX_PORT                         
+#define EUSART0_TX_PORT                          gpioPortC
+#endif
+#ifndef EUSART0_TX_PIN                          
+#define EUSART0_TX_PIN                           5
+#endif
+
 // [EUSART0]$
 
 // $[PTI]
@@ -161,6 +177,13 @@
 #endif
 #ifndef AFE_INT_PIN                             
 #define AFE_INT_PIN                              6
+#endif
+
+#ifndef MCU_POWER_LOCK_PORT                     
+#define MCU_POWER_LOCK_PORT                      gpioPortB
+#endif
+#ifndef MCU_POWER_LOCK_PIN                      
+#define MCU_POWER_LOCK_PIN                       2
 #endif
 
 #ifndef AFE_WAKE_UP_PORT                        
