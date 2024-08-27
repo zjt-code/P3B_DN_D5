@@ -111,11 +111,6 @@
 			<locationURI>STUDIO_SDK_LOC/platform/common/inc/sl_status.h</locationURI>
 		</link>
 		<link>
-			<name>gecko_sdk_4.4.0/platform/common/inc/sl_string.h</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/platform/common/inc/sl_string.h</locationURI>
-		</link>
-		<link>
 			<name>gecko_sdk_4.4.0/platform/common/src/sl_assert.c</name>
 			<type>1</type>
 			<locationURI>STUDIO_SDK_LOC/platform/common/src/sl_assert.c</locationURI>
@@ -124,11 +119,6 @@
 			<name>gecko_sdk_4.4.0/platform/common/src/sl_slist.c</name>
 			<type>1</type>
 			<locationURI>STUDIO_SDK_LOC/platform/common/src/sl_slist.c</locationURI>
-		</link>
-		<link>
-			<name>gecko_sdk_4.4.0/platform/common/src/sl_string.c</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/platform/common/src/sl_string.c</locationURI>
 		</link>
 		<link>
 			<name>gecko_sdk_4.4.0/platform/common/src/sl_syscalls.c</name>
@@ -616,21 +606,6 @@
 			<locationURI>STUDIO_SDK_LOC/app/common/util/app_assert/sl_app_assert.h</locationURI>
 		</link>
 		<link>
-			<name>gecko_sdk_4.4.0/app/common/util/app_log/app_log.c</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/app/common/util/app_log/app_log.c</locationURI>
-		</link>
-		<link>
-			<name>gecko_sdk_4.4.0/app/common/util/app_log/app_log.h</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/app/common/util/app_log/app_log.h</locationURI>
-		</link>
-		<link>
-			<name>gecko_sdk_4.4.0/app/common/util/app_log/sl_app_log.h</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/app/common/util/app_log/sl_app_log.h</locationURI>
-		</link>
-		<link>
 			<name>gecko_sdk_4.4.0/app/common/util/app_timer/app_timer.c</name>
 			<type>1</type>
 			<locationURI>STUDIO_SDK_LOC/app/common/util/app_timer/app_timer.c</locationURI>
@@ -871,54 +846,14 @@
 			<locationURI>STUDIO_SDK_LOC/platform/service/iostream/inc/sl_iostream_rtt.h</locationURI>
 		</link>
 		<link>
-			<name>gecko_sdk_4.4.0/platform/service/iostream/inc/sl_iostream_stdlib_config.h</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/platform/service/iostream/inc/sl_iostream_stdlib_config.h</locationURI>
-		</link>
-		<link>
-			<name>gecko_sdk_4.4.0/platform/service/iostream/inc/sl_iostream_uart.h</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/platform/service/iostream/inc/sl_iostream_uart.h</locationURI>
-		</link>
-		<link>
-			<name>gecko_sdk_4.4.0/platform/service/iostream/inc/sl_iostream_usart.h</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/platform/service/iostream/inc/sl_iostream_usart.h</locationURI>
-		</link>
-		<link>
-			<name>gecko_sdk_4.4.0/platform/service/iostream/inc/sli_iostream_uart.h</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/platform/service/iostream/inc/sli_iostream_uart.h</locationURI>
-		</link>
-		<link>
 			<name>gecko_sdk_4.4.0/platform/service/iostream/src/sl_iostream.c</name>
 			<type>1</type>
 			<locationURI>STUDIO_SDK_LOC/platform/service/iostream/src/sl_iostream.c</locationURI>
 		</link>
 		<link>
-			<name>gecko_sdk_4.4.0/platform/service/iostream/src/sl_iostream_retarget_stdio.c</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/platform/service/iostream/src/sl_iostream_retarget_stdio.c</locationURI>
-		</link>
-		<link>
 			<name>gecko_sdk_4.4.0/platform/service/iostream/src/sl_iostream_rtt.c</name>
 			<type>1</type>
 			<locationURI>STUDIO_SDK_LOC/platform/service/iostream/src/sl_iostream_rtt.c</locationURI>
-		</link>
-		<link>
-			<name>gecko_sdk_4.4.0/platform/service/iostream/src/sl_iostream_stdlib_config.c</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/platform/service/iostream/src/sl_iostream_stdlib_config.c</locationURI>
-		</link>
-		<link>
-			<name>gecko_sdk_4.4.0/platform/service/iostream/src/sl_iostream_uart.c</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/platform/service/iostream/src/sl_iostream_uart.c</locationURI>
-		</link>
-		<link>
-			<name>gecko_sdk_4.4.0/platform/service/iostream/src/sl_iostream_usart.c</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/platform/service/iostream/src/sl_iostream_usart.c</locationURI>
 		</link>
 		<link>
 			<name>gecko_sdk_4.4.0/platform/service/mpu/inc/sl_mpu.h</name>

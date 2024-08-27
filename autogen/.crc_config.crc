@@ -18,6 +18,7 @@ sl_bt_in_place_ota_dfu_config.h=1544707737
 sl_device_init_dcdc_config.h=-1652506127
 sl_device_init_emu_config.h=622680131
 sl_device_init_hfxo_config.h=-390396639
+sl_device_init_lfrco_config.h=838945568
 sl_device_init_lfxo_config.h=1370961952
 sl_iostream_usart_vcom_config.h=1775186381
 sl_mbedtls_config.h=-1426612441
