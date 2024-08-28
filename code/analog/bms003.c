@@ -10,7 +10,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #if !defined(LOG_TAG)
-#define LOG_TAG                "BMS0003"
+#define LOG_TAG                "BMS003"
 #endif
 #undef LOG_LVL
 #define LOG_LVL                ELOG_LVL_DEBUG
@@ -54,7 +54,6 @@ static uint32_t g_Bms003IrqInterrupt;                               // BMS003中
 static bms003_irq_callback g_Bms003IrqCallbackFun = NULL;           // 中断回调函数
 static fifo_t g_NewDataFifo;                                        // 新数据fifo
 static double g_fNewDataFifoBuffer[17];                             // 新数据fifo所使用的buffer
-static uint32_t g_uiChipEnTime = 0;                                 // 芯片使能时间
 static bool g_bWakeupFlag = false;                                  // 唤醒标志位
 static uint16_t ucIrqCnt = 0;                                       // 中断计数
 static uint16_t ucOnePeriodSampCnt = 0;                             // 单周期采样次数计数
@@ -62,9 +61,10 @@ static uint16_t g_BaseWeVol = 0;                                    // WE1校准
 static uint8_t g_ucSampleingCnt = 0;                                // 采样次数
 static afe_run_mode_t g_AfeRunMode = AFE_RUN_MODE_CONTINUOUS;       // AFE运行模式
 static bool g_bFirstDataFlag = 0;                                   // 第一个数据标志位
+static bms003_start_fsm_t g_Bms003StartFsm = BMS003_START_FSM_IDLE; // BMS003启动过程状态机
 sl_sleeptimer_timer_handle_t g_Bms003WakeupTimer;
 sl_sleeptimer_timer_handle_t g_Bms003MeasureTimer;
-
+sl_sleeptimer_timer_handle_t g_Bms003StartTimer;
 /* Private function prototypes -----------------------------------------------*/
 uint8_t bms003_read_cycle(uint8_t ucRegAddr, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs);
 void bms003_read_burst(uint8_t ucRegAddr, uint8_t* pData, uint8_t ucLen, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs);
@@ -81,6 +81,8 @@ void bms003_sleep(void);
 void bms003_int_irq_handler(void);
 void bms003_booting_config(void);
 void bms003_wakeup_config(void);
+void bms003_wakeup_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data);
+void bms003_start_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data);
 /* Private functions ---------------------------------------------------------*/
 
 
@@ -191,7 +193,7 @@ void bms003_spi_write_data(uint8_t* pTxBuffer, uint8_t ucLen)
 *******************************************************************************/
 void bms003_enable(void)
 {
-    // 使能bms0003
+    // 使能bms003
     GPIO_PinOutSet(AFE_CHIP_EN_PORT, AFE_CHIP_EN_PIN);
 
 }
@@ -207,11 +209,67 @@ void bms003_enable(void)
 *******************************************************************************/
 void bms003_disable(void)
 {
-    // 失能bms0003
+    // 失能bms003
     GPIO_PinOutClear(AFE_CHIP_EN_PORT, AFE_CHIP_EN_PIN);
 
 }
 
+
+/*******************************************************************************
+*                           陈苏阳@2024-08-28
+* Function Name  :  bms003_start_timer_callback
+* Description    :  bms003定时器回调
+* Input          :  sl_sleeptimer_timer_handle_t * handle
+* Input          :  void * data
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void bms003_start_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
+{
+    switch (g_Bms003StartFsm)
+    {
+//     case BMS003_START_FSM_CHIP_EN:
+//     {
+//         log_i("BMS003_START_FSM_CHIP_EN");
+//         // 切换状态
+//         g_Bms003StartFsm = BMS003_START_FSM_WAKEUP;
+//         // 唤醒bms003
+//         bms003_wakeup();
+//         // 启动一个10ms后的单次定时器
+//         sl_status_t status = sl_sleeptimer_start_timer(&g_Bms003StartTimer, sl_sleeptimer_ms_to_tick(10), bms003_start_timer_callback, (void*)NULL, 0, 0);
+//         if (status != SL_STATUS_OK)log_e("sl_sleeptimer_start_timer failed");
+//         return;
+//     }
+    case BMS003_START_FSM_WAKEUP:
+    {
+        log_i("BMS003_START_FSM_WAKEUP");
+        // 设置AFE的INT引脚中断
+        GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
+
+        // 如果采样次数为0,说明是连续采样,则直接开定时器
+        if (g_AfeRunMode == AFE_RUN_MODE_CONTINUOUS)
+        {
+            sl_status_t status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, sl_sleeptimer_ms_to_tick(SLEEP_TIMER_INTERVAL), bms003_wakeup_timer_callback, (void*)NULL, 0, 0);
+            if (status != SL_STATUS_OK)
+            {
+                log_e("sl_sleeptimer_start_periodic_timer failed");
+            }
+        }
+
+        // bms003配置
+        bms003_booting_config();
+        // 切换状态
+        g_Bms003StartFsm = BMS003_START_FSM_IDLE;
+        break;
+    }
+    default:
+    {
+        // 切换状态
+        g_Bms003StartFsm = BMS003_START_FSM_IDLE;
+        break;
+    }
+    }
+}
 
 /*******************************************************************************
 *                           陈苏阳@2023-11-02
@@ -278,7 +336,7 @@ void bms003_init(void)
     GPIO_PinModeSet(SPI_CS_PORT, SPI_CS_PIN, gpioModePushPull, 1);
 
     // 设置AFE_CHIP_EN引脚为推挽输出
-    GPIO_PinModeSet(AFE_CHIP_EN_PORT, AFE_CHIP_EN_PIN, gpioModePushPull, 1);
+    GPIO_PinModeSet(AFE_CHIP_EN_PORT, AFE_CHIP_EN_PIN, gpioModePushPull, 0);
 
     // 设置AFE_WAKEUP引脚为推挽输出
     GPIO_PinModeSet(AFE_WAKE_UP_PORT, AFE_WAKE_UP_PIN, gpioModePushPull, 1);
@@ -301,12 +359,6 @@ void bms003_init(void)
 
     // 失能BMS003
     bms003_disable();
-    bms003_sleep();
-    bms003_delay_us(1000);
-    // 使能BMS003
-    bms003_enable();
-
-    g_uiChipEnTime = rtc_get_curr_time();
 }
 
 
@@ -418,13 +470,13 @@ void bms003_wakeup_timer_handler(void)
 
 /*******************************************************************************
 *                           陈苏阳@2024-08-01
-* Function Name  :  bms0003_update_vol_offset
-* Description    :  BMS0003更新电压偏移
+* Function Name  :  bms003_update_vol_offset
+* Description    :  BMS003更新电压偏移
 * Input          :  int16_t sVolOffset
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void bms0003_update_vol_offset(int16_t sVolOffset)
+void bms003_update_vol_offset(int16_t sVolOffset)
 {
     usWe1Vol = (uint16_t)(CH1_DINWE_H2 << 8) + CH1_DINWE_L8;
     usWe1Vol += sVolOffset;
@@ -441,40 +493,27 @@ void bms0003_update_vol_offset(int16_t sVolOffset)
 void bms003_start(afe_run_mode_t RunMode)
 {
     log_d("bms003_start");
-    sl_status_t status;
-
     usWe1Vol = (uint16_t)(CH1_DINWE_H2 << 8) + CH1_DINWE_L8;
     if (g_PrmDb.DacVolOffset != 0)
     {
         usWe1Vol += g_PrmDb.DacVolOffset;
     }
 
+    // 使能BMS003
+    bms003_enable();
+
     // 唤醒bms003
     bms003_wakeup();
-    bms003_delay_us(10*1000);
 
-    // 获取当前时间与启动时间的时间差
-    uint32_t uiTimeDiff = rtc_get_curr_time() - g_uiChipEnTime;
+    // 状态机切换状态
+    g_Bms003StartFsm = BMS003_START_FSM_WAKEUP;
 
-    // 如果BMS003启动时间少于1S,则等待BMS003启动
-    if (uiTimeDiff < 1000)
+    // 启动一个1S后的单次定时器
+    sl_status_t status = sl_sleeptimer_start_timer(&g_Bms003StartTimer, sl_sleeptimer_ms_to_tick(100), bms003_start_timer_callback, (void*)NULL, 0, 0);
+    if (status != SL_STATUS_OK)
     {
-        log_d("uiTimeDiff:%d", uiTimeDiff);
-        bms003_delay_us((1000 - uiTimeDiff) * 1000);
-    }
-
-    // 设置AFE的INT引脚中断
-    GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
-
-    // 如果采样次数为0,说明是连续采样,则直接开定时器
-    if (RunMode == AFE_RUN_MODE_CONTINUOUS)
-    {
-        status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, sl_sleeptimer_ms_to_tick(SLEEP_TIMER_INTERVAL), bms003_wakeup_timer_callback, (void*)NULL, 0, 0);
-        if (status != SL_STATUS_OK)
-        {
-            log_e("sl_sleeptimer_start_periodic_timer failed");
-            return;
-        }
+        log_e("sl_sleeptimer_start_timer failed");
+        return;
     }
     g_AfeRunMode = RunMode;
 
@@ -483,9 +522,6 @@ void bms003_start(afe_run_mode_t RunMode)
 
     // 设置第一次数据标志位
     g_bFirstDataFlag = true;
-
-    // bms003配置
-    bms003_booting_config();
 }
 
 /*******************************************************************************

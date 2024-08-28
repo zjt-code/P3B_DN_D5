@@ -45,7 +45,7 @@ void update_vol_offset(int16_t sVolOffset)
 {
 #if AFE_USE_BMS003
     // 更新电压偏移
-    bms0003_update_vol_offset(sVolOffset);
+    bms003_update_vol_offset(sVolOffset);
 #endif
 }
 /*******************************************************************************
