@@ -298,9 +298,6 @@ void app_init(void)
     event_add(MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT, cgms_socp_start_session_event_callback);
     event_add(MAIN_LOOP_EVENT_SOCP_STOP_SESSION_EVENT, cgms_socp_stop_session_event_callback);
 
-    // 初始化血糖算法
-    //simpleGlucoInit();
-
     // 初始化启动时间
     cgms_sst_init();
 

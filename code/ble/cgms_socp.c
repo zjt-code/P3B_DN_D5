@@ -332,7 +332,7 @@ void cgms_socp_write_glucose_calibration_value(__attribute__((unused))  ble_even
     usBfFlg = 1;
     sfCurrBg = (float)concentration / 100.0f;
     log_i("sfCurrBg:%f\r\n", sfCurrBg);
-    pRspRequest->ucOpCode = SOCP_RSP_SUCCESS;  //response is 1C 04(opcode) 01(response) EC 6F (CRC)
+    pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
 #endif
 }
 
