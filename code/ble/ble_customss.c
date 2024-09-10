@@ -99,7 +99,7 @@ cgm_session_start_time_char_data_t* att_get_start_time(void)
 }
 
 
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 /*******************************************************************************
 *                           陈苏阳@2023-10-19
 * Function Name  :  att_update_start_time_char_data_crc
@@ -134,7 +134,7 @@ void att_update_start_time_char_data(void)
 
 
 
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 /*******************************************************************************
 *                           陈苏阳@2023-10-19
 * Function Name  :  att_update_cgm_status_char_data_crc
@@ -167,7 +167,20 @@ cgm_status_char_data_t* att_get_cgm_status(void)
 }
 #endif
 
-#if USE_GN_2_PROTOCOL
+#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL)||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
+/*******************************************************************************
+*                           陈苏阳@2024-09-10
+* Function Name  :  att_get_feature
+* Description    :  获取ATT表中的特征Char数据
+* Input          :  void
+* Output         :  None
+* Return         :  cgm_feature_char_data_t*
+*******************************************************************************/
+cgm_feature_char_data_t* att_get_feature(void)
+{
+    return &(cs_att_db.CgmFeatureValue);
+}
+
 /*******************************************************************************
 *                           陈苏阳@2023-10-19
 * Function Name  :  att_update_feature_char_data_crc

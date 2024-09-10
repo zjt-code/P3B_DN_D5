@@ -107,14 +107,14 @@ typedef struct
     uint16_t usNumberOfReadings;                // 表示当前启动后一共有多少个数据,个数为offset+1,APP根据个数判断缺失的数据的个数和区间.
     uint8_t ucRunStatus;                        // 运行状态(使用cgm_measurement_sensor_state_t内的值)
     uint16_t usFactoryCode;                     // 工厂校准码
-    #if USE_GN_2_PROTOCOL
+    #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
     uint16_t usCrc16;                           // CRC16
     #endif
 }__attribute__((packed)) cgm_status_char_data_t;
 
 typedef struct
 {
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 	uint32_t uiStartTime;                       // 启动时间(UTC时间戳)
     uint32_t uiRunTime;                         // 发射器已经启动运行的时间(单位:S)
 #else
@@ -138,38 +138,50 @@ typedef struct
 
 struct ble_customss_service_att_database
 {
-    // 仅读取部分
-    #if USE_GN_2_PROTOCOL
+        #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
+	// 仅读取部分
     cgm_feature_char_data_t CgmFeatureValue;
-    #else 
-    cgm_session_run_time_char_data_t CgmSessionRunTimeValue;
-    #endif
     cgm_status_char_data_t CgmStatusValue;
     cgm_session_start_time_char_data_t CgmSessionStartTimeValue;
-    #if USE_GN_2_PROTOCOL
 	// 读写部分
     uint8_t CgmsMeasurementValue[CS_CGM_MEASUREMENT_MAX_LENGTH];
     uint8_t RecordAccessControlValue[CS_RECORD_ACCESS_CONTROL_MAX_LENGTH];
     uint8_t CgmSpecificOpsValue[CS_CGM_SPECIFIC_OPS_MAX_LENGTH];
-
     // 带Notify的char的CCCD
     uint8_t CgmMeasurementCccdValue[CGMS_CCCD_VALUE_MAX];
     uint8_t CgmRecordAccessControlCccdValue[CGMS_CCCD_VALUE_MAX];
     uint8_t CgmSpecificOpsCccdValue[CGMS_CCCD_VALUE_MAX];
     uint8_t CgmStatusCccdValue[CGMS_CCCD_VALUE_MAX];
-    #else
-    uint8_t CgmFeatureValue[18];
+	#elif (USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL)
+	// 仅读取部分
+    cgm_feature_char_data_t CgmFeatureValue;
+	cgm_session_run_time_char_data_t CgmSessionRunTimeValue;
+	cgm_status_char_data_t CgmStatusValue;
+    cgm_session_start_time_char_data_t CgmSessionStartTimeValue;
     // 读写部分
     uint8_t CgmsMeasurementValue[BLE_CGM_SERVICE_CGM_MEASUREMENT_MAX_LENGTH];
     uint8_t CgmsRecordAccessControlValue[BLE_CGM_SERVICE_RECORD_ACCESS_CONTROL_MAX_LENGTH];
     uint8_t CgmSpecificOpsValue[BLE_CGM_SERVICE_CGM_SPECIFIC_OPS_MAX_LENGTH];
-
     // 带Notify的char的CCCD
     uint8_t CgmMeasurementCccdValue[BLE_CGM_SERVICE_CCCD_VALUE_MAX];
     uint8_t CgmRecordAccessControlCccdValue[BLE_CGM_SERVICE_CCCD_VALUE_MAX];
     uint8_t CgmSpecificOpsCccdValue[BLE_CGM_SERVICE_CCCD_VALUE_MAX];
     uint8_t CgmStatusCccdValue[BLE_CGM_SERVICE_CCCD_VALUE_MAX];
-    #endif
+	#elif (USE_BLE_PROTOCOL==P3_PROTOCOL)
+	cgm_session_run_time_char_data_t CgmSessionRunTimeValue;
+	cgm_status_char_data_t CgmStatusValue;
+    cgm_session_start_time_char_data_t CgmSessionStartTimeValue;
+	uint8_t CgmFeatureValue[18];
+    // 读写部分
+    uint8_t CgmsMeasurementValue[BLE_CGM_SERVICE_CGM_MEASUREMENT_MAX_LENGTH];
+    uint8_t CgmsRecordAccessControlValue[BLE_CGM_SERVICE_RECORD_ACCESS_CONTROL_MAX_LENGTH];
+    uint8_t CgmSpecificOpsValue[BLE_CGM_SERVICE_CGM_SPECIFIC_OPS_MAX_LENGTH];
+    // 带Notify的char的CCCD
+    uint8_t CgmMeasurementCccdValue[BLE_CGM_SERVICE_CCCD_VALUE_MAX];
+    uint8_t CgmRecordAccessControlCccdValue[BLE_CGM_SERVICE_CCCD_VALUE_MAX];
+    uint8_t CgmSpecificOpsCccdValue[BLE_CGM_SERVICE_CCCD_VALUE_MAX];
+    uint8_t CgmStatusCccdValue[BLE_CGM_SERVICE_CCCD_VALUE_MAX];
+	#endif
 };
 
 
@@ -182,13 +194,16 @@ void att_set_start_handle(uint16_t handle);
 uint16_t att_get_start_handle(void);
 cgm_status_char_data_t* att_get_cgm_status(void);
 
-#if USE_GN_2_PROTOCOL
+
+#if (USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) 
+void att_update_feature_char_data_crc(void);
+cgm_feature_char_data_t* att_get_feature(void);
+#elif (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 void att_update_start_time_char_data_crc(void);
 void att_update_cgm_status_char_data_crc(void);
 cgm_feature_char_data_t* att_get_feature(void);
 void att_update_feature_char_data_crc(void);
-uint16_t att_get_att_handle(uint16_t attindx);
-#else
+#endif
 cgm_session_start_time_char_data_t* att_get_start_time(void);
 void att_update_start_time_char_data(void);
 void att_update_cgm_status_char_data(void);
@@ -196,7 +211,6 @@ uint16_t att_get_att_handle(uint16_t attindx);
 cgm_session_run_time_char_data_t* att_get_run_time(void);
 void att_update_notify_indication(uint16_t handle, uint16_t value);
 void att_disable_notify_indication(void);
-#endif
 #endif /* __BLE_CUSTOMSS_H */
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/

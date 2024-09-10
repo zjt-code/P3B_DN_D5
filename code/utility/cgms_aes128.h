@@ -27,7 +27,6 @@
 
 
 /* Private function prototypes -----------------------------------------------*/
-uint8_t mbedtls_aes_pkcspadding(uint8_t * data, uint8_t data_len);
 void cgms_aes128_update_key(uint8_t* value);
 void cgms_aes128_encrpty(uint8_t* plain, uint8_t* cipher);
 void cgms_aes128_decrpty(uint8_t* cipher, uint8_t* plain_decrypt);

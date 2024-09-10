@@ -25,7 +25,9 @@
 #include "cgms_crc.h"
 #include "app_util.h"
 #include "app_global.h"
+#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
 #include "cgms_aes128.h"
+#endif
 #include "ble_customss.h"
 #include "sl_bt_api.h"
 #include "app_glucose_meas.h"
@@ -41,8 +43,8 @@
 #define NRF_BLE_CGMS_PLUS_INFINTE                     0x07FE
 #define NRF_BLE_CGMS_MINUS_INFINTE                    0x0802
 static bool g_bBleSocpNotifyIsEnableFlag = false;						// BLE SOCP通知使能标志位
-#if USE_GN_2_PROTOCOL
-staticboolg_bProduction=false;
+#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
+static bool g_bProduction=false;
 #endif
 //extern float sfCurrBg;//add by woo
 uint8_t	caliTag;
@@ -188,48 +190,48 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
     // 发送数据包
     elog_hexdump("socp_send", 8, EncodedRespDatapacketBuffer, ucLen);
 
-#if USE_GN_2_PROTOCOL
-    uint8_tucCipher[16];
+#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
+    uint8_t ucCipher[16];
     //如果当前处理的是生产命令,则跳过加密,如果是正常命令,则走加密流程发包
-    if(g_bProduction==false)
+    if (g_bProduction == false)
     {
-    mbedtls_aes_pkcspadding(EncodedRespDatapacketBuffer,16);
-    cgms_aes128_encrpty(EncodedRespDatapacketBuffer,ucCipher);
-    memcpy(EncodedRespDatapacketBuffer,ucCipher,16);
+        mbedtls_aes_pkcspadding(EncodedRespDatapacketBuffer, 16);
+        cgms_aes128_encrpty(EncodedRespDatapacketBuffer, ucCipher);
+        memcpy(EncodedRespDatapacketBuffer, ucCipher, 16);
 
-    //如果加密就是需要凑足16个字节
-    ucLen=16;
+        //如果加密就是需要凑足16个字节
+        ucLen = 16;
     }
     //发送数据包
-    elog_hexdump("socp_send(encrpty)",8,EncodedRespDatapacketBuffer,ucLen);
+    elog_hexdump("socp_send(encrpty)", 8, EncodedRespDatapacketBuffer, ucLen);
 #endif
 
-	if ((ble_socp_notify_is_enable()) && app_have_a_active_ble_connect())
-	{
-		sl_status_t sc;
-		sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, EncodedRespDatapacketBuffer);
-		if (sc == SL_STATUS_OK)
-		{
-			//app_global_get_app_state()->bSentSocpSuccess = false;
-			return RET_CODE_SUCCESS;
-		}
-		else
-		{
-			log_w("sl_bt_gatt_server_send_notification fail:%d", sc);
-		}
-	}
-	else
-	{
-		if (ble_socp_notify_is_enable() == false)
-		{
-			log_w("ble socp notify not enable");
-		}
+    if ((ble_socp_notify_is_enable()) && app_have_a_active_ble_connect())
+    {
+        sl_status_t sc;
+        sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, EncodedRespDatapacketBuffer);
+        if (sc == SL_STATUS_OK)
+        {
+            //app_global_get_app_state()->bSentSocpSuccess = false;
+            return RET_CODE_SUCCESS;
+        }
+        else
+        {
+            log_w("sl_bt_gatt_server_send_notification fail:%d", sc);
+        }
+    }
+    else
+    {
+        if (ble_socp_notify_is_enable() == false)
+        {
+            log_w("ble socp notify not enable");
+        }
         if (!app_have_a_active_ble_connect())
-		{
-			log_w("ble connected is false");
-		}
-	}
-	return RET_CODE_FAIL;
+        {
+            log_w("ble connected is false");
+        }
+    }
+    return RET_CODE_FAIL;
 }
 
 /*******************************************************************************
@@ -283,7 +285,7 @@ void cgms_socp_start_session_event_callback(uint32_t uiArg)
 *******************************************************************************/
 void cgms_socp_write_glucose_calibration_value(__attribute__((unused))  ble_event_info_t BleEventInfo, ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
     // 判断长度是否正确
     if (usLen < 7)
     {
@@ -347,7 +349,7 @@ void cgms_socp_write_glucose_calibration_value(__attribute__((unused))  ble_even
 *******************************************************************************/
 void cgms_socp_start_the_session(__attribute__((unused))  ble_event_info_t BleEventInfo,__attribute__((unused)) ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
     // 效验命令的CRC
     if (do_crc(pData, 15) != 0)
     {
@@ -470,7 +472,7 @@ void cgms_socp_start_the_session(__attribute__((unused))  ble_event_info_t BleEv
 *******************************************************************************/
 void cgms_socp_stop_the_session(__attribute__((unused))  ble_event_info_t BleEventInfo,__attribute__((unused))  ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 
     uint8_t ucIsStopedFlag = 0;
     // 判断发射器当前是否已经处于停止状态
@@ -718,7 +720,7 @@ void cgms_socp_write_prm(__attribute__((unused)) ble_event_info_t BleEventInfo, 
         switch (ucPrmNo)
         {
         // 写SN
-        case SOCP_PRM_NO_WRITE_SN:
+        case SOCP_PRM_NO_WRITE_OR_READ_SN:
         {
             pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
             g_PrmDb.prmWMY[0] = *(SocpRequest.pData + ucIndex);
@@ -863,81 +865,79 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     ble_socp_datapacket_t  SocpRequest;
     ble_socp_rsp_t  RspRequest;
 
-#if USE_GN_2_PROTOCOL
+#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
     uint8_t ucTempDatapacketBuffer[16];
-    
-	if (cgms_socp_check_production_cmd(pData, usLen))
-	    {
-	        log_d("check production cmd.");
-	        g_bProduction = true;
-	    }
-	    else
-	    {
-	        // 如果不是生产测试命令
-	
-	    // 如果设置了密码
-	        if (att_get_feature()->ucPasswordExist)
-	        {
-	            log_d("password is seted.");
-	            // 走解密流程
-	#ifdef CGMS_ENCRYPT_ENABLE
-	            cgms_aes128_decrpty(pData, ucTempDatapacketBuffer);
-	            memcpy(pData, ucTempDatapacketBuffer, 16);
-	#endif
-	
-	            // 如果当前的命令不是密码验证命令,且当前密码还未验证成功
-	            if ((pData[0] != SOCP_VERIFY_PWD) && (app_global_get_app_state()->bCgmsPwdVerifyOk == false))
-	            {
-	                // 返回操作非法回应包
-	                RspRequest.ucOpCode = SOCP_RESPONSE_ILLEGAL_CODE;
-	                RspRequest.ucReqOpcode = 0X00;
-	                RspRequest.ucRspCode = 0X00;
-	                RspRequest.ucSizeVal = 0;
-	                socp_send(BleEventInfo, RspRequest);
-	                return;
-	            }
-	        }
-	        // 如果还没设置密码
-	        else
-	        {
-	            log_d("no valid password");
-	            // 如果也不是设置密码命令
-	            if ((pData[0] != SOCP_SET_PASSWORD))
-	            {
-	                RspRequest.ucOpCode = SOCP_RESPONSE_ILLEGAL_CODE;
-	                RspRequest.ucReqOpcode = 0X00;
-	                RspRequest.ucRspCode = 0X00;
-	                RspRequest.ucSizeVal = 0;
-	                socp_send(BleEventInfo, RspRequest);
-	                return;
-	            }
-	            else
-	            {
-	                // 如果是设置密码命令
-	
-	                // 长度不正确,返回报错
-	                if (usLen != 17)
-	                {
-	                    log_d("Len is Err");
-	                    RspRequest.ucOpCode = SOCP_RESPONSE_CODE;
-	                    RspRequest.ucReqOpcode = SOCP_SET_PASSWORD;
-	                    RspRequest.ucRspCode = 0X03;
-	                    RspRequest.ucSizeVal = 0;
-	                    socp_send(BleEventInfo, RspRequest);
-	                    return;
-	                }
-	                else
-	                {
-	                    cgms_aes128_decrpty(&pData[1], ucTempDatapacketBuffer);
-	                    memcpy(&pData[1], ucTempDatapacketBuffer, 16);
-	                    elog_hexdump("datapacket decode", 8, pData, 16);
-	                }
-	            }
-	        }
-	    }
+
+    if (cgms_socp_check_production_cmd(pData, usLen))
+    {
+        log_d("check production cmd.");
+        g_bProduction = true;
+    }
+    else
+    {
+        // 如果不是生产测试命令
+
+    // 如果设置了密码
+        if (att_get_feature()->ucPasswordExist)
+        {
+            log_d("password is seted.");
+            // 走解密流程
+            cgms_aes128_decrpty(pData, ucTempDatapacketBuffer);
+            memcpy(pData, ucTempDatapacketBuffer, 16);
+
+            // 如果当前的命令不是密码验证命令,且当前密码还未验证成功
+            if ((pData[0] != SOCP_VERIFY_PWD) && (app_global_get_app_state()->bCgmsPwdVerifyOk == false))
+            {
+                // 返回操作非法回应包
+                RspRequest.ucOpCode = SOCP_RESPONSE_ILLEGAL_CODE;
+                RspRequest.ucReqOpcode = 0X00;
+                RspRequest.ucRspCode = 0X00;
+                RspRequest.ucSizeVal = 0;
+                socp_send(BleEventInfo, RspRequest);
+                return;
+            }
+        }
+        // 如果还没设置密码
+        else
+        {
+            log_d("no valid password");
+            // 如果也不是设置密码命令
+            if ((pData[0] != SOCP_SET_PWD))
+            {
+                RspRequest.ucOpCode = SOCP_RESPONSE_ILLEGAL_CODE;
+                RspRequest.ucReqOpcode = 0X00;
+                RspRequest.ucRspCode = 0X00;
+                RspRequest.ucSizeVal = 0;
+                socp_send(BleEventInfo, RspRequest);
+                return;
+            }
+            else
+            {
+                // 如果是设置密码命令
+
+                // 长度不正确,返回报错
+                if (usLen != 17)
+                {
+                    log_d("Len is Err");
+                    RspRequest.ucOpCode = SOCP_RESPONSE_CODE;
+                    RspRequest.ucReqOpcode = SOCP_SET_PWD;
+                    RspRequest.ucRspCode = 0X03;
+                    RspRequest.ucSizeVal = 0;
+                    socp_send(BleEventInfo, RspRequest);
+                    return;
+                }
+                else
+                {
+                    cgms_aes128_decrpty(&pData[1], ucTempDatapacketBuffer);
+                    memcpy(&pData[1], ucTempDatapacketBuffer, 16);
+                    elog_hexdump("datapacket decode", 8, pData, 16);
+                }
+            }
+        }
+    }
 #endif
 
-	// 解码SOCP数据包并填充结构体
+    // 解码SOCP数据包并填充结构体
     ble_socp_decode(usLen, pData, &SocpRequest);
     elog_hexdump("socp_rav", 8, pData, usLen);
     log_i("socp_request.opcode:%d", SocpRequest.ucOpCode);
@@ -950,10 +950,10 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     // 根据命令类型来做相应处理
     switch (SocpRequest.ucOpCode)
     {
-    // 开始CGM
+        // 开始CGM
     case SOCP_START_THE_SESSION:
     {
-        cgms_socp_start_the_session(BleEventInfo,SocpRequest,&RspRequest);
+        cgms_socp_start_the_session(BleEventInfo, SocpRequest, &RspRequest);
         break;
     }
     // 写入传感器code
@@ -1038,22 +1038,54 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 *******************************************************************************/
 bool cgms_socp_check_production_cmd(uint8_t* pData, uint16_t usLen)
 {
-    if ((pData[0] == SOCP_WRITE_PRM) && (pData[1] == 0x01) && (usLen == 16))return true;//write cal parameters
-    if ((pData[0] == SOCP_WRITE_PRM) && (pData[1] == 0x04) && (usLen == 9))return true;//write sn
-    if ((pData[0] == SOCP_WRITE_PRM) && (pData[1] == 0xfc) && (usLen == 6))return true;//write hi low voltage
-    if ((pData[0] == SOCP_WRITE_PRM) && (pData[1] == 0xFE) && (usLen == 4))return true;//Set parameter permanently
-    if ((pData[0] == SOCP_READ_PRM) && (pData[1] == 0x01) && (usLen == 4))return true;//read cal parameters
-    if ((pData[0] == SOCP_READ_PRM) && (pData[1] == 0xA4) && (usLen == 4))return true;//Get radom num
-#if USE_GN_2_PROTOCOL
-    //sec bond command
-    if ((pData[0] == SOCP_WRITE_BOND_SECU) && (pData[1] == 0xf1) && (usLen == 18))return true;//Bond_step1
-    if ((pData[0] == SOCP_WRITE_BOND_SECU) && (pData[1] == 0xf2) && (usLen == 18))return true;//Bond_step2
-    if ((pData[0] == SOCP_NOMAL_AUTH) && (pData[1] == 0xf1) && (usLen == 18))return true;//sec normal step1
-    if ((pData[0] == SOCP_NOMAL_AUTH) && (pData[1] == 0xf2) && (usLen == 18))return true;//sec normal step2
-#endif
-    if ((pData[0] == SOCP_START_THE_SESSION) && (pData[1] == 0) && (usLen == 4))return true;// start senssor
-    if ((pData[0] == SOCP_STOP_THE_SESSION) && (pData[1] == 0) && (usLen == 4))return true;// STOP senssor
-    if ((pData[0] == SOCP_START_AD_CALI) && (pData[1] == 0) && (usLen == 4))return true;
+    switch (pData[0])
+    {
+    // 如果是写参数命令
+    case SOCP_WRITE_PRM:
+    {
+        switch (pData[1])
+        {
+            // 以下操作为生产操作
+            case SOCP_PRM_NO_WRITE_OR_READ_SN:
+            case SOCP_PRM_WRITE_AFE_VOL_OFFISET:
+            case SOCP_PRM_WRITE_AFE_COEFFICIENT_K:
+            case SOCP_PRM_WRITE_AFE_COEFFICIENT_B:
+            case SOCP_PRM_NO_SAVE_PRM:
+                return true;
+            default:
+                break;
+        }
+        break;
+    }
+    // 如果是读参数命令
+    case SOCP_READ_PRM:
+    {
+        // 以下操作为生产操作
+        switch (pData[1])
+        {
+        case SOCP_PRM_NO_WRITE_OR_READ_SN:
+            return true;
+        default:
+            break;
+        }
+        break;
+    }
+
+    // 如果是校准ADC命令
+    case SOCP_START_AD_CALI:
+    // 如果是读取校准ADC时的数据命令
+    case SOCP_READ_AD_CALI_DATA:
+    // 如果是触发进入FOTA模式命令
+    case SOCP_START_FOTA:
+    // 如果是读取复位原因寄存器命令
+    case SOCP_READ_RESET_REG:
+    // 如果是读取硬错误信息命令
+    case SOCP_READ_HARD_FAULT_INFO:
+        // 按生产操作返回
+        return true;
+    default:
+        break;
+    }
     return false;
 }
 

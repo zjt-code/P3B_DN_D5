@@ -271,7 +271,7 @@ static void app_glucose_handle(void)
 
     // 更新CGM状态char的offset
     att_get_cgm_status()->usNumberOfReadings = app_global_get_app_state()->time_offset + 1;
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 	// 更新CGM状态char的内容
 	att_update_cgm_status_char_data_crc();
 #else
@@ -309,7 +309,7 @@ void app_glucose_meas_stop_session_handler(void)
 {
     // AFE停止
     afe_stop();
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
     // 设置传感器状态为停止,并更新状态
     app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
     att_get_cgm_status()->ucRunStatus = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
@@ -436,7 +436,7 @@ void app_glucose_meas_handler(uint32_t uiArg)
             // 如果当前已经开始了一次血糖测量周期
             if (app_global_is_session_runing())
             {
-            	#if USE_GN_2_PROTOCOL       	
+            	#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)    	
             	// 增加运行时间
             	g_uiCgmWorkTimeCnt++;
             	log_d("g_uiCgmWorkTimeCnt:%d", g_uiCgmWorkTimeCnt);

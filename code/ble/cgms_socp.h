@@ -162,11 +162,14 @@ typedef enum
     SOCP_READ_PRM = 0x62,                                              // 读取参数
     SOCP_START_AD_CALI = 0x63,                                         // 校准ADC
     SOCP_READ_AD_CALI_DATA = 0x64,                                     // 读取校准ADC时的数据
-    SOCP_TEST_API = 0x67,   // 0x67,0x01,0x03,0x38,0x9b
-    SOCP_WRITE_DFU_SECU = 0x68,
-    SOCP_DFU_AUTH = 0x69,
-    SOCP_SPECIAL_AUTH = 0x70,
-    SOCP_MOBLE_INFO = 0X71,  // 0X71,0X00,0x00,0x00,0xdf,0x45
+
+    #if (USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) 
+    SOCP_SET_PWD =  0x7A,
+    SOCP_VERIFY_PWD = 0X7B,
+    #elif (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
+	SOCP_SET_PWD =  0x7A,
+    SOCP_VERIFY_PWD = 0X7B,
+    #endif 
     SOCP_RSP_RESERVED_FOR_FUTURE_USE = 0x00,
     SOCP_RSP_SUCCESS = 0x01,
     SOCP_RSP_OP_CODE_NOT_SUPPORTED = 0x02,
@@ -182,13 +185,13 @@ typedef enum
 // 参数类型
 typedef enum
 {
-    SOCP_PRM_NO_WRITE_SN = 0x04,                                    // 写SN
-    SOCP_PRM_WRITE_AFE_VOL_OFFISET = 0x05,                          // 写AFE电压偏移
+    SOCP_PRM_NO_WRITE_OR_READ_SN = 0x04,                              // 写SN
+    SOCP_PRM_WRITE_AFE_VOL_OFFISET = 0x05,                            // 写AFE电压偏移
     SOCP_PRM_WRITE_AFE_COEFFICIENT_K = 0x06,                          // 写AFE系数K
     SOCP_PRM_WRITE_AFE_COEFFICIENT_B = 0x07,                          // 写AFE系数B
-    SOCP_PRM_NO_WRITE_START_TIME = 0xFA,                            // 写启动时间
-    SOCP_PRM_NO_SAVE_PRM = 0xFE,                                    // 保存参数
-    SOCP_PRM_NO_READ_START_TIME = 0xA0,                             // 读启动时间
+    SOCP_PRM_NO_WRITE_START_TIME = 0xFA,                              // 写启动时间
+    SOCP_PRM_NO_SAVE_PRM = 0xFE,                                      // 保存参数
+    SOCP_PRM_NO_READ_START_TIME = 0xA0,                               // 读启动时间
 
 }socp_prm_no_t;
 
