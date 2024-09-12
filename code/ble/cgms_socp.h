@@ -163,11 +163,8 @@ typedef enum
     SOCP_START_AD_CALI = 0x63,                                         // 校准ADC
     SOCP_READ_AD_CALI_DATA = 0x64,                                     // 读取校准ADC时的数据
 
-    #if (USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) 
+    #if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
     SOCP_SET_PWD =  0x7A,
-    SOCP_VERIFY_PWD = 0X7B,
-    #elif (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
-	SOCP_SET_PWD =  0x7A,
     SOCP_VERIFY_PWD = 0X7B,
     #endif 
     SOCP_RSP_RESERVED_FOR_FUTURE_USE = 0x00,

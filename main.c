@@ -139,7 +139,7 @@ int main(void)
 
     // 系统初始化
     sl_system_init();
-
+    EMU_BoostExternalShutdownEnable(false);
     MSC_Init();
 
     // 初始化GPIO的时钟

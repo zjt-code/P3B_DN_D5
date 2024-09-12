@@ -45,6 +45,7 @@
 static bool g_bBleSocpNotifyIsEnableFlag = false;						// BLE SOCP通知使能标志位
 #if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
 static bool g_bProduction=false;
+static uint16_t g_usBleProtocolPassword =0;
 #endif
 //extern float sfCurrBg;//add by woo
 uint8_t	caliTag;
@@ -195,7 +196,8 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
     //如果当前处理的是生产命令,则跳过加密,如果是正常命令,则走加密流程发包
     if (g_bProduction == false)
     {
-        mbedtls_aes_pkcspadding(EncodedRespDatapacketBuffer, 16);
+        mbedtls_aes_pkcspadding(EncodedRespDatapacketBuffer, ucLen);
+        elog_hexdump("socp_send(pkcspadding)", 8, EncodedRespDatapacketBuffer, 16);
         cgms_aes128_encrpty(EncodedRespDatapacketBuffer, ucCipher);
         memcpy(EncodedRespDatapacketBuffer, ucCipher, 16);
 
@@ -870,18 +872,18 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 
     if (cgms_socp_check_production_cmd(pData, usLen))
     {
-        log_d("check production cmd.");
+        log_d("is production cmd.");
         g_bProduction = true;
     }
     else
     {
         // 如果不是生产测试命令
 
-    // 如果设置了密码
+        // 如果设置了密码
         if (att_get_feature()->ucPasswordExist)
         {
             log_d("password is seted.");
-            // 走解密流程
+            // 走解密流程(同时后续正常交互的命令也在这边走解密,会直接修改BLE接收buffer)
             cgms_aes128_decrpty(pData, ucTempDatapacketBuffer);
             memcpy(pData, ucTempDatapacketBuffer, 16);
 
@@ -895,6 +897,37 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
                 RspRequest.ucSizeVal = 0;
                 socp_send(BleEventInfo, RspRequest);
                 return;
+            }
+            // 如果是密码验证命令
+            else if (pData[0] == SOCP_VERIFY_PWD)
+            {
+                elog_hexdump("datapacket", 8, pData, 16);
+                // 拷贝数据包中的密码
+                uint16_t usPassword;
+                memcpy(&usPassword, &pData[2], 2);
+                // 效验密码
+                if (usPassword == g_usBleProtocolPassword)
+                {
+                    app_global_get_app_state()->bCgmsPwdVerifyOk = true;
+                    log_i("password verify pass");
+                    RspRequest.ucOpCode = SOCP_RESPONSE_CODE;
+                    RspRequest.ucReqOpcode = SOCP_VERIFY_PWD;
+                    RspRequest.ucRspCode = 0X01;
+                    RspRequest.ucSizeVal = 0;
+                    socp_send(BleEventInfo, RspRequest);
+                    return;
+                }
+                else
+                {
+                    app_global_get_app_state()->bCgmsPwdVerifyOk = false;
+                    log_e("password verify fail");
+                    RspRequest.ucOpCode = SOCP_RESPONSE_CODE;
+                    RspRequest.ucReqOpcode = SOCP_VERIFY_PWD;
+                    RspRequest.ucRspCode = 0X04;
+                    RspRequest.ucSizeVal = 0;
+                    socp_send(BleEventInfo, RspRequest);
+                    return;
+                }
             }
         }
         // 如果还没设置密码
@@ -928,14 +961,57 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
                 }
                 else
                 {
+                    // 对数据包的数据部分进行解密
                     cgms_aes128_decrpty(&pData[1], ucTempDatapacketBuffer);
                     memcpy(&pData[1], ucTempDatapacketBuffer, 16);
                     elog_hexdump("datapacket decode", 8, pData, 16);
+
+                    // 拷贝SN
+                    uint8_t ucSn[14];
+                    memcpy(ucSn, &pData[3], 14);
+
+                    // 获取发射器存储的SN
+                    uint8_t uc_PrmSn[14];
+                    cgms_prm_get_sn(uc_PrmSn);
+                    if (strcmp(ucSn, &uc_PrmSn[3]) == 0)
+                    {
+                        // 拷贝密码
+                        memcpy(&g_usBleProtocolPassword, &pData[1], 2);
+
+                        // 更新BLE CGM服务中的feature特征
+                        att_get_feature()->ucPasswordExist = 1;
+                        att_update_feature_char_data_crc();
+                        // 本次BLE连接就算密码验证通过
+                        app_global_get_app_state()->bCgmsPwdVerifyOk = true;
+                        log_i("Set Password OK,SN:%s  Password:0x%04X", (char*)ucSn, g_usBleProtocolPassword);
+                        RspRequest.ucOpCode = SOCP_RESPONSE_CODE;
+                        RspRequest.ucReqOpcode = SOCP_SET_PWD;
+                        RspRequest.ucRspCode = 0X01;
+                        RspRequest.ucSizeVal = 0;
+                        socp_send(BleEventInfo, RspRequest);
+
+                        // 更新AES库的key,后续通讯使用新key
+                        cgms_aes128_update_key((uint8_t*)&g_usBleProtocolPassword);
+                        return;
+                    }
+                    else
+                    {
+                        log_e("SN Err,%s!=%s", uc_PrmSn, ucSn);
+                        RspRequest.ucOpCode = SOCP_RESPONSE_CODE;
+                        RspRequest.ucReqOpcode = SOCP_SET_PWD;
+                        RspRequest.ucRspCode = 0X05;
+                        RspRequest.ucSizeVal = 0;
+                        socp_send(BleEventInfo, RspRequest);
+                        return;
+                    }
+
                 }
             }
         }
     }
 #endif
+
+
 
     // 解码SOCP数据包并填充结构体
     ble_socp_decode(usLen, pData, &SocpRequest);

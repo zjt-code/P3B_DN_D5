@@ -26,6 +26,9 @@
 #include "cgms_crc.h"
 #include "app_glucose_meas.h"
 #include <elog.h>
+#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
+#include "cgms_aes128.h"
+#endif
 //#include "app_glucose_meas.h"
 /* Private variables ---------------------------------------------------------*/
 static bool g_bBleRacpNotifyIsEnableFlag = false;						// BLE ROCP通知使能标志位
@@ -488,84 +491,13 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     ble_cgms_racp_datapacket_t RspDatapacket;
     racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
     memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
-#ifdef USE_GN_2_PROTOCOL
-    // 如果数据长度不合法
-    if (usLen != 16)
-    {
-        RacpDatapacket.ucOpCode = pData[0];
-        ResponseCode = RACP_RESPONSE_RESULT_COMMAND_LEN_ERR;
-        // 发送回应包
-        racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
-        return;
-    }
-    else
-    {
-        uint8_t decipher[16];
-        cgms_aes128_decrpty(pData, decipher);
-        memcpy(pData, decipher, usLen);
-    }
+#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
+    uint8_t ucCipher[16];
+    mbedtls_aes_pkcspadding(pData, usLen);
+    elog_hexdump("socp_send(pkcspadding)", 8, pData, 16);
+    cgms_aes128_encrpty(pData, ucCipher);
+    memcpy(pData, ucCipher, 16);
 #endif
-
-#ifdef USE_GN_2_PROTOCOL
-    if ((RacpDatapacket.ucOpCode == RACP_OPCODE_REPORT_RECS) && (RacpDatapacket.pData[RacpDatapacket.ucDataLen - 1] != 8))  //decrped cmd, len=16, && AES-pading7
-    {
-        ResponseCode = RACP_RESPONSE_RESULT_COMMAND_LEN_ERR;
-    }
-    else if (RacpDatapacket.ucOpCode != RACP_OPCODE_REPORT_RECS)
-    {
-        ResponseCode = RACP_RESPONSE_RESULT_COMMAND_FORMAT_ERR;
-    }
-    else
-    {
-        // 效验CRC
-        if (do_crc(pData, 8) != 0)
-        {
-            ResponseCode = RACP_RESPONSE_RESULT_COMMAND_OTHER_ERR;
-        }
-        else
-        {
-            // 判断当前是否有历史数据操作在执行
-            if (app_global_get_app_state()->bRecordSendFlag == true)
-            {
-                ResponseCode = RACP_RESPONSE_RESULT_COMMAND_BUSY;
-            }
-            else
-            {
-                uint16_t usOpand1Start, usOprand2End;
-                // 提取开始和结束的index
-                usOpand1Start = uint16_decode(RacpDatapacket.pData);
-                usOprand2End = uint16_decode(&RacpDatapacket.pData[2]);
-
-                // 寻找符合条件的历史数据
-                uint8_t ucRet = racp_findMeasDB(RacpDatapacket.ucOpCode, usOpand1Start, usOprand2End);
-
-                // 如果找不到符合的数据
-                if (ucRet == 0)
-                {
-                    ResponseCode = RACP_RESPONSE_RESULT_COMMAND_START_INDEX_RANGE_OUT;
-                }
-                else
-                {
-                    ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
-
-                    app_global_get_app_state()->bRecordSendFlag = true;
-
-                    // 清空发送累计
-                    app_global_get_app_state()->RecordOptInfo.usRacpRecordSendCnt = 0;
-
-                    // 记录本次历史数据操作的BLE事件信息
-                    app_global_get_app_state()->RecordOptInfo.BleEventInfo = BleEventInfo;
-
-                    // 开始发送数据记录
-                    app_glucose_meas_record_send_start();
-                }
-            }
-        }
-    }
-    }
-    // 发送回应包
-    racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
-#else
     ble_racp_decode(usLen, pData, &RacpDatapacket);
     elog_hexdump("racp_rav", 16, pData, usLen);
     RspDatapacket.ucOpCode = RacpDatapacket.ucOpCode;
@@ -605,7 +537,6 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     }
     // 发送回应包
     racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
-#endif
 }
 
 

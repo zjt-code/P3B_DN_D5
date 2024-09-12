@@ -158,8 +158,8 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
 
         // Read characteristic value.
         sc = sl_bt_gatt_server_read_attribute_value(usAttributeHandle, 0, sizeof(ucDataRecvBuffer), &ucDataRecvLen, ucDataRecvBuffer);
-        log_i("weite char:%d", usAttributeHandle);
-        elog_hexdump("data", 8, ucDataRecvBuffer, ucDataRecvLen);
+        log_d("weite char:%d", usAttributeHandle);
+        elog_hexdump("weite char data", 8, ucDataRecvBuffer, ucDataRecvLen);
         switch (usAttributeHandle)
         {
             // 写SOCP

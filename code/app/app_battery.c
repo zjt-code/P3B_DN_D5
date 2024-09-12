@@ -13,7 +13,7 @@
 #define LOG_TAG                "APP_BATTERY"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                ELOG_LVL_DEBUG
+#define LOG_LVL                ELOG_LVL_INFO
 
 #include <elog.h>
 #include "app_battery.h"
@@ -205,7 +205,7 @@ uint8_t app_battery_calculate_battery_level(uint16_t usVol, uint32_t uiRunTime)
 *******************************************************************************/
 uint8_t sl_gatt_service_battery_get_level(void)
 {
-    log_i("g_ucBatteryLevel:%d", g_ucBatteryLevel);
+    log_d("g_ucBatteryLevel:%d", g_ucBatteryLevel);
     return g_ucBatteryLevel;
 }
 

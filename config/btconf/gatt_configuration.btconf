@@ -101,7 +101,7 @@ Summary: The CGM Measurement characteristic is a variable length structure conta
 
     <!--CGM Feature-->
     <characteristic const="false" id="cgm_feature" name="CGM Feature" sourceId="org.bluetooth.characteristic.cgm_feature" uuid="2AA8">
-      <value length="8" type="hex" variable_length="false"/>
+      <value length="11" type="hex" variable_length="false"/>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>

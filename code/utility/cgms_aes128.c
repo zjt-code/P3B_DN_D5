@@ -47,8 +47,14 @@ uint8_t mbedtls_aes_pkcspadding(uint8_t* data, uint8_t data_len)
 {
     uint8_t padding_len = 0, i = 0;
     padding_len = 16 - data_len;
-    if (padding_len >= 16)padding_len = 0;
-    for (i = data_len; i < 16; i++)data[i] = padding_len;
+    if (padding_len >= 16)
+    {
+        padding_len = 0;
+    }
+    for (i = data_len; i < 16; i++)
+    {
+        data[i] = padding_len;
+    }
     return 0;
 }
 

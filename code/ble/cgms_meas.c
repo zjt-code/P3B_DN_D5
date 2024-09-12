@@ -92,7 +92,7 @@ ret_code_t cgms_meas_special_send(ble_event_info_t BleEventInfo, cgms_history_sp
         memcpy(ucDatapacketBuffer, &CgmsHistorySpecialDatapcket, ucLen);
         elog_hexdump("cgms_meas_send", 16, ucDatapacketBuffer, ucLen);
 
-#if USE_GN_2_PROTOCOL
+#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
 
         mbedtls_aes_pkcspadding(&CgmsHistorySpecialDatapcket, ucLen);
         ucLen = 16;
@@ -202,11 +202,11 @@ ret_code_t cgms_meas_send(ble_event_info_t BleEventInfo, cgms_meas_t Rec)
         }
 
         
-#if USE_GN_2_PROTOCOL
-        memcpy(ucDatapacketBuffer, &Rec, ucLen);
-        mbedtls_aes_pkcspadding(&Rec, ucLen);
-        ucLen = 16;
+#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
+        uint8_t ucLen = 16;
         uint8_t cipher[16];
+        memcpy(ucDatapacketBuffer, &Rec, ucLen);
+        mbedtls_aes_pkcspadding(ucDatapacketBuffer, ucLen);
         cgms_aes128_encrpty(ucDatapacketBuffer, cipher);
         memcpy(ucDatapacketBuffer, cipher, 16);
 		elog_hexdump("cgms_meas_send(encrpty)", 8, ucDatapacketBuffer, ucLen);
