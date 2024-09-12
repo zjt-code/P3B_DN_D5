@@ -225,8 +225,19 @@ void racp_response_send(ble_event_info_t BleEventInfo, racp_response_t ResponseC
 
     if ((ble_racp_notify_is_enable()) && app_have_a_active_ble_connect())
     {
-        // 发送数据包
+#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
+        uint8_t ucCipher[16];
+        mbedtls_aes_pkcspadding(ucEncodedRacp, ucLen);
+        ucLen = 16;
+        cgms_aes128_encrpty(ucEncodedRacp, ucCipher);
+        memcpy(ucEncodedRacp, ucCipher, ucLen);
+        elog_hexdump("racp_send(encrpty)", 8, ucEncodedRacp, ucLen);
+#else
         elog_hexdump("racp_send", 8, ucEncodedRacp, ucLen);
+
+#endif
+
+        // 发送数据包
         sl_status_t sc;
         sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucEncodedRacp);
 		if (sc != SL_STATUS_OK)
@@ -492,14 +503,13 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
     memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
 #if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
-    uint8_t ucCipher[16];
-    mbedtls_aes_pkcspadding(pData, usLen);
-    elog_hexdump("socp_send(pkcspadding)", 8, pData, 16);
-    cgms_aes128_encrpty(pData, ucCipher);
-    memcpy(pData, ucCipher, 16);
+    uint8_t ucTempDatapacketBuffer[16];
+    elog_hexdump("racp_rev", 16,pData, usLen);
+    cgms_aes128_decrpty(pData, ucTempDatapacketBuffer);
+    memcpy(pData, ucTempDatapacketBuffer, 16);
 #endif
     ble_racp_decode(usLen, pData, &RacpDatapacket);
-    elog_hexdump("racp_rav", 16, pData, usLen);
+    elog_hexdump("datapacket", 16, pData, usLen);
     RspDatapacket.ucOpCode = RacpDatapacket.ucOpCode;
 
     switch (RacpDatapacket.ucOpCode)
