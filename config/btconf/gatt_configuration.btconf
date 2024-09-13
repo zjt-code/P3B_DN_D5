@@ -132,7 +132,7 @@ Summary: This control point is used with a service to provide basic management f
 
     <!--CGM Session Start Time-->
     <characteristic const="false" id="cgm_session_start_time" name="CGM Session Start Time" sourceId="org.bluetooth.characteristic.cgm_session_start_time" uuid="2AAA">
-      <value length="20" type="hex" variable_length="false"/>
+      <value length="20" type="user" variable_length="false"/>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>

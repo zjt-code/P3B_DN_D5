@@ -108,7 +108,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         static char cSn[14];
         memset(cSn, 0x00, sizeof(cSn));
         cgms_prm_get_sn(cSn);
-        sl_bt_gatt_server_write_attribute_value(gattdb_device_name, 0, sizeof(cSn),(uint8_t*) cSn);
+        sl_bt_gatt_server_write_attribute_value(gattdb_device_name, 0, sizeof(cSn), (uint8_t*)cSn);
 
         // 调用应用层的回调
         app_event_ble_connected_callback(evt->data.evt_connection_opened.connection);
@@ -287,8 +287,44 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         break;
     }
     case sl_bt_evt_system_external_signal_id:
+    {
         // 处理事件
         event_handler(evt->data.evt_system_external_signal.extsignals);
+        break;
+    }
+    // -------------------------------
+    // 当远端设备读取特征事件
+    case sl_bt_evt_gatt_server_user_read_request_id:
+    {
+        switch (evt->data.evt_gatt_server_user_read_request.characteristic)
+        {
+        case gattdb_cgm_session_start_time:
+        {
+            sc = sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,
+                                                           evt->data.evt_gatt_server_user_read_request.characteristic,
+                                                           0,
+                                                           sizeof(cgm_session_start_time_char_data_t),
+                                                           (uint8_t*)att_get_start_time(),
+                                                           NULL);
+            if (sc != SL_STATUS_OK)
+            {
+                log_e("sl_bt_evt_gatt_server_user_read_request_id fail %d", sc);
+            }
+            break;
+        }
+        default:
+        {
+            sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,
+                                                      evt->data.evt_gatt_server_user_read_request.characteristic,
+                                                      0x44,
+                                                      sizeof(cgm_session_start_time_char_data_t),
+                                                      (uint8_t*)att_get_start_time(),
+                                                      NULL);
+            break;
+        }
+        }
+        break;
+    }
     default:
     {
         break;
