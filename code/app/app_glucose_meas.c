@@ -13,7 +13,7 @@
 #define LOG_TAG                   "APP_GLUCOSE_MEAS"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                    ELOG_LVL_INFO
+#define LOG_LVL                    ELOG_LVL_DEBUG
 
 
 #include <string.h>
@@ -37,17 +37,14 @@
 #include "simplegluco.h"
 /* Private variables ---------------------------------------------------------*/
 
-volatile static app_glucose_meas_type_t g_AppGlucoseMeasType = APP_GLUCOSE_MEAS_TYPE_USER_MEAS;  // 血糖测量类型
-volatile static uint8_t g_ucGlucoseMeasInterval = APP_GLUCOSE_MEAS_MEAS_INTERVAL_MIN;    // 血糖测量间隔(ADC测量间隔,默认30S)
-volatile static uint8_t g_ucGlucoseMeasTimeCnt = 0;                             // 血糖测量与转换定时器时间计数
-volatile static uint16_t g_usGlucoseRecordsCurrentOffset = 0;                   // 当前血糖记录索引(从0开始)
-volatile static uint16_t g_usGlucoseElectricCurrent = 0;                        // 测量计算出来的血糖浓度质量(在这里实际用于存储电流值,单位:0.01nA)
-volatile static float g_fGlucoseConcentration = 0.0f;                           // 测量计算出来的实时血糖浓度(单位:mmol/L)
-volatile static uint8_t g_ucAvgElectricCurrentCalTempArrayCnt = 0;              // 当前用于计算平均电流的临时数据数量
-volatile static double g_dAvgElectricCurrentCalTempArray[APP_GLUCOSE_MEAS_AVG_ELECTRIC_CURRENT_CAL_TEMP_ARRAY_SIZE];                   // 用于计算平均电流的临时数据数组
-volatile  uint8_t g_ucAppBatteryInitMeasDoneFlag = 0;                     // 电量初始转换完成标志位
-static uint32_t g_uiListRtcTime = 0;                                   // 最后一次的RTC时间
-
+static volatile app_glucose_meas_type_t g_AppGlucoseMeasType = APP_GLUCOSE_MEAS_TYPE_USER_MEAS;  // 血糖测量类型
+static volatile uint8_t g_ucGlucoseMeasTimeCnt = 0;                             // 血糖测量与转换定时器时间计数
+static volatile uint16_t g_usGlucoseRecordsCurrentOffset = 0;                   // 当前血糖记录索引(从0开始)
+static volatile uint16_t g_usGlucoseElectricCurrent = 0;                        // 测量计算出来的血糖浓度质量(在这里实际用于存储电流值,单位:0.01nA)
+static volatile float g_fGlucoseConcentration = 0.0f;                           // 测量计算出来的实时血糖浓度(单位:mmol/L)
+static volatile uint8_t g_ucAvgElectricCurrentCalTempArrayCnt = 0;              // 当前用于计算平均电流的临时数据数量
+static volatile double g_dAvgElectricCurrentCalTempArray[APP_GLUCOSE_MEAS_AVG_ELECTRIC_CURRENT_CAL_TEMP_ARRAY_SIZE];                   // 用于计算平均电流的临时数据数组
+static volatile  uint8_t g_ucAppBatteryInitMeasDoneFlag = 0;                     // 电量初始转换完成标志位
 sl_sleeptimer_timer_handle_t g_AppGlucoseMeasTimer;                    // 应用层血糖测量定时器
 sl_sleeptimer_timer_handle_t g_AppGlucoseMeasRecordSendTimer;          // 应用层血糖测量记录发送定时器
 sl_sleeptimer_timer_handle_t g_AppBatteryMeasTimer;                    // 应用层电量测量定时器
@@ -109,7 +106,7 @@ double* app_glucose_avg_electric_current_get_electric_current_array(void)
             }
         }
     }
-    return g_dAvgElectricCurrentCalTempArray;
+    return &g_dAvgElectricCurrentCalTempArray[0];
 }
 
 
@@ -157,33 +154,6 @@ double app_glucose_avg_electric_current_cal_get(void)
     }
 }
 
-
-/*******************************************************************************
-*                           陈苏阳@2022-12-22
-* Function Name  :  app_glucose_meas_set_glucose_meas_interval
-* Description    :  设置血糖测量间隔
-* Input          :  uint8_t ucGlucoseMeasInterval
-* Output         :  None
-* Return         :  void
-*******************************************************************************/
-void app_glucose_meas_set_glucose_meas_interval(uint8_t ucGlucoseMeasInterval)
-{
-    g_ucGlucoseMeasInterval = ucGlucoseMeasInterval;
-}
-
-
-/*******************************************************************************
-*                           陈苏阳@2022-12-22
-* Function Name  :  app_glucose_meas_get_glucose_meas_interval
-* Description    :  获取血糖测量间隔
-* Input          :  void
-* Output         :  None
-* Return         :  uint16_t
-*******************************************************************************/
-uint16_t app_glucose_meas_get_glucose_meas_interval(void)
-{
-    return g_ucGlucoseMeasInterval;
-}
 
 
 /*******************************************************************************
@@ -294,7 +264,7 @@ static void app_glucose_handle(void)
 void app_glucose_meas_battery_sub_handler(void)
 {
     // 触发电量采集定时器处理函数
-    app_battery_timer_handler(1);
+    app_battery_timer_handler(60);
 }
 
 /*******************************************************************************
@@ -362,13 +332,14 @@ void app_glucose_meas_afe_meas_handler(void)
 *******************************************************************************/
 void app_glucose_meas_glucose_handler(void)
 {
+    log_d("app_glucose_meas_glucose_handler");
     WDOGn_Feed(WDOG0);
+    // 累计时间
+    g_ucGlucoseMeasTimeCnt++;
 
-    // 如果测量间隔小于最小间隔,则设置为最小间隔
-    if (g_ucGlucoseMeasInterval < APP_GLUCOSE_MEAS_MEAS_INTERVAL_MIN) g_ucGlucoseMeasInterval = APP_GLUCOSE_MEAS_MEAS_INTERVAL_MIN;
     log_d("g_ucGlucoseMeasTimeCnt:%d\r\n", g_ucGlucoseMeasTimeCnt);
     // 如果当前到了测量间隔时间计数
-    if (g_ucGlucoseMeasTimeCnt >= (g_ucGlucoseMeasInterval))
+    if (g_ucGlucoseMeasTimeCnt == APP_GLUCOSE_MEAS_MEAS_INTERVAL)
     {
         log_d("app_glucose_handle:%d\r\n", g_ucAvgElectricCurrentCalTempArrayCnt);
 
@@ -382,37 +353,24 @@ void app_glucose_meas_glucose_handler(void)
         g_ucGlucoseMeasTimeCnt = 0;
     }
     // 如果到达了猝发采样的开始时间点
-    else if (g_ucGlucoseMeasTimeCnt == (APP_GLUCOSE_MEAS_MEAS_INTERVAL_MIN - 3 * 18 - 1))
+    else if (g_ucGlucoseMeasTimeCnt == (APP_GLUCOSE_MEAS_MEAS_INTERVAL - 1))
     {
         // 开始18次猝发采样
         afe_shot(18);
     }
 
-    // 累计时间
-    g_ucGlucoseMeasTimeCnt++;
 }
 
 /*******************************************************************************
 *                           陈苏阳@2023-05-29
 * Function Name  :  app_glucose_meas_timer_handler
-* Description    :  血糖测量与转换定时处理函数(周期1S一次)
+* Description    :  血糖测量与转换定时处理函数(周期1分钟一次)
 * Input          :  uint32_t uiArg
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
 void app_glucose_meas_handler(uint32_t uiArg)
 {
-    // 获取当前RTC时间
-    uint32_t ucNowRtcTime = rtc_get_curr_time();
-
-    // 计算当前RTC时间差值
-    int32_t uiRtcTimeDiff = ucNowRtcTime - g_uiListRtcTime;
-
-    // 判断当前是否需要执行1S(0.99S)一次的数据采集
-    if (uiRtcTimeDiff >= 990)
-    {
-        // 更新RTC时间
-    	g_uiListRtcTime = ucNowRtcTime;
 
         // 如果当前测量类型为用户测量
         if (g_AppGlucoseMeasType == APP_GLUCOSE_MEAS_TYPE_USER_MEAS)
@@ -477,7 +435,7 @@ void app_glucose_meas_handler(uint32_t uiArg)
                 app_glucose_meas_afe_meas_handler();
             }
         }
-    }
+
 }
 /*******************************************************************************
 *                           陈苏阳@2024-05-09
@@ -510,7 +468,7 @@ bool app_glucose_meas_get_factory_meas_electric_current(uint32_t* pMeasElectricC
 void app_glucose_meas_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
 {
     log_d("app_glucose_meas_timer_callback");
-    event_push(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_1S_TIMER, NULL);
+    event_push(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_1MIN_TIMER, (void*)NULL);
 }
 
 
@@ -526,8 +484,8 @@ void app_glucose_meas_start(app_glucose_meas_type_t GlucoseMeasType)
 {
     g_AppGlucoseMeasType = GlucoseMeasType;
     log_d("app glucose meas start");
-    // 启动一个1S的循环定时器
-    sl_status_t status = sl_sleeptimer_start_periodic_timer(&g_AppGlucoseMeasTimer, sl_sleeptimer_ms_to_tick(1000), app_glucose_meas_timer_callback, (void*)NULL, 0, 0);
+    // 启动一个1分钟的循环定时器
+    sl_status_t status = sl_sleeptimer_start_periodic_timer(&g_AppGlucoseMeasTimer, sl_sleeptimer_ms_to_tick(60 * 1000), app_glucose_meas_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
     {
         log_e("sl_sleeptimer_start_timer failed");
@@ -774,7 +732,7 @@ void app_battery_meas_timer_callback(sl_sleeptimer_timer_handle_t* handle, void*
 void app_glucose_meas_init(void)
 {
     // 添加事件
-    event_add(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_1S_TIMER, app_glucose_meas_handler);
+    event_add(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_1MIN_TIMER, app_glucose_meas_handler);
     event_add(MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_RECORD_SEND_TIMER, app_glucose_meas_record_send_handelr);
     event_add(MAIN_LOOP_EVENT_APP_BATTERY_MEAS_TIMER, app_battery_meas_handelr);
 

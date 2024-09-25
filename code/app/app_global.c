@@ -277,6 +277,24 @@ void app_event_ble_disconnect_callback(uint16_t usConnectionHandle)
 *******************************************************************************/
 void app_init(void)
 {
+    extern uint32_t g_uiRstCause;
+    log_i("sys init  ver:%s", SOFT_VER);
+    log_i("ResetCause:0x%x", g_uiRstCause);
+    print_reset_cause(g_uiRstCause);
+    cm_backtrace_init("P3A", "0.0.1", SOFT_VER);
+
+    // 初始化历史数据的flash接口
+    cgms_db_flash_init();
+
+    // 打印debug信息
+    cgms_debug_db_print();
+
+    // 清空现有的键值对
+    cgms_debug_clear_all_kv();
+
+    // 参数存储上电初始化
+    cgms_prm_db_power_on_init();
+
     // 修改设备信息服务中的软件版本号
     sl_bt_gatt_server_write_attribute_value(gattdb_software_revision_string, 0, 5, (uint8_t*)SOFT_VER);
 
@@ -376,7 +394,7 @@ uint8_t event_add(uint32_t uiEventId, event_callback_t CallBack)
     {
         if (g_EventInfoArray[i].uiEventId == (uint32_t)(0x01 << uiEventId))
         {
-            g_EventInfoArray[i].uiArg = NULL;
+            g_EventInfoArray[i].uiArg = (void *)NULL;
             g_EventInfoArray[i].CallBack = CallBack;
             log_d("add event id:%d", uiEventId);
             return 1;
@@ -388,7 +406,7 @@ uint8_t event_add(uint32_t uiEventId, event_callback_t CallBack)
     {
         if (g_EventInfoArray[i].uiEventId == 0 && g_EventInfoArray[i].CallBack == NULL)
         {
-            g_EventInfoArray[i].uiArg = NULL;
+            g_EventInfoArray[i].uiArg = (void *)NULL;
             g_EventInfoArray[i].uiEventId = (0x01 << uiEventId);
             g_EventInfoArray[i].CallBack = CallBack;
             log_d("add event id:%d", uiEventId);
@@ -449,7 +467,7 @@ uint32_t rtc_get_curr_time(void)
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void app_global_ota_delay_param_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
+void app_global_ota_delay_param_timer_callback(__attribute__((unused))  sl_sleeptimer_timer_handle_t* handle,__attribute__((unused))  void* data)
 {
     bootloader_rebootAndInstall();
 }

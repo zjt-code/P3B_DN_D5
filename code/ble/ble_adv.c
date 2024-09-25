@@ -91,7 +91,7 @@ void ble_adv_generate_adv_data(uint8_t* pAdvDataBuffer, uint8_t* pAdvDataLen)
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void ble_adv_generate_adv_scan_response_data(uint8_t* pAdvScanRespDataBuffer, uint8_t* pAdvScanRespDataLen)
+void ble_adv_generate_adv_scan_response_data(__attribute__((unused)) uint8_t* pAdvScanRespDataBuffer, uint8_t* pAdvScanRespDataLen)
 {
     if (pAdvScanRespDataLen)*pAdvScanRespDataLen = 0;
 }

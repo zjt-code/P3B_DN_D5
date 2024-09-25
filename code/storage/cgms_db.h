@@ -33,7 +33,7 @@
 typedef struct
 {
     cgms_meas_t Record;// 历史数据内容
-    #if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
     
     #else
     uint8_t ucNone[7];// 填充

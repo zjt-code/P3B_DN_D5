@@ -127,7 +127,7 @@ uint8_t ble_racp_encode(ble_cgms_racp_datapacket_t* pRacpDatapacket, uint8_t* pD
 
 		for (uint8_t i = 0; i < pRacpDatapacket->ucDataLen; i++)pData[ucLen++] = pRacpDatapacket->ucData[i];
 	}
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 	uint16_t usCrcValue = do_crc(pData, ucLen);
 	ucLen += uint16_encode(usCrcValue, &pData[ucLen]);
 #endif
@@ -135,7 +135,7 @@ uint8_t ble_racp_encode(ble_cgms_racp_datapacket_t* pRacpDatapacket, uint8_t* pD
 }
 
 
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 /*******************************************************************************
 *                           陈苏阳@2023-10-24
 * Function Name  :  racp_response_code_send
@@ -158,13 +158,11 @@ void racp_response_code_send(ble_event_info_t BleEventInfo, uint8_t ucOpcode, ui
 
     ucLen = ble_racp_encode(&RacpDatapacket, ucEncodedRacp);
 
-#ifdef CGMS_ENCRYPT_ENABLE
     uint8_t cipher[16];
     mbedtls_aes_pkcspadding(ucEncodedRacp, ucLen);
     ucLen = 16;
     cgms_aes128_encrpty(ucEncodedRacp, cipher);
     memcpy(ucEncodedRacp, cipher, 16);
-#endif
 
     if ((ble_racp_notify_is_enable()) && (app_global_get_app_state()->bBleConnected == true))
     {
@@ -472,7 +470,7 @@ void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapack
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void cgms_racp_abort_operation(ble_event_info_t BleEventInfo, ble_cgms_racp_datapacket_t RacpDatapacket)
+void cgms_racp_abort_operation(ble_event_info_t BleEventInfo, __attribute__((unused))  ble_cgms_racp_datapacket_t RacpDatapacket)
 {
     racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
     ble_cgms_racp_datapacket_t RspDatapacket;
@@ -501,6 +499,7 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     ble_cgms_racp_datapacket_t RacpDatapacket;
     ble_cgms_racp_datapacket_t RspDatapacket;
     racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
+    memset(&RacpDatapacket, 0x00, sizeof(RacpDatapacket));
     memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
 #if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
     uint8_t ucTempDatapacketBuffer[16];

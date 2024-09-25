@@ -243,7 +243,7 @@ ret_code_t cgms_db_init(void)
 
 
         log_d("cgms_db_get_flash_record_index g_uiRecordsNum:%d", g_uiRecordsNum);
-        #if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
         log_d("cgms_db_get_flash_record_index sst_time_zone:%d", g_mRecordIndex.sst.time_zone);
         #else
         log_d("cgms_db_get_flash_record_index sst_time_zone:%d", g_mRecordIndex.sst.date_time.time_zone);
@@ -528,7 +528,7 @@ static ret_code_t cgms_db_record_get_raw_data(uint16_t usRecordIndex, cgms_meas_
             log_i("usPageIndex:%d", usPageIndex);
             // 计算目标历史数据地址
             uint32_t uiReadAddr = MEAS_RECORD_ADDR + (usPageIndex * cgm_db_flash_get_info()->usSectorByteSize) + (usPosInPage * usOneRecordStorageUnitSize);
-            #if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 			cgms_db_flash_read(uiReadAddr, &TmpRecord, sizeof(one_record_storage_unit_t));
             log_i("cgms_db_record_get_raw_data3  0x%x", uiReadAddr);
             elog_hexdump("data", 8, (uint8_t*)uiReadAddr, sizeof(one_record_storage_unit_t));

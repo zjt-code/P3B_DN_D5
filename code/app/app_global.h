@@ -35,7 +35,8 @@ typedef enum
  MAIN_LOOP_EVENT_AFE_IRQ,                           // AFE中断触发事件
  MAIN_LOOP_EVENT_TEMP_SENSOR_READ_START_TIMER,      // 温度传感器读取开始定时器事件
  MAIN_LOOP_EVENT_TEMP_SENSOR_READ_END_TIMER,        // 温度传感器读取结束定时器事件
- MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_1S_TIMER,         // 应用层血糖测量1S定时器事件
+ MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_1MIN_TIMER,       // 应用层血糖测量1分钟定时器事件
+ MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_FIRST_TIMER,      // 应用层第一次血糖测量定时器事件
  MAIN_LOOP_EVENT_APP_GLUCOSE_MEAS_RECORD_SEND_TIMER,// 应用层血糖测量的记录发送定时器事件
  MAIN_LOOP_EVENT_APP_BATTERY_MEAS_TIMER,            // 应用层电量测量定时器事件
  MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT,          // 开始CGM事件
@@ -101,7 +102,7 @@ typedef enum
 #define P3_PROTOCOL									(0)				   // P3通讯协议宏定义
 #define P3_ENCRYPT_PROTOCOL						    (1)				   // P3加密协议宏定义
 #define GN_2_PROTOCOL						     	(2)				   // GN-2加密协议宏定义
-#define USE_BLE_PROTOCOL							(P3_ENCRYPT_PROTOCOL)// 使用的BLE通讯协议格式
+#define USE_BLE_PROTOCOL							(P3_PROTOCOL)	   // 使用的BLE通讯协议格式
 
 
 

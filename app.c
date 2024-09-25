@@ -30,6 +30,7 @@
 #include "ble_customss.h"
 #include "app_glucose_meas.h"
 #include "cgms_meas.h"
+#include "utility.h"
 /* Private variables ---------------------------------------------------------*/
 
 
@@ -68,6 +69,10 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         int16_t min_pwr, max_pwr;
         // 设置TX发射功率为0dB
         sc = sl_bt_system_set_tx_power(0, 0, &min_pwr, &max_pwr);
+        app_assert_status(sc);
+
+        // 根据欧盟CE认证的内容,将BLE PHY限定在1M PHY 
+        sc = sl_bt_connection_set_default_preferred_phy(0x01, 0x01);
         app_assert_status(sc);
 
         // 创建一个BLE广播集
@@ -158,8 +163,8 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
 
         // Read characteristic value.
         sc = sl_bt_gatt_server_read_attribute_value(usAttributeHandle, 0, sizeof(ucDataRecvBuffer), &ucDataRecvLen, ucDataRecvBuffer);
-        log_d("weite char:%d", usAttributeHandle);
-        elog_hexdump("weite char data", 8, ucDataRecvBuffer, ucDataRecvLen);
+        log_i("weite char:%d", usAttributeHandle);
+        elog_hexdump("data", 8, ucDataRecvBuffer, ucDataRecvLen);
         switch (usAttributeHandle)
         {
             // 写SOCP

@@ -19,7 +19,7 @@
 // 历史数据操作码
 typedef enum
 {
-	#if USE_GN_2_PROTOCOL
+    #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 	RACP_OPCODE_REPORT_RECS = 0x01,                 // 读取历史数据
     RACP_OPCODE_RESPONSE = 0x1C,                    // 回应包
 	#else
@@ -51,7 +51,7 @@ typedef enum
 {
     RACP_RESPONSE_RESULT_RESERVED = 0x00,                              // 保留未使用
     RACP_RESPONSE_RESULT_SUCCESS = 0x01,                               // 执行成功
-    #if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
     RACP_RESPONSE_RESULT_COMMAND_FORMAT_ERR = 0x02,                    // 命令格式不正确
     RACP_RESPONSE_RESULT_COMMAND_LEN_ERR = 0x03,                       // 命令长度不正确
     RACP_RESPONSE_RESULT_COMMAND_START_INDEX_RANGE_OUT = 0x04,         // 起始序列号超过最大值

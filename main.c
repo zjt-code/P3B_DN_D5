@@ -33,9 +33,9 @@
 #include <cm_backtrace.h>
 #include "em_rmu.h"
 #include "em_msc.h"
+#include "em_emu.h"
 /* Private variables ---------------------------------------------------------*/
-uint32_t rest_dig_status;
-uint32_t acs_reset_status;
+uint32_t g_uiRstCause;
 uint8_t g_ucWatchdogTriggerFlag = 0;
 /* Private function prototypes -----------------------------------------------*/
 void wdog_init(void);
@@ -43,85 +43,6 @@ extern uint8_t cgms_db_flash_init(void);
 
 /* Private functions ---------------------------------------------------------*/
 
-void fault_test_by_div0(void) {
-    volatile int * SCB_CCR = (volatile int *) 0xE000ED14; // SCB->CCR
-    int x, y, z;
-
-    *SCB_CCR |= (1 << 4); /* bit4: DIV_0_TRP. */
-
-    x = 10;
-    y = 0;
-    z = x / y;
-    printf("z:%d\n", z);
-}
-
-/*******************************************************************************
-*                           陈苏阳@2024-04-17
-* Function Name  :  print_reset_cause
-* Description    :  打印复位原因
-* Input          :  uint32_t uiResetCause
-* Output         :  None
-* Return         :  void
-*******************************************************************************/
-void print_reset_cause(uint32_t uiResetCause)
-{
- if(uiResetCause & EMU_RSTCAUSE_POR)
- {
-     log_i("ResetCause:Power On Reset");
- }
- if (uiResetCause & EMU_RSTCAUSE_PIN)
- {
-     log_i("ResetCause:Pin Reset");
- }
- if (uiResetCause & EMU_RSTCAUSE_EM4)
- {
-     log_i("ResetCause:EM4 Wakeup Reset");
- }
- if (uiResetCause & EMU_RSTCAUSE_WDOG0)
- {
-     log_i("ResetCause:Watchdog 0 Reset");
- }
- if (uiResetCause & EMU_RSTCAUSE_LOCKUP)
- {
-     log_i("ResetCause:M33 Core Lockup Reset");
- }
- if (uiResetCause & EMU_RSTCAUSE_SYSREQ)
- {
-     log_i("ResetCause:M33 Core Sys Reset");
- }
- if (uiResetCause & EMU_RSTCAUSE_DVDDBOD)
- {
-     log_i("ResetCause:Shift value for EMU_DVDDBOD");
- }
- if (uiResetCause & EMU_RSTCAUSE_DVDDLEBOD)
- {
-     log_i("ResetCause:LEBOD Reset");
- }
- if (uiResetCause & EMU_RSTCAUSE_DECBOD)
- {
-     log_i("ResetCause:LVBOD Reset");
- }
- if (uiResetCause & EMU_RSTCAUSE_AVDDBOD)
- {
-     log_i("ResetCause:LEBOD1 Reset");
- }
- if (uiResetCause & EMU_RSTCAUSE_IOVDD0BOD)
- {
-     log_i("ResetCause:LEBOD2 Reset");
- }
- if (uiResetCause & EMU_RSTCAUSE_DCI)
- {
-     log_i("ResetCause:DCI reset");
- }
- if (uiResetCause & EMU_RSTCAUSE_BOOSTON)
- {
-     log_i("ResetCause:BOOST_EN pin reset");
- }
- if (uiResetCause & EMU_RSTCAUSE_VREGIN)
- {
-     log_i("ResetCause:DCDC VREGIN comparator");
- }
-}
 
 /*******************************************************************************
 *                           陈苏阳@2023-10-25
@@ -134,7 +55,7 @@ void print_reset_cause(uint32_t uiResetCause)
 int main(void)
 {
     // 记录复位原因并清空复位原因
-    rest_dig_status = RMU_ResetCauseGet();
+    g_uiRstCause  = RMU_ResetCauseGet();
     RMU_ResetCauseClear();
 
     // 系统初始化
@@ -161,25 +82,10 @@ int main(void)
 
 
     elog_start();
-    log_i("sys init  ver:%s", SOFT_VER);
-    log_i("ResetCause:0x%x", rest_dig_status);
-    print_reset_cause(rest_dig_status);
 
     wdog_init();
-    cm_backtrace_init("P3A", "0.0.1", SOFT_VER);
-    // 初始化历史数据的flash接口
-    cgms_db_flash_init();
 
-    // 打印debug信息
-    cgms_debug_db_print();
-
-    // 清空现有的键值对
-    cgms_debug_clear_all_kv();
-
-    // 参数存储上电初始化
-    cgms_prm_db_power_on_init();
-
-    WDOGn_Feed(WDOG0);
+    // 这边只做了基本的初始化,固件的入口在:app_global.c里的app_init()函数
 
     while (1)
     {

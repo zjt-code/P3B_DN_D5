@@ -331,12 +331,21 @@ void cgms_socp_write_glucose_calibration_value(__attribute__((unused))  ble_even
     pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_SUCCESS;
 
 #else
+    if (app_global_is_session_runing())
+    {
     calDataFlag = 1;
     uint16_t concentration = uint16_decode(SocpRequest.pData);
+        if (concentration == 0)concentration = 1;
     usBfFlg = 1;
     sfCurrBg = (float)concentration / 100.0f;
     log_i("sfCurrBg:%f\r\n", sfCurrBg);
     pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+    }
+    else
+    {
+        // 状态错误
+        pRspRequest->ucRspCode = SOCP_RSP_PROCEDURE_NOT_COMPLETED;
+    }
 #endif
 }
 
@@ -522,8 +531,16 @@ void cgms_socp_stop_the_session(__attribute__((unused))  ble_event_info_t BleEve
     app_glucose_meas_stop();
 
 #else
+    if (app_global_is_session_runing())
+    {
     pRspRequest->ucOpCode = SOCP_RSP_SUCCESS;
-    event_push(MAIN_LOOP_EVENT_SOCP_STOP_SESSION_EVENT, NULL);
+        event_push(MAIN_LOOP_EVENT_SOCP_STOP_SESSION_EVENT, (void *)NULL);
+    }
+    else
+    {
+        // 状态错误
+        pRspRequest->ucRspCode = SOCP_RSP_PROCEDURE_NOT_COMPLETED;
+    }
 #endif
 }
 
@@ -584,6 +601,13 @@ void cgms_socp_write_sensor_code(__attribute__((unused)) ble_event_info_t BleEve
     uint16_t usSensorCode;
     usSensorCode = uint16_decode(SocpRequest.pData + 1);
 
+    // 如果Code为0,则说明Code无效
+    if (usSensorCode == 0)
+    {
+        pRspRequest->ucRspCode = SOCP_RSP_INVALID_OPERAND;
+    }
+    else
+    {
     // 更新CGM Status中的工厂校准码
     att_get_cgm_status()->usFactoryCode = usSensorCode;
     // 更新CGM状态char的内容
@@ -599,13 +623,7 @@ void cgms_socp_write_sensor_code(__attribute__((unused)) ble_event_info_t BleEve
 
     log_i("cur_error_min_value(%f)", cur_error_min_value);
     log_i("cur_error_max_value(%f)", cur_error_max_value);
-    // 如果Code为0,则说明Code无效
-    if (usSensorCode == 0)
-    {
-        pRspRequest->ucRspCode = SOCP_RSP_INVALID_OPERAND;
-    }
-    else
-    {
+
         log_i("sensor code update done");
         pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
         app_global_get_app_state()->isfs = true;
@@ -646,10 +664,12 @@ void cgms_socp_start_fota(__attribute__((unused)) ble_event_info_t BleEventInfo,
 *******************************************************************************/
 void cgms_socp_read_reset_reg(__attribute__((unused)) ble_event_info_t BleEventInfo,__attribute__((unused))  ble_socp_datapacket_t  SocpRequest, ble_socp_rsp_t* pRspRequest)
 {
-    extern uint32_t rest_dig_status;
-    extern uint32_t acs_reset_status;
-    memcpy(&(pRspRequest->ucRespVal[0]), &rest_dig_status, 4);
-    memcpy(&(pRspRequest->ucRespVal[4]), &acs_reset_status, 4);
+    extern uint32_t g_uiRstCause ;
+    memcpy(&(pRspRequest->ucRespVal[0]), &g_uiRstCause , 4);
+    pRspRequest->ucRespVal[4] = 0x00;
+    pRspRequest->ucRespVal[5] = 0x00;
+    pRspRequest->ucRespVal[6] = 0x00;
+    pRspRequest->ucRespVal[7] = 0x00;
     pRspRequest->ucSizeVal = 8;
 }
 
@@ -1112,7 +1132,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
 * Output         :  None
 * Return         :  bool
 *******************************************************************************/
-bool cgms_socp_check_production_cmd(uint8_t* pData, uint16_t usLen)
+bool cgms_socp_check_production_cmd(uint8_t* pData,__attribute__((unused))  uint16_t usLen)
 {
     switch (pData[0])
     {

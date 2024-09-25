@@ -32,7 +32,7 @@
     <!--Device Model String-->
     <characteristic const="false" id="device_model_string" name="Device Model String" sourceId="org.bluetooth.characteristic.model_number_string" uuid="2A24">
       <informativeText>Abstract: The value of this characteristic is a UTF-8 string representing the model number assigned by the device vendor.</informativeText>
-      <value length="16" type="utf-8" variable_length="false">000000000000000</value>
+      <value length="0" type="utf-8" variable_length="false">Infinovo</value>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>
@@ -41,7 +41,7 @@
     <!--SN_String-->
     <characteristic const="false" id="sn_string" name="SN_String" sourceId="org.bluetooth.characteristic.model_number_string" uuid="2A25">
       <informativeText>Abstract: The value of this characteristic is a UTF-8 string representing the model number assigned by the device vendor.</informativeText>
-      <value length="16" type="utf-8" variable_length="false">000000000000000</value>
+      <value length="0" type="utf-8" variable_length="false">D3</value>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>

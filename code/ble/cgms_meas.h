@@ -19,8 +19,7 @@
 
 
 /* Private typedef -----------------------------------------------------------*/
-
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 // 测量数据标志位
 typedef enum
 {
@@ -47,7 +46,7 @@ typedef enum
 typedef struct
 {
     uint8_t ucDatapacketCode;
-    #if USE_GN_2_PROTOCOL
+    #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 	uint8_t uc_Reserved[2];
     #else
     uint8_t uc_Reserved[13];
@@ -55,7 +54,7 @@ typedef struct
     uint16_t usCRC16;
 }__attribute__((packed)) cgms_history_special_datapcket_t;
 
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
     // CGM测量数据结构体
 typedef struct
 {

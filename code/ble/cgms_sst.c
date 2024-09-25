@@ -22,6 +22,8 @@
 #include "app_util.h"
 #include "ble_customss.h"
 #include "string.h"
+#include "app_global.h"
+#include "stdint.h"
 /* Private variables ---------------------------------------------------------*/
 ble_cgms_sst_t g_mSST;
 
@@ -32,7 +34,7 @@ ble_cgms_sst_t g_mSST;
 
 /* Private functions ---------------------------------------------------------*/
 
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 /*******************************************************************************
 *                           陈苏阳@2023-02-16
 * Function Name  :  cgms_update_sst_and_time_zone
@@ -74,7 +76,7 @@ void cgms_update_sst_and_time_zone(uint32_t uiStartTime, uint8_t ucTimeZone)
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void cgms_update_sst_and_time_zone(uint16_t usYear,uint8_t ucMonth,uint8_t ucDay,uint8_t ucHour,uint8_t ucMinute,uint8_t ucSecond,uint8_t ucTimeZone,uint8_t ucDataSaveingTime)
+void cgms_update_sst_and_time_zone(uint16_t usYear,uint8_t ucMonth,uint8_t ucDay,uint8_t ucHour,uint8_t ucMinute,uint8_t ucSecond,uint8_t ucTimeZone,__attribute__((unused))  uint8_t ucDataSaveingTime)
 {
     // 更新读取启动时间的char的数据
     att_get_start_time()->ucTimeZone = ucTimeZone;
@@ -119,7 +121,7 @@ uint32_t cgms_sst_init(void)
     g_mSST.date_time.time_info.day = 0x00;
     g_mSST.date_time.time_info.month = 0x00;
     g_mSST.date_time.time_info.year = 0x07D0;
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 	g_mSST.time_zone = 0xEC;
     g_mSST.dst = 0x00;
     att_get_start_time()->uiStartTime = get_second_time(&(g_mSST.date_time.time_info));
@@ -154,7 +156,7 @@ uint32_t cgms_sst_init(void)
 void cgms_sst_recover(ble_cgms_sst_t SST)
 {
     g_mSST = SST;
-#if USE_GN_2_PROTOCOL
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 	att_get_start_time()->uiStartTime = get_second_time(&(g_mSST.date_time.time_info));
     att_get_start_time()->ucTimeZone = g_mSST.time_zone;
     att_update_start_time_char_data_crc();   
