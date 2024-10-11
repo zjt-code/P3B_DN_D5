@@ -49,6 +49,9 @@ sl_sleeptimer_timer_handle_t g_AppGlucoseMeasTimer;                    // 应用
 sl_sleeptimer_timer_handle_t g_AppGlucoseMeasRecordSendTimer;          // 应用层血糖测量记录发送定时器
 sl_sleeptimer_timer_handle_t g_AppBatteryMeasTimer;                    // 应用层电量测量定时器
 
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
+static uint32_t g_uiCgmWorkTimeCnt = 0;                                // CGM运行时间(单位秒)
+#endif
 /* Private function prototypes -----------------------------------------------*/
 void app_battery_meas_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data);
 /* Private functions ---------------------------------------------------------*/
@@ -200,13 +203,20 @@ static void app_glucose_handle(void)
     rec.usGlucose = (uint16_t)(g_fGlucoseConcentration * 100.0);
     rec.usCurrent = (uint16_t)(sfCurrI0 * 100.0);
     g_usGlucoseElectricCurrent = rec.usCurrent;
+    rec.ucTrend = 0x04;
+    rec.ucQuality = 0x00;
+    rec.ucCV = 0x00;
     rec.usOffset = g_usGlucoseRecordsCurrentOffset;
     rec.usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_REAL;
-
+    rec.ucState = app_global_get_app_state()->status;
     log_i("cgms_meas_create  %d,%d,%d", rec.usOffset, rec.usGlucose, rec.usCurrent);
 
     // 存储历史记录
-    ret_code_t err_code = cgms_db_record_add(&rec);
+    ret_code_t ErrCode = cgms_db_record_add(&rec);
+    if (ErrCode != RET_CODE_SUCCESS)
+    {
+        log_e("cgms_db_record_add fail:%d", ErrCode);
+    }
     // 通过BLE发送本次的测量记录
 
     if ((ble_meas_notify_is_enable()) && app_have_a_active_ble_connect())
@@ -221,7 +231,11 @@ static void app_glucose_handle(void)
                 ble_event_info_t BleEventInfo;
                 BleEventInfo.ucConidx = app_global_get_app_state()->BleConnectInfo[i].usBleConidx;
                 BleEventInfo.usHandle = gattdb_cgm_measurement;
-                err_code = cgms_meas_send(BleEventInfo, rec);
+                ErrCode = cgms_meas_send(BleEventInfo, rec);
+                if (ErrCode != RET_CODE_SUCCESS)
+                {
+                    log_e("cgms_meas_send fail:%d", ErrCode);
+                }
             }
         }
     }

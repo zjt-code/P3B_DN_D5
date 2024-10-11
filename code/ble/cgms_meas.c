@@ -25,6 +25,7 @@
 #include "cgms_aes128.h"
 #include <elog.h>
 #include "sl_bluetooth.h"
+#include "utility.h"
 /* Private variables ---------------------------------------------------------*/
 static bool g_bBleMeasNotifyIsEnableFlag = false;						// BLE Meas通知使能标志位
 /* Private function prototypes -----------------------------------------------*/
@@ -89,18 +90,16 @@ ret_code_t cgms_meas_special_send(ble_event_info_t BleEventInfo, cgms_history_sp
     {
         uint8_t ucLen = sizeof(CgmsHistorySpecialDatapcket);
         uint8_t ucDatapacketBuffer[20];
+
         memcpy(ucDatapacketBuffer, &CgmsHistorySpecialDatapcket, ucLen);
+
         elog_hexdump("cgms_meas_send", 16, ucDatapacketBuffer, ucLen);
 
+        // 根据通讯协议对原始数据包进行填充和加密
+        ucLen = datapacket_padding_and_encrpty(ucDatapacketBuffer, ucDatapacketBuffer, ucLen);
+
 #if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
-        uint8_t ucCipher[16];
-        mbedtls_aes_pkcspadding(&CgmsHistorySpecialDatapcket, ucLen);
-        ucLen = 16;
-        cgms_aes128_encrpty(ucDatapacketBuffer, ucCipher);
-        memcpy(ucDatapacketBuffer, ucCipher, ucLen);
         elog_hexdump("cgms_meas_send(encrpty)", 8, ucDatapacketBuffer, ucLen);
-#else
-        elog_hexdump("cgms_meas_send", 8, ucDatapacketBuffer, ucLen);
 #endif
 
         // 发送数据
@@ -142,36 +141,39 @@ uint8_t cgms_meas_encode(cgms_meas_t Rec, uint8_t* pEncodeedData)
 {
     if (pEncodeedData)
     {
-        uint8_t len = 0;
+#if(USE_BLE_PROTOCOL==GN_2_PROTOCOL)
+        cgms_meas_t TmpRec = Rec;
+        TmpRec.ucDatapacketLen = 15;
+        memcpy(pEncodeedData, &TmpRec, sizeof(TmpRec));
+        uint16_encode(do_crc(pEncodeedData, 13), &pEncodeedData[13]);
+        elog_hexdump("cgms_meas_encode", 8, pEncodeedData, 15);
+        return 15;
+#else
+        uint8_t ucLen = 0;
         pEncodeedData[0] = 0x0D;//在安卓端的E2 APP上限制了非0x0D开头的数据都丢弃//len + 2;
-        len++;
-
-        pEncodeedData[1] = Rec.usHistoryFlag;
-        len++;
-
-        // 编码血糖数据
-        len += uint16_encode(Rec.usGlucose, &pEncodeedData[len]); //len =4
+        ucLen++;
 
         // 编码时间下标
-        len += uint16_encode(Rec.usOffset, &pEncodeedData[len]); //len =6
+        ucLen += uint16_encode(Rec.usOffset, &pEncodeedData[ucLen]); //len =6
 
         if (Rec.usHistoryFlag == CGMS_MEAS_HISTORY_FLAG_HISTORY)
         {
-            pEncodeedData[len] = 0x80;
+            pEncodeedData[ucLen] = 0x80;
         }
         else
         {
-            pEncodeedData[len] = 0x00;
+            pEncodeedData[ucLen] = 0x00;
         }
-        len++;
+        ucLen++;
 
         // 编码趋势数据(固定为0)
-        len += uint16_encode(0, &pEncodeedData[len]);
+        ucLen += uint16_encode(0, &pEncodeedData[ucLen]);
 
         // 编码电流数据
-        len += uint16_encode(Rec.usCurrent, &pEncodeedData[len]);
-        len += uint16_encode(do_crc(pEncodeedData, 14), &pEncodeedData[14]);
+        ucLen += uint16_encode(Rec.usCurrent, &pEncodeedData[ucLen]);
+        ucLen += uint16_encode(do_crc(pEncodeedData, 14), &pEncodeedData[14]);
         return 16;
+#endif
     }
     return 0;
 }
@@ -202,24 +204,22 @@ ret_code_t cgms_meas_send(ble_event_info_t BleEventInfo, cgms_meas_t Rec)
                 return RET_CODE_FAIL;
             }
         }
+        uint8_t ucEncrptyDatapacket[16];
 
-        
-#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
-        uint8_t ucCipher[16];
+        // 编码原始数据包
         uint8_t ucLen = cgms_meas_encode(Rec, ucDatapacketBuffer);
-        mbedtls_aes_pkcspadding(ucDatapacketBuffer, ucLen);
-        ucLen = 16;
-        cgms_aes128_encrpty(ucDatapacketBuffer, ucCipher);
-        memcpy(ucDatapacketBuffer, ucCipher, ucLen);
-		elog_hexdump("cgms_meas_send(encrpty)", 8, ucDatapacketBuffer, ucLen);
-#else
-        uint8_t ucLen = cgms_meas_encode(Rec,ucDatapacketBuffer);
+
         elog_hexdump("cgms_meas_send", 8, ucDatapacketBuffer, ucLen);
-        
+
+        // 根据通讯协议对原始数据包进行填充和加密
+        ucLen = datapacket_padding_and_encrpty(ucEncrptyDatapacket,ucDatapacketBuffer, ucLen);  
+
+#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
+		elog_hexdump("cgms_meas_send(encrpty)", 8, ucEncrptyDatapacket, ucLen);
 #endif
         // 发送数据
         sl_status_t sc;
-        sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucDatapacketBuffer);
+        sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucEncrptyDatapacket);
         if (sc == SL_STATUS_OK)
         {
             log_i("send OK");

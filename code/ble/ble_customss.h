@@ -124,9 +124,9 @@ typedef struct
     uint8_t ucHour;                             // 小时
     uint8_t ucMinute;                           // 分钟
     uint8_t ucSecond;                           // 秒
-    uint8_t ucTimeZone;                         // 时区
     uint8_t ucDaySaveingTime;                   // 夏令时
 #endif
+    uint8_t ucTimeZone;                         // 时区
     uint16_t usCrc16;                           // CRC16
 }__attribute__((packed)) cgm_session_start_time_char_data_t;
 
@@ -138,20 +138,20 @@ typedef struct
 
 struct ble_customss_service_att_database
 {
-        #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
+  #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 	// 仅读取部分
     cgm_feature_char_data_t CgmFeatureValue;
     cgm_status_char_data_t CgmStatusValue;
     cgm_session_start_time_char_data_t CgmSessionStartTimeValue;
 	// 读写部分
-    uint8_t CgmsMeasurementValue[CS_CGM_MEASUREMENT_MAX_LENGTH];
-    uint8_t RecordAccessControlValue[CS_RECORD_ACCESS_CONTROL_MAX_LENGTH];
-    uint8_t CgmSpecificOpsValue[CS_CGM_SPECIFIC_OPS_MAX_LENGTH];
+    uint8_t CgmsMeasurementValue[BLE_CGM_SERVICE_CGM_MEASUREMENT_MAX_LENGTH];
+    uint8_t RecordAccessControlValue[BLE_CGM_SERVICE_RECORD_ACCESS_CONTROL_MAX_LENGTH];
+    uint8_t CgmSpecificOpsValue[BLE_CGM_SERVICE_CGM_SPECIFIC_OPS_MAX_LENGTH];
     // 带Notify的char的CCCD
-    uint8_t CgmMeasurementCccdValue[CGMS_CCCD_VALUE_MAX];
-    uint8_t CgmRecordAccessControlCccdValue[CGMS_CCCD_VALUE_MAX];
-    uint8_t CgmSpecificOpsCccdValue[CGMS_CCCD_VALUE_MAX];
-    uint8_t CgmStatusCccdValue[CGMS_CCCD_VALUE_MAX];
+    uint8_t CgmMeasurementCccdValue[BLE_CGM_SERVICE_CCCD_VALUE_MAX];
+    uint8_t CgmRecordAccessControlCccdValue[BLE_CGM_SERVICE_CCCD_VALUE_MAX];
+    uint8_t CgmSpecificOpsCccdValue[BLE_CGM_SERVICE_CCCD_VALUE_MAX];
+    uint8_t CgmStatusCccdValue[BLE_CGM_SERVICE_CCCD_VALUE_MAX];
 	#elif (USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL)
 	// 仅读取部分
     cgm_feature_char_data_t CgmFeatureValue;
@@ -207,6 +207,7 @@ void att_update_feature_char_data_crc(void);
 cgm_session_start_time_char_data_t* att_get_start_time(void);
 void att_update_start_time_char_data(void);
 void att_update_cgm_status_char_data(void);
+void att_update_feature_char_data(void);
 uint16_t att_get_att_handle(uint16_t attindx);
 cgm_session_run_time_char_data_t* att_get_run_time(void);
 void att_update_notify_indication(uint16_t handle, uint16_t value);

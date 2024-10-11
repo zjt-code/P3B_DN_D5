@@ -43,14 +43,12 @@ typedef struct
 // SOCP数据包_启动发射器命令包_结构体
 typedef struct
 {
-    uint8_t ucOpCode;                               // 操作码
     uint32_t uiStartTime;                           // 启动时间
     uint16_t usFactoryCode;                         // 工厂校准码.
     uint8_t ucTimeZone;                             // 时区
     uint8_t ucReserved1;                            // 保留1
     uint8_t ucFrom;                                 // 启动来源标识符(安卓为0x01,iOS为0x02,接收器为0x03)
     uint8_t ucSoftwareVersion[3];                   // 启动用的APP或者接收器的软件版本号
-    uint16_t usCRC16;                               // CRC16
 }__attribute__((packed)) ble_cgms_socp_start_the_session_datapacket_t;
 
 
@@ -73,10 +71,8 @@ typedef struct
 // SOCP数据包_输入参比血糖命令包_结构体
 typedef struct
 {
-    uint8_t ucOpCode;                               // 操作码
     uint16_t usCalibration;                         // 用户输入的参比血糖,转化为mmol/L的单位,取1位小数并乘以10
     uint16_t usOffset;                              // 该条参比血糖发送的时候,对应的前一个血糖广播数据的序列号
-    uint16_t usCRC16;                               // CRC16
 }__attribute__((packed)) ble_cgms_socp_write_glucose_calibration_datapacket_t;
 
 
@@ -142,10 +138,24 @@ typedef struct
     uint16_t usCRC16;                               // CRC16
 }__attribute__((packed)) ble_cgms_socp_verify_password_datapacket_t;
 
+
+// SOCP数据包_获取历史数据命令包_结构体
+typedef struct
+{    uint8_t ucOperation;                            // 缓冲数值
+    uint16_t usStartIndex;                            // 开始序号
+    uint16_t usStopIndex;                             // 停止序号
+    uint16_t usCRC16;                               // CRC16
+}__attribute__((packed)) ble_cgms_socp_get_history_data_datapacket_t;
+
+
 typedef enum
 {
     SOCP_OPCODE_RESERVED = 0x00,                                       // 保留,暂未使用
+#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==P3_PROTOCOL))
     SOCP_WRITE_CGM_COMMUNICATION_INTERVAL = 0x01,                      // 写入CGM通讯间隔
+#else
+    SOCP_GET_HISTORY_DATA = 0x01,                                      // 获取历史数据
+#endif
     SOCP_READ_CGM_COMMUNICATION_INTERVAL = 0x02,                       // 读取CGM通讯间隔
     SOCP_READ_CGM_COMMUNICATION_INTERVAL_RESPONSE = 0x03,              // 读取CGM通讯间隔响应包
     SOCP_WRITE_GLUCOSE_CALIBRATION_VALUE = 0x04,                       // 写入血糖校准值
@@ -236,6 +246,19 @@ typedef enum
     SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_RANGE_OUT = 0x08,          // 超出量程,无法校准
     SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_GLUCOSE_FLUCTUATE = 0x09,  // 当前血糖变化快,无法校准
 }socp_write_glucose_calibration_rsp_code_t;
+
+
+// SOCP 获取历史数据命令返回值
+typedef enum
+{
+    SOCP_GET_HISTORY_DATA_RSP_CODE_SUCCESS = 0x01,                     // 设置区间成功
+    SOCP_GET_HISTORY_DATA_RSP_CODE_COMMAND_FORMAT_ERR = 0x02,          // 命令格式不正确
+    SOCP_GET_HISTORY_DATA_RSP_CODE_COMMAND_LEN_ERR = 0x03,             // 命令长度不正确
+    SOCP_GET_HISTORY_DATA_RSP_CODE_START_INDEX_TOO_BIG = 0x04,         // 其实序列号超过最大值
+    SOCP_GET_HISTORY_DATA_RSP_CODE_OTHER_ERR = 0x05,                   // 其他错误
+    SOCP_GET_HISTORY_DATA_RSP_CODE_BUSY = 0x06,                        // 前一条获取历史数据命令处理中
+
+}socp_get_history_data_rsp_code_t;
 
 // SOCP 通用返回值
 typedef enum

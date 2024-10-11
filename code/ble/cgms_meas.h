@@ -61,7 +61,7 @@ typedef struct
     uint8_t ucDatapacketLen;                        // 数据包长度
     uint16_t usOffset;                              // 血糖数据的index(从启动CGM(=0)开始)
     uint16_t usGlucose;                             // 血糖浓度(mmol/L * 10)
-    uint8_t usIsHistory;                            // 历史数据标志位
+    uint8_t usHistoryFlag;                            // 历史数据标志位
     uint8_t ucTrend;                                // 血糖变化趋势(取值参考cgms_trend_t)
     uint16_t usCurrent;                             // 电极电流(nA * 100)
     uint8_t ucQuality;                              // 血糖质量(取值参考cgm_quality_t)

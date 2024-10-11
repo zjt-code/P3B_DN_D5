@@ -558,8 +558,13 @@ ret_code_t cgms_db_record_get(uint16_t usRecordIndex, cgms_meas_t* pRec)
     log_i("cgms_db_record_get %d", usRecordIndex);
     if (cgms_db_record_get_raw_data(usRecordIndex, pRec) == RET_CODE_SUCCESS)
     {
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
         // 设置最高位为1,用于标识本条数据为历史数据而不是实时数据.
         pRec->usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_HISTORY;
+#else
+        // 设置最高位为1,用于标识本条数据为历史数据而不是实时数据.
+        pRec->usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_HISTORY;
+#endif
         return RET_CODE_SUCCESS;
     }
     return RET_CODE_FAIL;

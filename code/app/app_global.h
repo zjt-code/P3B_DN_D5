@@ -102,7 +102,7 @@ typedef enum
 #define P3_PROTOCOL									(0)				   // P3通讯协议宏定义
 #define P3_ENCRYPT_PROTOCOL						    (1)				   // P3加密协议宏定义
 #define GN_2_PROTOCOL						     	(2)				   // GN-2加密协议宏定义
-#define USE_BLE_PROTOCOL							(P3_PROTOCOL)	   // 使用的BLE通讯协议格式
+#define USE_BLE_PROTOCOL							(GN_2_PROTOCOL)	   // 使用的BLE通讯协议格式
 
 
 

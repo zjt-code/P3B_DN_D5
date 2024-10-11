@@ -148,23 +148,20 @@ uint8_t ble_racp_encode(ble_cgms_racp_datapacket_t* pRacpDatapacket, uint8_t* pD
 *******************************************************************************/
 void racp_response_code_send(ble_event_info_t BleEventInfo, uint8_t ucOpcode, uint8_t ucValue)
 {
-	uint8_t ucEncodedRacp[25];
+	uint8_t ucEncodedRacp[16];
     uint8_t  ucLen;
 	ble_cgms_racp_datapacket_t RacpDatapacket;
-	RacpDatapacket.ucOpCode = RACP_OPCODE_RESPONSE;
+	RacpDatapacket.ucOpCode = RACP_OPCODE_RESPONSE_CODE_B;
 	RacpDatapacket.ucOperator = ucOpcode;
-	RacpDatapacket.pData = &ucValue;
+	RacpDatapacket.ucData[0] = ucValue;
 	RacpDatapacket.ucDataLen = 1;
 
     ucLen = ble_racp_encode(&RacpDatapacket, ucEncodedRacp);
-
-    uint8_t cipher[16];
-    mbedtls_aes_pkcspadding(ucEncodedRacp, ucLen);
+    // 根据通讯协议对原始数据包进行填充和加密
+    ucLen = datapacket_padding_and_encrpty(ucEncodedRacp, ucEncodedRacp, ucLen);
     ucLen = 16;
-    cgms_aes128_encrpty(ucEncodedRacp, cipher);
-    memcpy(ucEncodedRacp, cipher, 16);
 
-    if ((ble_racp_notify_is_enable()) && (app_global_get_app_state()->bBleConnected == true))
+    if ((ble_racp_notify_is_enable()) && app_have_a_active_ble_connect())
     {
         sl_status_t sc;
         sc = sl_bt_gatt_server_send_notification(BleEventInfo.ucConidx, BleEventInfo.usHandle, ucLen, ucEncodedRacp);
@@ -187,7 +184,7 @@ void racp_response_code_send(ble_event_info_t BleEventInfo, uint8_t ucOpcode, ui
 *******************************************************************************/
 void racp_response_send(ble_event_info_t BleEventInfo, racp_response_t ResponseCode,ble_cgms_racp_datapacket_t RacpRspDatapacket)
 {
-	uint8_t ucEncodedRacp[25];
+	uint8_t ucEncodedRacp[16];
     uint8_t  ucLen;
     ble_cgms_racp_datapacket_t Datapacket;
     uint8_t ucOpCode = RacpRspDatapacket.ucOpCode;
@@ -223,16 +220,12 @@ void racp_response_send(ble_event_info_t BleEventInfo, racp_response_t ResponseC
 
     if ((ble_racp_notify_is_enable()) && app_have_a_active_ble_connect())
     {
-#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
-        uint8_t ucCipher[16];
-        mbedtls_aes_pkcspadding(ucEncodedRacp, ucLen);
-        ucLen = 16;
-        cgms_aes128_encrpty(ucEncodedRacp, ucCipher);
-        memcpy(ucEncodedRacp, ucCipher, ucLen);
-        elog_hexdump("racp_send(encrpty)", 8, ucEncodedRacp, ucLen);
-#else
         elog_hexdump("racp_send", 8, ucEncodedRacp, ucLen);
-
+        // 根据通讯协议对原始数据包进行填充和加密
+        ucLen = datapacket_padding_and_encrpty(ucEncodedRacp, ucEncodedRacp, ucLen);
+        ucLen = 16;
+#if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
+        elog_hexdump("racp_send(encrpty)", 8, ucEncodedRacp, ucLen);
 #endif
 
         // 发送数据包
@@ -269,7 +262,7 @@ void racp_response_send(ble_event_info_t BleEventInfo, racp_response_t ResponseC
 * Output         :  None
 * Return         :  uint8_t
 *******************************************************************************/
-static uint8_t racp_findMeasDB(uint8_t filter, uint16_t operand1, uint16_t operand2)
+uint8_t racp_findMeasDB(uint8_t filter, uint16_t operand1, uint16_t operand2)
 {
     if (0 == cgms_db_get_records_num())return  0;
     switch (filter)
@@ -390,13 +383,23 @@ void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapack
     ble_cgms_racp_datapacket_t RspDatapacket;
     memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
     RspDatapacket.ucOpCode = RacpDatapacket.ucOpCode;
-    // 效验CRC
+    // 效验命令的CRC
+    if (do_crc(RacpDatapacket.ucData, 8) != 0)
+    {
+        // CRC错误
+        ResponseCode = RACP_RESPONSE_RESULT_INVALID_OPERAND;
+        // 发送回应包
+        racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+        return;
+    }
+
     if (0 == RacpDatapacket.ucOperator)
     {
         log_w("RACP_RESPONSE_RESULT_INVALID_OPERATOR");
         ResponseCode = RACP_RESPONSE_RESULT_INVALID_OPERATOR;
         // 发送回应包
         racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+        return;
     }
 
     // 发送历史数据发送结束数据包
@@ -406,6 +409,7 @@ void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapack
         ResponseCode = RACP_RESPONSE_RESULT_OPERATOR_UNSUPPORTED;
         // 发送回应包
         racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+        return;
     }
 
     if (RacpDatapacket.ucOperator == RACP_OPERATOR_LESS_OR_EQUAL || RacpDatapacket.ucOperator == RACP_OPERATOR_GREATER_OR_EQUAL || RacpDatapacket.ucOperator == RACP_OPERATOR_RANGE)
@@ -417,6 +421,7 @@ void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapack
             ResponseCode = RACP_RESPONSE_RESULT_OPERAND_UNSUPPORTED;
             // 发送回应包
             racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+            return;
         }
         usfilterData1 = uint16_decode(&RacpDatapacket.ucData[1]);
     }
@@ -430,6 +435,7 @@ void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapack
         ResponseCode = RACP_RESPONSE_RESULT_INVALID_OPERAND;
         // 发送回应包
         racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+        return;
     }
 
     log_i("racp_findMeasDB %d/%d", usfilterData1, usfilterData2);
@@ -458,6 +464,7 @@ void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapack
 
         // 发送回应包
         racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+        return;
     }
 }
 

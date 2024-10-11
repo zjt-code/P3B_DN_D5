@@ -39,7 +39,6 @@ uint32_t g_uiRstCause;
 uint8_t g_ucWatchdogTriggerFlag = 0;
 /* Private function prototypes -----------------------------------------------*/
 void wdog_init(void);
-extern uint8_t cgms_db_flash_init(void);
 
 /* Private functions ---------------------------------------------------------*/
 

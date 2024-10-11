@@ -259,7 +259,7 @@ void app_event_ble_disconnect_callback(uint16_t usConnectionHandle)
     app_global_get_app_state()->bRecordSendFlag = false;
 
     // 清除密码效验成功标志
-    //app_global_get_app_state()->bCgmsPwdVerifyOk = false;
+    app_global_get_app_state()->bCgmsPwdVerifyOk = false;
 
     // 关闭发送历史数据定时器
     app_glucose_meas_record_send_stop();

@@ -19,7 +19,7 @@
 // 历史数据操作码
 typedef enum
 {
-    #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
+    #if (USE_BLE_PROTOCOL!=GN_2_PROTOCOL)
 	RACP_OPCODE_REPORT_RECS = 0x01,                 // 读取历史数据
     RACP_OPCODE_RESPONSE = 0x1C,                    // 回应包
 	#else
@@ -30,6 +30,7 @@ typedef enum
     RACP_OPCODE_REPORT_NUM_RECS = 0x04,       /**< Record Access Control Point opcode - Report number of stored records. */
     RACP_OPCODE_NUM_RECS_RESPONSE = 0x05,       /**< Record Access Control Point opcode - Number of stored records response. */
     RACP_OPCODE_RESPONSE_CODE = 0x06,       /**< Record Access Control Point opcode - Response code. */
+    RACP_OPCODE_RESPONSE_CODE_B = 0x1C,
     RACP_OPCODE_EXIT = 0X62,
     #endif
 }racp_opcode_t;
@@ -51,7 +52,7 @@ typedef enum
 {
     RACP_RESPONSE_RESULT_RESERVED = 0x00,                              // 保留未使用
     RACP_RESPONSE_RESULT_SUCCESS = 0x01,                               // 执行成功
-#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
+#if (USE_BLE_PROTOCOL!=GN_2_PROTOCOL)
     RACP_RESPONSE_RESULT_COMMAND_FORMAT_ERR = 0x02,                    // 命令格式不正确
     RACP_RESPONSE_RESULT_COMMAND_LEN_ERR = 0x03,                       // 命令长度不正确
     RACP_RESPONSE_RESULT_COMMAND_START_INDEX_RANGE_OUT = 0x04,         // 起始序列号超过最大值
@@ -69,14 +70,13 @@ typedef enum
 	#endif
 }racp_response_t;
 
-
 // RACP数据包结构体
 typedef struct
 {
-    uint8_t   ucOpCode;                             // 操作码
-    uint8_t   ucOperator;                           // 操作数
-    uint8_t   ucDataLen;                            // 所携带数据的长度
-    uint8_t  ucData[16];                            // 所携带数据
+    uint8_t ucOpCode;                               // 操作码
+    uint8_t ucOperator;                             // 操作数
+    uint8_t ucDataLen;                              // 所携带数据的长度
+    uint8_t ucData[16];                             // 所携带数据
 }__attribute__((packed)) ble_cgms_racp_datapacket_t;
 
 /* Private typedef -----------------------------------------------------------*/
@@ -88,6 +88,7 @@ typedef struct
 /* Private function prototypes -----------------------------------------------*/
 void ble_racp_notify_enable(void);
 void ble_racp_notify_disable(void);
+uint8_t racp_findMeasDB(uint8_t filter, uint16_t operand1, uint16_t operand2);
 void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t* pData);
 
 

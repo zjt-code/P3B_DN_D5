@@ -317,6 +317,63 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
             }
             break;
         }
+        case gattdb_cgm_status:
+        {
+            sc = sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,
+                evt->data.evt_gatt_server_user_read_request.characteristic,
+                0,
+                sizeof(cgm_status_char_data_t),
+                (uint8_t*)att_get_cgm_status(),
+                NULL);
+            if (sc != SL_STATUS_OK)
+            {
+                log_e("sl_bt_evt_gatt_server_user_read_request_id fail %d", sc);
+            }
+            break;
+        }
+        case gattdb_cgm_feature:
+        {
+            sc = sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,
+                evt->data.evt_gatt_server_user_read_request.characteristic,
+                0,
+                sizeof(cgm_feature_char_data_t),
+                (uint8_t*)att_get_feature(),
+                NULL);
+            if (sc != SL_STATUS_OK)
+            {
+                log_e("sl_bt_evt_gatt_server_user_read_request_id fail %d", sc);
+            }
+            break;
+        }
+        case gattdb_cgm_session_run_time:
+        {
+#if (USE_BLE_PROTOCOL!=GN_2_PROTOCOL)
+            sc = sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,
+                evt->data.evt_gatt_server_user_read_request.characteristic,
+                0,
+                sizeof(cgm_session_run_time_char_data_t),
+                (uint8_t*)att_get_run_time(),
+                NULL);
+            if (sc != SL_STATUS_OK)
+            {
+                log_e("sl_bt_evt_gatt_server_user_read_request_id fail %d", sc);
+            }
+#else
+            uint8_t TmpBuffer[2] = { 0x00,0x00 };
+            sc = sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,
+                evt->data.evt_gatt_server_user_read_request.characteristic,
+                0,
+                sizeof(TmpBuffer),
+                (uint8_t*)TmpBuffer,
+                NULL);
+            if (sc != SL_STATUS_OK)
+            {
+                log_e("sl_bt_evt_gatt_server_user_read_request_id fail %d", sc);
+            }
+
+#endif
+            break;
+        }
         default:
         {
             sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,

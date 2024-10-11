@@ -101,7 +101,7 @@ Summary: The CGM Measurement characteristic is a variable length structure conta
 
     <!--CGM Feature-->
     <characteristic const="false" id="cgm_feature" name="CGM Feature" sourceId="org.bluetooth.characteristic.cgm_feature" uuid="2AA8">
-      <value length="11" type="hex" variable_length="false"/>
+      <value length="11" type="user" variable_length="false"/>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>
@@ -111,7 +111,7 @@ Summary: The CGM Measurement characteristic is a variable length structure conta
     <characteristic const="false" id="cgm_status" name="CGM Status" sourceId="org.bluetooth.characteristic.cgm_status" uuid="2AA9">
       <informativeText>
 Summary: The CGM Status allows the Collector to actively request the current status from the CGM Sensor, particularly when the CGM measurement is not running and the status cannot be given in the measurement result in the Status Annunciation.</informativeText>
-      <value length="5" type="hex" variable_length="false"/>
+      <value length="7" type="user" variable_length="false"/>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>
@@ -140,7 +140,7 @@ Summary: This control point is used with a service to provide basic management f
 
     <!--CGM Session Run Time-->
     <characteristic const="false" id="cgm_session_run_time" name="CGM Session Run Time" sourceId="org.bluetooth.characteristic.cgm_session_run_time" uuid="2AAB">
-      <value length="2" type="hex" variable_length="false"/>
+      <value length="2" type="user" variable_length="false"/>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>
