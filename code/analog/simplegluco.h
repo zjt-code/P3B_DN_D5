@@ -231,7 +231,7 @@ extern float gluco_calc_val;
  */
 
 void simpleGlucoInit(void);//run when start sensor
-void simpleGlucoCalc(float* pResult);
+void simpleGlucoCalc(float* pResult,unsigned short cnt);
 void calcGlucoInit_D03(void);
 void calcGluco_D03(float* pGluco,unsigned short tCnt);
 void calcGluco_StateBackup(void);

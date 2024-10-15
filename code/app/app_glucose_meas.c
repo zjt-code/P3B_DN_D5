@@ -200,7 +200,7 @@ static void app_glucose_handle(void)
 
     sfCurrI0 = cur_filter(pAvgElectricCurrentCalTempArray, g_usGlucoseRecordsCurrentOffset);
 
-    simpleGlucoCalc(&g_fGlucoseConcentration);
+    simpleGlucoCalc(&g_fGlucoseConcentration, g_usGlucoseRecordsCurrentOffset);
     log_i("simpleGlucoCalc(%f)  sfCurrI0:%f", g_fGlucoseConcentration, sfCurrI0);
     cgms_meas_t rec;
     memset(&rec, 0, sizeof(cgms_meas_t));
