@@ -64,7 +64,7 @@ typedef struct
     uint8_t usHistoryFlag;                            // 历史数据标志位
     uint8_t ucTrend;                                // 血糖变化趋势(取值参考cgms_trend_t)
     uint16_t usCurrent;                             // 电极电流(nA * 100)
-    uint8_t ucQuality;                              // 血糖质量(取值参考cgm_quality_t)
+    uint16_t usQuality;                              // 血糖质量(取值参考cgm_quality_t)
     uint8_t ucState;                                // CGM状态(取值参考cgm_measurement_sensor_state_t)
     uint8_t ucCV;                                   // CV值
     uint16_t usCRC16;                               // CRC16

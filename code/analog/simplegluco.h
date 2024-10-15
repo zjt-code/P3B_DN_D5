@@ -22,6 +22,7 @@ extern "C"
  * INCLUDES
  */
 #include <math.h>
+#include <stdbool.h>
 //#include "logRTT.h"//ADB.WOO
 
 
@@ -76,7 +77,7 @@ extern "C"
   //#define D_X5         0.3 //1.0.1t2e_01)
   #define D_X5         0//1.0.1t2e_02)
   #define D_X6         20   //Not use
-  #define D_X7         40
+  #define D_X7         19
   #define D_X8         0.002//Not use
   #define D_X9         0.8
   #define D_XA         0    //Not use
@@ -109,6 +110,16 @@ extern "C"
 
 #define CV_THRESOLD               0.20f
 #define DIFF_THRESOLD             2.0f
+
+
+
+#define GVP_SAMPLE_MAX          	10
+#define GVP_SAMPLE_TIME_INTEVAL 	3.0f  // minutes
+#define GVP_ERROR_MAX           	1.0f
+
+#define SENSOR_RATIO_MAX         	1.9f
+//#define SENSOR_RATIO_MIN         	0.6f
+#define SENSOR_RATIO_MIN         	0.5f
 
 
 
@@ -213,17 +224,22 @@ extern float sfCurrBg; //�α�Ѫ�ǣ���λ��mmol/L
 extern float sfCurrK;
 extern float sensorK;  //sensor sensitivity in the unit of nA/mmol/L
 
+extern float gluco_calc_val;
+
 /*********************************************************************
  * FUNCTIONS
  */
 
 void simpleGlucoInit(void);//run when start sensor
-void simpleGlucoCalc(float* pResult, unsigned short usSample);
+void simpleGlucoCalc(float* pResult);
 void calcGlucoInit_D03(void);
 void calcGluco_D03(float* pGluco,unsigned short tCnt);
 void calcGluco_StateBackup(void);
 void calcGluco_StateInit(void);
 void calcGluco_StateRecovery(void);
+
+bool gvg_get_result(void);
+bool gluco_check_bg( float calbration);
 /*********************************************************************
 *********************************************************************/
 

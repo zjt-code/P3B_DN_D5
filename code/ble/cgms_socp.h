@@ -245,6 +245,8 @@ typedef enum
     SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_IS_END = 0x07,             // 监测结束,无法校准
     SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_RANGE_OUT = 0x08,          // 超出量程,无法校准
     SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_GLUCOSE_FLUCTUATE = 0x09,  // 当前血糖变化快,无法校准
+    SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_ON_THE_FIRST_DAY = 0x0A,   // 第一天之内无法校准
+    SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_ON_THE_30_MIN = 0x0B,      // 30分钟之内无法校准
 }socp_write_glucose_calibration_rsp_code_t;
 
 

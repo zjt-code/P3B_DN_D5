@@ -27,10 +27,12 @@
 #include "app_global.h"
 #if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
 #include "cgms_aes128.h"
+#include "utility.h"
 #endif
 
 #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 #include "cgms_racp.h"
+#include "simplegluco.h"
 #endif
 #include "ble_customss.h"
 #include "sl_bt_api.h"
@@ -244,7 +246,7 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
 void cgms_socp_stop_session_event_callback(__attribute__((unused))  uint32_t uiArg)
 {
     // 停止CGM
-    app_glucose_meas_stop_session_handler();
+    app_glucose_meas_stop_session_handler(CGM_MEASUREMENT_SENSOR_STATUS_SESSION_COMMAND_STOPPED);
     app_glucose_meas_stop();
     cmgs_db_force_write_flash();
 }
@@ -266,8 +268,8 @@ void cgms_socp_start_session_event_callback(uint32_t uiArg)
     cgms_db_reset();
 
     // 更新CGM Status中的运行状态为极化中
-    app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING;
-    att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->status;
+    app_global_get_app_state()->Status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING;
+    att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->Status;
 
     // 更新CGM状态char的内容
     att_update_cgm_status_char_data();
@@ -307,7 +309,7 @@ void cgms_socp_write_glucose_calibration_value(__attribute__((unused))  ble_even
     memcpy(&SocpWriteGlucoseCalibrationDatapacket, SocpRequest.pData, sizeof(SocpWriteGlucoseCalibrationDatapacket));
 
     // 判断当前血糖趋势是否稳定
-    if ((app_global_get_app_state()->ucCgmTrend != CGM_TREND_DOWN_DOWN) && (app_global_get_app_state()->ucCgmTrend != CGM_TREND_STABLE) && (app_global_get_app_state()->ucCgmTrend != CGM_TREND_SLOW_UP))
+    if ((app_global_get_app_state()->CgmTrend != CGM_TREND_DOWN_DOWN) && (app_global_get_app_state()->CgmTrend != CGM_TREND_STABLE) && (app_global_get_app_state()->CgmTrend != CGM_TREND_SLOW_UP))
     {
         pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_GLUCOSE_FLUCTUATE;
         return;
@@ -326,8 +328,22 @@ void cgms_socp_write_glucose_calibration_value(__attribute__((unused))  ble_even
         pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_RANGE_OUT;
         return;
     }
-    pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_SUCCESS;
+    // 判断是否处于第一天,返回极化中无法校准
+    if (app_glucose_get_records_current_offset() < 480 - 1)
+    {
+        pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_ON_THE_FIRST_DAY;
+        return;
+    }
+    // 判断是否有跳点
+    if (!gvg_get_result() && !gluco_check_bg((float)(SocpWriteGlucoseCalibrationDatapacket.usCalibration / 10.0f)))
+    {
+        pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_ON_THE_30_MIN;
+    }
 
+    usBfFlg = 1;
+    sfCurrBg = (float)(SocpWriteGlucoseCalibrationDatapacket.usCalibration / 10.0f);
+    log_i("sfCurrBg:%f  Offset:%d\r\n", (float)(SocpWriteGlucoseCalibrationDatapacket.usCalibration / 10.0f), SocpWriteGlucoseCalibrationDatapacket.usOffset);
+    pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_SUCCESS;
 #else
     if (app_global_is_session_runing())
     {
@@ -414,8 +430,16 @@ void cgms_socp_start_the_session(__attribute__((unused))  ble_event_info_t BleEv
         }
         else
         {
+            sensorK = fTmpSensorK;
             // 生效工厂校准码
-            // todo: sensorK = fTmpSensorK;
+            cur_get_cur_error_value(fTmpSensorK);
+            log_i("cur_get_cur_error_value(%f)", fTmpSensorK);
+
+            extern float cur_error_min_value;
+            extern float cur_error_max_value;
+
+            log_i("cur_error_min_value(%f)", cur_error_min_value);
+            log_i("cur_error_max_value(%f)", cur_error_max_value);
 
             // 更新CGM Status中的工厂校准码
             att_get_cgm_status()->usFactoryCode = SocpStartTheSessionDatapacket.usFactoryCode;
@@ -434,8 +458,8 @@ void cgms_socp_start_the_session(__attribute__((unused))  ble_event_info_t BleEv
         att_get_start_time()->ucTimeZone = SocpStartTheSessionDatapacket.ucTimeZone;
 
         // 更新CGM Status中的运行状态为极化中
-        app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP;
-        att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->status;
+        app_global_get_app_state()->Status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP;
+        att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->Status;
 
         // 更新Feature char的CRC
         att_update_feature_char_data_crc();
@@ -496,8 +520,6 @@ void cgms_socp_stop_the_session(__attribute__((unused))  ble_event_info_t BleEve
     {
     case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED:							// CGM结束
     case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_COMMAND_STOPPED:					// 由于APP发送停止命令导致的停止
-    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_HARDFAULT_STOPPED:				// MCU硬故障复位
-    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_M3RESET_STOPPED:					// 由于MCU复位导致的停止
     case CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED:							// CGM到期停止
     case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_SENSOR_ABNORMAL:					// 传感器异常,等待恢复(预设3小时)
     case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_INEFFECTIVE_IMPLANTATION:		// 无效植入,请更换传感器(数据停止采样,蓝牙广播继续)
@@ -521,10 +543,6 @@ void cgms_socp_stop_the_session(__attribute__((unused))  ble_event_info_t BleEve
         pRspRequest->ucRspCode = SOCP_STOP_THE_SESSION_RSP_CODE_IS_STOPED;
         return;
     }
-
-    // 清除算法参数 todo:
-    //sfCurrK = 0;
-    //sensorK = sfCurrK;
 
     // 更新CGM Status中的运行状态为停止状态
     att_get_cgm_status()->ucRunStatus = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_COMMAND_STOPPED;

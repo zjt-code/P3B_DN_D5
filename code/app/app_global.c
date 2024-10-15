@@ -65,9 +65,13 @@ app_state_t* app_global_get_app_state(void)
 *******************************************************************************/
 bool app_global_is_session_runing(void)
 {
-    switch (app_global_get_app_state()->status)
+    switch (app_global_get_app_state()->Status)
     {
     case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING:
+    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_SENSOR_ABNORMAL:
+    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_SENSOR_ERROR:
+    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_INEFFECTIVE_IMPLANTATION:
+    case CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP:
         return true;
     default:
         return false;
@@ -319,11 +323,16 @@ void app_init(void)
     // 初始化启动时间
     cgms_sst_init();
 
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
+    // 设置CGM状态为CGM没有运行
+    app_global_get_app_state()->Status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
+#else
     // 设置CGM状态为CGM结束
-    app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_M3RESET_STOPPED;
+    app_global_get_app_state()->Status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_M3RESET_STOPPED;
+#endif
 
     // 更新CGM状态Char内容
-    att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->status;
+    att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->Status;
     att_update_cgm_status_char_data();
 
     // 初始化历史数据存储部分

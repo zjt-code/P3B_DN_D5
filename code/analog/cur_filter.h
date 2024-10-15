@@ -29,6 +29,11 @@ extern float cur_filter(float *cur_buff, uint32_t count_offset);
 extern void cur_get_cur_error_value(float sensor_K);
 float Cal_CV(float *v, uint32_t size_n);
 
+extern uint8_t cgms_i_cv(float i, uint32_t offset);
+float average_f(float *v, uint32_t size_n);
+float average_minmax(float *v, uint32_t size_n);
+
+
 extern float cur_error_min_value;
 extern float cur_error_max_value;
 

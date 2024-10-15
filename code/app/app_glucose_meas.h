@@ -41,7 +41,7 @@ typedef enum
 /* Private function prototypes -----------------------------------------------*/
 uint16_t app_glucose_meas_get_glucose_quality(void);
 
-void app_glucose_meas_stop_session_handler(void);
+void app_glucose_meas_stop_session_handler(uint8_t ucStopReason);
 void app_glucose_meas_handler(uint32_t uiArg);
 bool app_glucose_meas_get_factory_meas_electric_current(uint32_t* pMeasElectricCurrent);
 void app_glucose_meas_start(app_glucose_meas_type_t GlucoseMeasType);

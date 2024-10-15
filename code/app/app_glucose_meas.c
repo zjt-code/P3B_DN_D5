@@ -35,6 +35,11 @@
 #include "gatt_db.h"
 #include "em_wdog.h"
 #include "simplegluco.h"
+#include "cgms_error_fault.h"
+#include "cgms_timer.h"
+#include "cur_filter.h"
+#include "matrix.h"
+#include "polyfit.h"
 /* Private variables ---------------------------------------------------------*/
 
 static volatile app_glucose_meas_type_t g_AppGlucoseMeasType = APP_GLUCOSE_MEAS_TYPE_USER_MEAS;  // 血糖测量类型
@@ -43,7 +48,7 @@ static volatile uint16_t g_usGlucoseRecordsCurrentOffset = 0;                   
 static volatile uint16_t g_usGlucoseElectricCurrent = 0;                        // 测量计算出来的血糖浓度质量(在这里实际用于存储电流值,单位:0.01nA)
 static volatile float g_fGlucoseConcentration = 0.0f;                           // 测量计算出来的实时血糖浓度(单位:mmol/L)
 static volatile uint8_t g_ucAvgElectricCurrentCalTempArrayCnt = 0;              // 当前用于计算平均电流的临时数据数量
-static volatile double g_dAvgElectricCurrentCalTempArray[APP_GLUCOSE_MEAS_AVG_ELECTRIC_CURRENT_CAL_TEMP_ARRAY_SIZE];                   // 用于计算平均电流的临时数据数组
+static volatile float g_fAvgElectricCurrentCalTempArray[APP_GLUCOSE_MEAS_AVG_ELECTRIC_CURRENT_CAL_TEMP_ARRAY_SIZE];                   // 用于计算平均电流的临时数据数组
 static volatile  uint8_t g_ucAppBatteryInitMeasDoneFlag = 0;                     // 电量初始转换完成标志位
 sl_sleeptimer_timer_handle_t g_AppGlucoseMeasTimer;                    // 应用层血糖测量定时器
 sl_sleeptimer_timer_handle_t g_AppGlucoseMeasRecordSendTimer;          // 应用层血糖测量记录发送定时器
@@ -83,7 +88,7 @@ void app_glucose_avg_electric_current_cal_add_data(double dElectricCurrent)
     // 如果数据数量没有超限,则将新数据添加进数组
     if (g_ucAvgElectricCurrentCalTempArrayCnt < APP_GLUCOSE_MEAS_AVG_ELECTRIC_CURRENT_CAL_TEMP_ARRAY_SIZE)
     {
-        g_dAvgElectricCurrentCalTempArray[g_ucAvgElectricCurrentCalTempArrayCnt] = dElectricCurrent;
+        g_fAvgElectricCurrentCalTempArray[g_ucAvgElectricCurrentCalTempArrayCnt] = (float)dElectricCurrent;
         g_ucAvgElectricCurrentCalTempArrayCnt++;
     }
 }
@@ -94,22 +99,22 @@ void app_glucose_avg_electric_current_cal_add_data(double dElectricCurrent)
 * Description    :  获取电流数组
 * Input          :  void
 * Output         :  None
-* Return         :  double*
+* Return         :  float*
 *******************************************************************************/
-double* app_glucose_avg_electric_current_get_electric_current_array(void)
+float* app_glucose_avg_electric_current_get_electric_current_array(void)
 {
-    // 如果数组中的数据不足18个,则补齐
-    if (g_ucAvgElectricCurrentCalTempArrayCnt < 18)
+    // 如果数组中的数据不足20个,则补齐
+    if (g_ucAvgElectricCurrentCalTempArrayCnt < 20)
     {
-        for (uint8_t i = g_ucAvgElectricCurrentCalTempArrayCnt; i < 18; i++)
+        for (uint8_t i = g_ucAvgElectricCurrentCalTempArrayCnt; i < 20; i++)
         {
             if (i > 0)
             {
-                g_dAvgElectricCurrentCalTempArray[i] = g_dAvgElectricCurrentCalTempArray[i - 1];
+                g_fAvgElectricCurrentCalTempArray[i] = g_fAvgElectricCurrentCalTempArray[i - 1];
             }
         }
     }
-    return &g_dAvgElectricCurrentCalTempArray[0];
+    return &g_fAvgElectricCurrentCalTempArray[0];
 }
 
 
@@ -126,7 +131,7 @@ void app_glucose_avg_electric_current_cal_init(void)
     g_ucAvgElectricCurrentCalTempArrayCnt = 0;
     for (uint8_t i = 0; i < APP_GLUCOSE_MEAS_AVG_ELECTRIC_CURRENT_CAL_TEMP_ARRAY_SIZE; i++)
     {
-        g_dAvgElectricCurrentCalTempArray[i] = 0.0;
+        g_fAvgElectricCurrentCalTempArray[i] = 0.0f;
     }
 }
 
@@ -144,7 +149,7 @@ double app_glucose_avg_electric_current_cal_get(void)
     // 累加临时数据
     for (uint8_t i = 0; i < g_ucAvgElectricCurrentCalTempArrayCnt; i++)
     {
-        dAvg += g_dAvgElectricCurrentCalTempArray[i];
+        dAvg += g_fAvgElectricCurrentCalTempArray[i];
     }
     // 如果临时数据和,与临时数据数量都不为0,则计算平均
     if (fabs(dAvg) > 1e-15 && g_ucAvgElectricCurrentCalTempArrayCnt)
@@ -186,29 +191,34 @@ static void app_glucose_handle(void)
     // 如果当前记录已满,则直接退出
     if (g_usGlucoseRecordsCurrentOffset >= CGMS_DB_MAX_RECORDS)return;
 
-    double* pAvgElectricCurrentCalTempArray = app_glucose_avg_electric_current_get_electric_current_array();
+    float* pAvgElectricCurrentCalTempArray = app_glucose_avg_electric_current_get_electric_current_array();
     log_d("ElectricCurrent:");
-    for (uint8_t i = 0; i < 18; i++)
+    for (uint8_t i = 0; i < 20; i++)
     {
         log_d("index:%d,%f", i, pAvgElectricCurrentCalTempArray[i]);
     }
 
+    sfCurrI0 = cur_filter(pAvgElectricCurrentCalTempArray, g_usGlucoseRecordsCurrentOffset);
 
-    sfCurrI0 = app_glucose_avg_electric_current_cal_get();
-    usSampleCnt  = g_usGlucoseRecordsCurrentOffset;
-    simpleGlucoCalc(&g_fGlucoseConcentration, usSampleCnt);
-    log_i("simpleGlucoCalc(%f,%d)  sfCurrI0:%f", g_fGlucoseConcentration, usSampleCnt, sfCurrI0);
+    simpleGlucoCalc(&g_fGlucoseConcentration);
+    log_i("simpleGlucoCalc(%f)  sfCurrI0:%f", g_fGlucoseConcentration, sfCurrI0);
     cgms_meas_t rec;
     memset(&rec, 0, sizeof(cgms_meas_t));
-    rec.usGlucose = (uint16_t)(g_fGlucoseConcentration * 100.0);
-    rec.usCurrent = (uint16_t)(sfCurrI0 * 100.0);
+    rec.usGlucose = (uint16_t)(g_fGlucoseConcentration * 10.0f);
+    rec.usCurrent = (uint16_t)(sfCurrI0 * 100.0f);
     g_usGlucoseElectricCurrent = rec.usCurrent;
-    rec.ucTrend = 0x04;
-    rec.ucQuality = 0x00;
-    rec.ucCV = 0x00;
+    rec.usQuality = 0x00;
+    float fCv = cgms_i_cv(sfCurrI0, g_usGlucoseRecordsCurrentOffset);
+    uint8_t ucState;
+    cgms_error_fault_cal(g_usGlucoseRecordsCurrentOffset, g_fGlucoseConcentration, sfCurrI0, &ucState, fCv); // 计算异常逻辑
+    uint8_t ucTrend = cgms_cal_trend(g_fGlucoseConcentration, g_usGlucoseRecordsCurrentOffset);// 计算趋势
+    rec.ucCV = (uint8_t)(fCv*100.0f);
+    rec.ucTrend = ucTrend;
+    rec.ucState = ucState;
+    att_get_cgm_status()->ucRunStatus = ucState;
+    app_global_get_app_state()->CgmTrend = ucTrend;
     rec.usOffset = g_usGlucoseRecordsCurrentOffset;
     rec.usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_REAL;
-    rec.ucState = app_global_get_app_state()->status;
     log_i("cgms_meas_create  %d,%d,%d", rec.usOffset, rec.usGlucose, rec.usCurrent);
 
     // 存储历史记录
@@ -251,10 +261,10 @@ static void app_glucose_handle(void)
         }
     }
 
-    app_global_get_app_state()->time_offset = g_usGlucoseRecordsCurrentOffset;
+    app_global_get_app_state()->usTimeOffset = g_usGlucoseRecordsCurrentOffset;
 
     // 更新CGM状态char的offset
-    att_get_cgm_status()->usNumberOfReadings = app_global_get_app_state()->time_offset + 1;
+    att_get_cgm_status()->usNumberOfReadings = app_global_get_app_state()->usTimeOffset + 1;
 #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 	// 更新CGM状态char的内容
 	att_update_cgm_status_char_data_crc();
@@ -285,24 +295,22 @@ void app_glucose_meas_battery_sub_handler(void)
 *                           陈苏阳@2023-08-14
 * Function Name  :  app_glucose_meas_stop_session_handler
 * Description    :  血糖测量中的停止CGM子处理函数
-* Input          :  void
+* Input          :  uint8_t ucStopReason
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void app_glucose_meas_stop_session_handler(void)
+void app_glucose_meas_stop_session_handler(uint8_t ucStopReason)
 {
     // AFE停止
     afe_stop();
-#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
     // 设置传感器状态为停止,并更新状态
-    app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
-    att_get_cgm_status()->ucRunStatus = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
+    app_global_get_app_state()->Status = ucStopReason;
+    att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->Status;
+
+    // 更新CGM状态char的内容
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
     att_update_cgm_status_char_data_crc();
 #else
-    // 设置传感器状态为停止,并更新状态
-    app_global_get_app_state()->status = CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED;
-    att_get_cgm_status()->ucRunStatus = app_global_get_app_state()->status;
-    // 更新CGM状态char的内容
     att_update_cgm_status_char_data();
 #endif
 }
@@ -369,8 +377,8 @@ void app_glucose_meas_glucose_handler(void)
     // 如果到达了猝发采样的开始时间点
     else if (g_ucGlucoseMeasTimeCnt == (APP_GLUCOSE_MEAS_MEAS_INTERVAL - 1))
     {
-        // 开始18次猝发采样
-        afe_shot(18);
+        // 开始20次猝发采样
+        afe_shot(20);
     }
 
 }
@@ -398,7 +406,7 @@ void app_glucose_meas_handler(uint32_t uiArg)
                 log_i("app_glucose_meas_stop_session_handler");
 
                 // 停止CGM
-                app_glucose_meas_stop_session_handler();
+                app_glucose_meas_stop_session_handler(CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED);
 
                 // 停止本定时器
                 app_glucose_meas_stop();
@@ -464,7 +472,7 @@ bool app_glucose_meas_get_factory_meas_electric_current(uint32_t* pMeasElectricC
     if (pMeasElectricCurrent)
     {
         app_glucose_avg_electric_current_get_electric_current_array();
-        uint32_t uiElectricCurrent = (uint32_t)(g_dAvgElectricCurrentCalTempArray[17] * 1000.0);
+        uint32_t uiElectricCurrent = (uint32_t)(g_fAvgElectricCurrentCalTempArray[17] * 1000.0f);
         *pMeasElectricCurrent = uiElectricCurrent;
         return true;
     }

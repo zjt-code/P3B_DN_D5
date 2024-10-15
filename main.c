@@ -130,16 +130,13 @@ void wdog_init(void)
 *******************************************************************************/
 void WDOG0_IRQHandler(void)
 {
-    uint32_t call_stack[14] = { 0 };
-    size_t i, depth = 0;
-    /* Clear and enable interrupts */
-    NVIC_ClearPendingIRQ(WDOG0_IRQn);
-    /* 获取当前环境下的函数调用栈，每个元素将会以 32 位地址形式存储， depth 为函数调用栈实际深度 */
-    depth = cm_backtrace_call_stack(call_stack, sizeof(call_stack), cmb_get_sp());
-    log_i("WDOG0_IRQHandler");
     //WDOGn_IntClear(WDOG0, WDOG_IEN_WARN);
     if (g_ucWatchdogTriggerFlag == 0)
     {
+        uint32_t call_stack[14] = { 0 };
+        size_t i, depth = 0;
+        /* 获取当前环境下的函数调用栈，每个元素将会以 32 位地址形式存储， depth 为函数调用栈实际深度 */
+        depth = cm_backtrace_call_stack(call_stack, sizeof(call_stack), cmb_get_sp());
         /* 输出当前函数调用栈信息
          * 注意：查看函数名称及具体行号时，需要使用 addr2line 工具转换
          */
@@ -157,6 +154,9 @@ void WDOG0_IRQHandler(void)
 
         // 写出到flash
         cgms_debug_db_write();
+        sl_sleeptimer_delay_millisecond(1000);
+        NVIC_SystemReset();
+
     }
     g_ucWatchdogTriggerFlag = 1;
 }

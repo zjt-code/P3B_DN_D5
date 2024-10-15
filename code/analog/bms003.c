@@ -46,7 +46,7 @@
 
 
 #define SLEEP_TIMER_INTERVAL                        (10*1000)
-#define SHOT_SLEEP_TIMER_INTERVAL                   (3*1000)
+#define SHOT_SLEEP_TIMER_INTERVAL                   (2970)
 
 static uint16_t usWe1Vol = 0;                                       // WE1电压
 static uint8_t g_ucBms003NewDataFlag = 0;                           // BMS003有新数据标志位
