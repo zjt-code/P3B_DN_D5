@@ -183,7 +183,14 @@
 #define MCU_POWER_LOCK_PORT                      gpioPortB
 #endif
 #ifndef MCU_POWER_LOCK_PIN                      
-#define MCU_POWER_LOCK_PIN                       2
+#define MCU_POWER_LOCK_PIN                       1
+#endif
+
+#ifndef TMODE1_PORT                             
+#define TMODE1_PORT                              gpioPortB
+#endif
+#ifndef TMODE1_PIN                              
+#define TMODE1_PIN                               2
 #endif
 
 #ifndef AFE_WAKE_UP_PORT                        

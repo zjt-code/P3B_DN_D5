@@ -84,6 +84,13 @@ int main(void)
 
     wdog_init();
 
+    // 初始化bms003的校准
+    bms003_bist_init();
+
+    log_i("bms003 bist done");
+
+    // SPI接口初始化
+    sl_spidrv_init_instances();
     // 这边只做了基本的初始化,固件的入口在:app_global.c里的app_init()函数
 
     while (1)

@@ -66,6 +66,9 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
     case sl_bt_evt_system_boot_id:
     {
         log_i("sl_bt_on_event:sl_bt_evt_system_boot_id");
+        // 初始化应用层
+        app_init();
+
         int16_t min_pwr, max_pwr;
         // 设置TX发射功率为0dB
         sc = sl_bt_system_set_tx_power(0, 0, &min_pwr, &max_pwr);
@@ -98,9 +101,6 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         // 开始BLE广播
         sc = sl_bt_legacy_advertiser_start(g_ucAdvertisingSetHandle, sl_bt_advertiser_connectable_scannable);
         app_assert_status(sc);
-
-        // 初始化应用层
-        app_init();
 
         break;
     }

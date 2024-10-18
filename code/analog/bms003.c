@@ -30,6 +30,7 @@
 #include "fifo.h"
 #include "string.h"
 #include "sl_spidrv_usart_AfeSpiInst_config.h"
+#include "bms003_bist_if.h"
 /* Private variables ---------------------------------------------------------*/
 
 // 反馈
@@ -47,31 +48,31 @@
 
 #define SLEEP_TIMER_INTERVAL                        (10*1000)
 #define SHOT_SLEEP_TIMER_INTERVAL                   (2970)
-
-static uint16_t usWe1Vol = 0;                                       // WE1电压
 static uint8_t g_ucBms003NewDataFlag = 0;                           // BMS003有新数据标志位
 static uint32_t g_Bms003IrqInterrupt;                               // BMS003中断引脚的中断号
 static bms003_irq_callback g_Bms003IrqCallbackFun = NULL;           // 中断回调函数
 static fifo_t g_NewDataFifo;                                        // 新数据fifo
-static double g_fNewDataFifoBuffer[17];                             // 新数据fifo所使用的buffer
+static double g_fNewDataFifoBuffer[48];                             // 新数据fifo所使用的buffer
+static uint32_t g_uiChipEnTime = 0;                                 // 芯片使能时间
 static bool g_bWakeupFlag = false;                                  // 唤醒标志位
 static uint16_t ucIrqCnt = 0;                                       // 中断计数
 static uint16_t ucOnePeriodSampCnt = 0;                             // 单周期采样次数计数
 static uint16_t g_BaseWeVol = 0;                                    // WE1校准电压
 static uint8_t g_ucSampleingCnt = 0;                                // 采样次数
 static afe_run_mode_t g_AfeRunMode = AFE_RUN_MODE_CONTINUOUS;       // AFE运行模式
+static double g_fRawCurrent = 0.0;                                  // AFE中直接读出的原始电流
 static bool g_bFirstDataFlag = 0;                                   // 第一个数据标志位
-static bms003_start_fsm_t g_Bms003StartFsm = BMS003_START_FSM_IDLE; // BMS003启动过程状态机
+static double g_fAfeTemp = 30.0;                                    // AFE测量的温度
+static bool g_bAfeTempMeasFlag = true;                              // AFE是否触发测量温度标志位
 sl_sleeptimer_timer_handle_t g_Bms003WakeupTimer;
 sl_sleeptimer_timer_handle_t g_Bms003MeasureTimer;
-sl_sleeptimer_timer_handle_t g_Bms003StartTimer;
+
 /* Private function prototypes -----------------------------------------------*/
 uint8_t bms003_read_cycle(uint8_t ucRegAddr, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs);
 void bms003_read_burst(uint8_t ucRegAddr, uint8_t* pData, uint8_t ucLen, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs);
 void bms003_write_burst(uint8_t ucRegAddr, uint8_t* pData,uint8_t ucLen, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs);
 void bms003_write_cycle(uint8_t ucRegAddr, uint8_t ucData, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs);
 void bms003_int_irq_callback(uint8_t intNo, void* ctx);
-void bms003_imeas_irq_config_and_reading(void);
 void bms003_measure_timer_handler(void);
 void bms003_wakeup_timer_handler(void);
 void bms003_start(afe_run_mode_t RunMode);
@@ -81,8 +82,6 @@ void bms003_sleep(void);
 void bms003_int_irq_handler(void);
 void bms003_booting_config(void);
 void bms003_wakeup_config(void);
-void bms003_wakeup_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data);
-void bms003_start_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data);
 /* Private functions ---------------------------------------------------------*/
 
 
@@ -193,7 +192,8 @@ void bms003_spi_write_data(uint8_t* pTxBuffer, uint8_t ucLen)
 *******************************************************************************/
 void bms003_enable(void)
 {
-    // 使能bms003
+    log_d("bms003_enable");
+    // 使能bms0003
     GPIO_PinOutSet(AFE_CHIP_EN_PORT, AFE_CHIP_EN_PIN);
 
 }
@@ -209,67 +209,12 @@ void bms003_enable(void)
 *******************************************************************************/
 void bms003_disable(void)
 {
-    // 失能bms003
+    log_d("bms003_disable");
+    // 失能bms0003
     GPIO_PinOutClear(AFE_CHIP_EN_PORT, AFE_CHIP_EN_PIN);
 
 }
 
-
-/*******************************************************************************
-*                           陈苏阳@2024-08-28
-* Function Name  :  bms003_start_timer_callback
-* Description    :  bms003定时器回调
-* Input          :  sl_sleeptimer_timer_handle_t * handle
-* Input          :  void * data
-* Output         :  None
-* Return         :  void
-*******************************************************************************/
-void bms003_start_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
-{
-    switch (g_Bms003StartFsm)
-    {
-//     case BMS003_START_FSM_CHIP_EN:
-//     {
-//         log_i("BMS003_START_FSM_CHIP_EN");
-//         // 切换状态
-//         g_Bms003StartFsm = BMS003_START_FSM_WAKEUP;
-//         // 唤醒bms003
-//         bms003_wakeup();
-//         // 启动一个10ms后的单次定时器
-//         sl_status_t status = sl_sleeptimer_start_timer(&g_Bms003StartTimer, sl_sleeptimer_ms_to_tick(10), bms003_start_timer_callback, (void*)NULL, 0, 0);
-//         if (status != SL_STATUS_OK)log_e("sl_sleeptimer_start_timer failed");
-//         return;
-//     }
-    case BMS003_START_FSM_WAKEUP:
-    {
-        log_i("BMS003_START_FSM_WAKEUP");
-        // 设置AFE的INT引脚中断
-        GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
-
-        // 如果采样次数为0,说明是连续采样,则直接开定时器
-        if (g_AfeRunMode == AFE_RUN_MODE_CONTINUOUS)
-        {
-            sl_status_t status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, sl_sleeptimer_ms_to_tick(SLEEP_TIMER_INTERVAL), bms003_wakeup_timer_callback, (void*)NULL, 0, 0);
-            if (status != SL_STATUS_OK)
-            {
-                log_e("sl_sleeptimer_start_periodic_timer failed");
-            }
-        }
-
-        // bms003配置
-        bms003_booting_config();
-        // 切换状态
-        g_Bms003StartFsm = BMS003_START_FSM_IDLE;
-        break;
-    }
-    default:
-    {
-        // 切换状态
-        g_Bms003StartFsm = BMS003_START_FSM_IDLE;
-        break;
-    }
-    }
-}
 
 /*******************************************************************************
 *                           陈苏阳@2023-11-02
@@ -359,68 +304,14 @@ void bms003_init(void)
 
     // 失能BMS003
     bms003_disable();
-}
+    bms003_sleep();
+    bms003_delay_us(2000);
+    // 使能BMS003
+    bms003_enable();
 
-
-/*******************************************************************************
-*                           陈苏阳@2024-03-27
-* Function Name  :  bms003_imeas_irq_config_and_reading
-* Description    :  BMS003测量中断的配置与数据读取
-* Input          :  void
-* Output         :  None
-* Return         :  void
-*******************************************************************************/
-void bms003_imeas_irq_config_and_reading(void)
-{
-    int buff = 0;      //AD中转存储值
-    bms003_write_cycle(IMEAS_REG_SEQ, 0x01, 0, 1);
-    uint8_t ucCh0Data[2];
-    bms003_read_burst(IMEAS_CH0DATA_0, ucCh0Data, 2, 0, 0);
-    buff = (ucCh0Data[1] << 8) + ucCh0Data[0];
-    // 累计中断次数
-    ucIrqCnt++;
-
-    log_i("bms003_read_adc_data ucIrqCnt:%d  ucOnePeriodSampCnt:%d", ucIrqCnt, ucOnePeriodSampCnt);
-
-    // 在第14次周期时记录WE1
-    if (ucIrqCnt == 19)
-    {
-        g_BaseWeVol = buff;
-    }
-
-    // 开始正常采集
-    if (ucIrqCnt >= 20)
-    {
-        ucIrqCnt = 20;
-
-        // 累计本周期的采样次数
-        ucOnePeriodSampCnt++;
-
-        // 如果是本周期的第三次采样,则作为正式数据
-        if (ucOnePeriodSampCnt >= 3)
-        {
-            ucOnePeriodSampCnt = 3;
-
-            // 数据推入FIFO
-            double fData = ((double)(buff - g_BaseWeVol) / 32768.0 * 1.2 * 100) / 1.11291;
-            log_i("buff:%d   g_BaseWeVol:%d  fData:%f", buff, g_BaseWeVol, fData);
-            if (g_bFirstDataFlag==false)
-            {
-                log_d("send_fifo");
-                fifo_in(&g_NewDataFifo, &fData, 1);
-            }
-            else
-            {
-                g_bFirstDataFlag = false;
+    g_uiChipEnTime = rtc_get_curr_time();
             }
             
-        }
-    }
-
-    //addr:0x4  清除中断状态
-    bms003_delay_us(1);
-    bms003_write_cycle(IMEAS_INT, 0x01, 0, 1);
-}
 
 /*******************************************************************************
 *                           陈苏阳@2023-11-02
@@ -465,21 +356,7 @@ void bms003_wakeup_timer_handler(void)
     }
 }
 
-/*******************************************************************************
-*                           陈苏阳@2024-08-01
-* Function Name  :  bms003_update_vol_offset
-* Description    :  BMS003更新电压偏移
-* Input          :  int16_t sVolOffset
-* Output         :  None
-* Return         :  void
-*******************************************************************************/
-void bms003_update_vol_offset(int16_t sVolOffset)
-{
-    usWe1Vol = (uint16_t)(CH1_DINWE_H2 << 8) + CH1_DINWE_L8;
-    usWe1Vol += sVolOffset;
-}
-
-/*******************************************************************************
+/******************************************************************************
 *                           陈苏阳@2023-11-02
 * Function Name  :  bms003_start
 * Description    :  BMS003开始工作
@@ -490,27 +367,34 @@ void bms003_update_vol_offset(int16_t sVolOffset)
 void bms003_start(afe_run_mode_t RunMode)
 {
     log_d("bms003_start");
-    usWe1Vol = (uint16_t)(CH1_DINWE_H2 << 8) + CH1_DINWE_L8;
-    if (g_PrmDb.DacVolOffset != 0)
-    {
-        usWe1Vol += g_PrmDb.DacVolOffset;
-    }
-
-    // 使能BMS003
-    bms003_enable();
+    sl_status_t status;
 
     // 唤醒bms003
     bms003_wakeup();
+    bms003_delay_us(10 * 1000);
 
-    // 状态机切换状态
-    g_Bms003StartFsm = BMS003_START_FSM_WAKEUP;
+    // 获取当前时间与启动时间的时间差
+    uint32_t uiTimeDiff = rtc_get_curr_time() - g_uiChipEnTime;
 
-    // 启动一个1S后的单次定时器
-    sl_status_t status = sl_sleeptimer_start_timer(&g_Bms003StartTimer, sl_sleeptimer_ms_to_tick(100), bms003_start_timer_callback, (void*)NULL, 0, 0);
-    if (status != SL_STATUS_OK)
+    // 如果BMS003启动时间少于1S,则等待BMS003启动
+    if (uiTimeDiff < 1000)
     {
-        log_e("sl_sleeptimer_start_timer failed");
-        return;
+        log_d("uiTimeDiff:%d", uiTimeDiff);
+        bms003_delay_us((1000 - uiTimeDiff) * 1000);
+    }
+
+    // 设置AFE的INT引脚中断
+    GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
+
+    // 如果采样次数为0,说明是连续采样,则直接开定时器
+    if (RunMode == AFE_RUN_MODE_CONTINUOUS)
+    {
+        status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, sl_sleeptimer_ms_to_tick(SLEEP_TIMER_INTERVAL), bms003_wakeup_timer_callback, (void*)NULL, 0, 0);
+        if (status != SL_STATUS_OK)
+        {
+            log_e("sl_sleeptimer_start_periodic_timer failed");
+            return;
+        }
     }
     g_AfeRunMode = RunMode;
 
@@ -519,6 +403,12 @@ void bms003_start(afe_run_mode_t RunMode)
 
     // 设置第一次数据标志位
     g_bFirstDataFlag = true;
+
+    // 允许温度采样一次
+    g_bAfeTempMeasFlag = true;
+
+    // bms003配置
+    bms003_booting_config();
 }
 
 /*******************************************************************************
@@ -569,6 +459,7 @@ uint8_t bms003_get_residue_samplingCnt(void)
 *******************************************************************************/
 void bms003_stop(void)
 {
+    log_d("bms003_stop");
     // 停止定时器
     sl_sleeptimer_stop_timer(&g_Bms003WakeupTimer);
 
@@ -600,6 +491,7 @@ void bms003_stop(void)
 *******************************************************************************/
 void bms003_wakeup(void)
 {
+    log_d("bms003_wakeup");
     GPIO_PinOutSet(AFE_WAKE_UP_PORT, AFE_WAKE_UP_PIN);
 }
 
@@ -613,9 +505,53 @@ void bms003_wakeup(void)
 *******************************************************************************/
 void bms003_sleep(void)
 {
+    log_d("bms003_sleep");
     GPIO_PinOutClear(AFE_WAKE_UP_PORT, AFE_WAKE_UP_PIN);
 }
 
+
+/*******************************************************************************
+*                           陈苏阳@2024-10-18
+* Function Name  :  bms003_calc_current_and_send_fifo
+* Description    :  计算电流并发送到FIFO
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void bms003_calc_current_and_send_fifo(void)
+{
+    // 校准库校准电流
+    double fTmpCail = current_cal(g_fRawCurrent, g_fAfeTemp);
+
+    log_d("fTmpCail:%f fTemp:%f", fTmpCail, g_fAfeTemp);
+    if (g_bFirstDataFlag == false)
+    {
+        log_d("send_fifo");
+        fifo_in(&g_NewDataFifo, &fTmpCail, 1);
+    }
+    else
+    {
+        g_bFirstDataFlag = false;
+    }
+
+    bms003_delay_us(1);
+
+    bms003_write_cycle(0x3A, CLK, 0, 1);
+
+    bms003_delay_us(1);
+
+    bms003_write_cycle(0x50, 0x02, 0, 1);
+
+    bms003_delay_us(1);
+
+    bms003_write_cycle(0x61, 0x00, 0, 1);
+
+    bms003_delay_us(1);
+
+    bms003_write_cycle(0x3A, CLK | 0x80, 0, 1);
+
+    bms003_delay_us(1);
+}
 
 /*******************************************************************************
 *                           陈苏阳@2023-11-02
@@ -629,30 +565,87 @@ void bms003_int_irq_handler(void)
 {
     log_d("bms003_int_irq_handler");
 
-    // 先关闭中断
-    GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, false, false, false);
-
     // 清除GPIO中断，进入sleep期间BMS3可能会产生一个IO中断
     GPIO_IntClear(g_Bms003IrqInterrupt);
 
+    uint16_t usBuff = 0;      //AD中转存储值
+    bms003_delay_us(1);
+    bms003_write_cycle(IMEAS_REG_SEQ, 0x01, 0, 1);
+    bms003_delay_us(1);
 
-    // 测量中断后的配置以及读取ADC数据
-    bms003_imeas_irq_config_and_reading();
+    uint8_t ucCh0Data[2];
+    bms003_read_burst(IMEAS_CH0DATA_0, ucCh0Data, 2, 0, 0);
+    usBuff = (ucCh0Data[1] << 8) + ucCh0Data[0];
+    // 累计中断次数
+    ucIrqCnt++;
 
-    if ((ucIrqCnt == 20) && (ucOnePeriodSampCnt == 3))
+    log_d("ucIrqCnt:%d  ucOnePeriodSampCnt:%d", ucIrqCnt, ucOnePeriodSampCnt);
+
+    // 在第14次周期时记录WE1
+    if (ucIrqCnt == 1)
     {
-        ucOnePeriodSampCnt = 0;
-        bms003_write_cycle(0x3A, CLK, 0, 1);
-        //使能BG,DAC  关闭BG
-        bms003_write_cycle(0x50, 0x02, 0, 1);
+        g_BaseWeVol = usBuff;
+        log_d("g_BaseWeVol:%d", g_BaseWeVol);
+        bms003_write_cycle(0x3A, CLK, 1, 30);
+        bms003_write_cycle(0x3B, 0x0B, 1, 31);
+        bms003_write_cycle(0x61, 0x0d, 0, 31);
+        bms003_write_cycle(0x3A, CLK | 0x80, 0, 30);
         bms003_write_cycle(0x61, 0x00, 0, 1);
-        bms003_write_cycle(0x3A, CLK | 0x80, 0, 1);
-        bms003_sleep();
     }
+    // 开始正常采集
+    else if (ucIrqCnt >= 2)
+    {
+        ucIrqCnt = 2;
 
-    // 开启中断
-    GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
+        // 累计本周期的采样次数
+        ucOnePeriodSampCnt++;
 
+        // 如果是本周期的第三次采样,则作为电流的正式数据
+        if (ucOnePeriodSampCnt == 3)
+        {
+
+            // 获取原始的电流数据
+            g_fRawCurrent = ((double)(usBuff - g_BaseWeVol) / 32768.0 * 1.2 * 100);
+            log_d("g_fRawCurrent:%f", g_fRawCurrent);
+
+            // 如果需要采集温度
+            if (g_bAfeTempMeasFlag)
+            {
+                g_bAfeTempMeasFlag = false;
+                // BMS003重新唤醒并写温度配置
+                bms003_sleep();
+                bms003_delay_us(10000);
+                bms003_wakeup();
+                bms003_delay_us(10000);
+                bms003_booting_temp_config();
+            }
+            else
+            {
+                // 计算电流并发送到FIFO
+                bms003_calc_current_and_send_fifo();
+
+                ucOnePeriodSampCnt = 0;
+            }
+        }
+        else if (ucOnePeriodSampCnt >= 4)
+        {
+            //计算温度值
+            g_fAfeTemp = temp_value(usBuff);
+
+            log_i("g_fAfeTemp:%f", g_fAfeTemp);
+
+            // 计算电流并发送到FIFO
+            bms003_calc_current_and_send_fifo();
+
+            ucOnePeriodSampCnt = 0;
+
+        }
+    }
+    //addr:0x4  清除中断状态
+    bms003_delay_us(1);
+    bms003_write_cycle(IMEAS_INT, 0x01, 0, 6);
+
+    bms003_sleep();
 }
 
 /*******************************************************************************
@@ -807,6 +800,8 @@ void bms003_booting_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x02;
     bms003_write_burst(0x3A, ucWriteBuffer, ucBufferIndex, 1, 1);
 
+    bms003_delay_us(1);
+
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = 0x03;          // addr:0x50 使能BG,DAC[0:1]   // 模拟保持状态关闭BG,DCDC分频
     ucWriteBuffer[ucBufferIndex++] = 0x00;          // addr:0x51 默认为0
@@ -817,8 +812,10 @@ void bms003_booting_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x56 默认为0
     ucWriteBuffer[ucBufferIndex++] = 0x0;// addr:0x57 参比电极以及辅助电极使能
     ucWriteBuffer[ucBufferIndex++] = 0x1;// addr:0x58 工作电极的偏置电压由第一个DAC生成使能
-    ucWriteBuffer[ucBufferIndex++] = usWe1Vol & 0xFF;// addr:0x59 设置偏置电压[0:7]
-    ucWriteBuffer[ucBufferIndex++] = (usWe1Vol >> 8) & 0x3;// addr:0x5A 设置偏置电压[8:9]
+    uint8_t ucCh1WeL8, ucCH1WeH2;
+    bms003_get_fix_ch1_din_we(&ucCh1WeL8, &ucCH1WeH2);
+    ucWriteBuffer[ucBufferIndex++] = ucCh1WeL8;// addr:0x59 设置偏置电压[0:7]
+    ucWriteBuffer[ucBufferIndex++] = ucCH1WeH2;// addr:0x5A 设置偏置电压[8:9]
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5B 参比电极的偏置电压由第二个DAC生成使能[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5C 配置CE[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5D 配置CE[8:9]
@@ -844,7 +841,98 @@ void bms003_booting_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     bms003_write_burst(0x017, ucWriteBuffer, ucBufferIndex, 1, 1);
+    uint8_t ucReadBuffer[32];
+    memset(ucReadBuffer, 0x00, sizeof(ucReadBuffer));
+
+    // 回读校验
+    bms003_read_burst(0x53, ucReadBuffer, 2, 1, 1);
+    if (ucReadBuffer[0] == CH1_WE1_RFB_SEL && ucReadBuffer[1] == CH1_WE1_VGAIN_SEL)
+    {
+        log_i("bms003_booting_config done");
 }
+    else
+    {
+        log_e("bms003_booting_config error:%d 0x53:%02X   0x54:%02X", ucReadBuffer[0], ucReadBuffer[1]);
+    }
+}
+
+
+
+/*******************************************************************************
+*                           陈苏阳@2023-10-27
+* Function Name  :  bms003_booting_temp_config
+* Description    :  BMS003启动温度测量配置
+* Input          :  None
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void bms003_booting_temp_config(void)
+{
+    log_i("bms003_booting_temp_config");
+    uint8_t ucWriteBuffer[32];
+    bms003_delay_us(1);
+    uint8_t ucBufferIndex = 0;
+    ucWriteBuffer[ucBufferIndex++] = CLK;
+    ucWriteBuffer[ucBufferIndex++] = 0xB;
+    ucWriteBuffer[ucBufferIndex++] = 0x2;
+    bms003_write_burst(0x3A, ucWriteBuffer, ucBufferIndex, 15, 30);
+
+    bms003_delay_us(3);
+
+    ucBufferIndex = 0;
+    ucWriteBuffer[ucBufferIndex++] = 0x03;          // addr:0x50 使能BG,DAC[0:1]   // 模拟保持状态关闭BG,DCDC分频
+#if BMS003_TEMP_DDA_EN
+    ucWriteBuffer[ucBufferIndex++] = 0xAF;                      //51默认为0
+    ucWriteBuffer[ucBufferIndex++] = 0x01;                      //52默认为0
+#else
+    ucWriteBuffer[ucBufferIndex++] = 0xAF - 0x80;                      //51默认为0
+    ucWriteBuffer[ucBufferIndex++] = 0x00;                      //52默认为0
+#endif
+    ucWriteBuffer[ucBufferIndex++] = CH1_WE1_RFB_SEL;// addr:0x53 配置反馈电阻[2:5]  使能位WE1&DDA [0:1]
+    ucWriteBuffer[ucBufferIndex++] = CH1_WE1_VGAIN_SEL;// addr:0x54 配置DDA增益倍数
+    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x55 默认为0
+    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x56 默认为0
+    ucWriteBuffer[ucBufferIndex++] = 0x0;// addr:0x57 参比电极以及辅助电极使能
+    ucWriteBuffer[ucBufferIndex++] = 0x1;// addr:0x58 工作电极的偏置电压由第一个DAC生成使能
+    uint8_t ucCh1WeL8, ucCH1WeH2;
+
+    bms003_get_fix_ch1_din_we(&ucCh1WeL8, &ucCH1WeH2);
+    ucWriteBuffer[ucBufferIndex++] = ucCh1WeL8;// addr:0x59 设置偏置电压[0:7]
+    ucWriteBuffer[ucBufferIndex++] = ucCH1WeH2;// addr:0x5A 设置偏置电压[8:9]
+    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5B 参比电极的偏置电压由第二个DAC生成使能[0:7]
+    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5C 配置CE[0:7]
+    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5D 配置CE[8:9]
+    ucWriteBuffer[ucBufferIndex++] = 0x03;// addr:0x5E
+    ucWriteBuffer[ucBufferIndex++] = 0x09;// addr:0x5F
+    bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex, 15, 30);
+
+
+    ucBufferIndex = 0;
+    ucWriteBuffer[ucBufferIndex++] = 0x00;
+    ucWriteBuffer[ucBufferIndex++] = 0x01;
+    bms003_write_burst(0x61, ucWriteBuffer, ucBufferIndex, 1, 30);
+
+    bms003_write_cycle(0x3A, CLK | 0x80, 1, 1);
+
+    ucBufferIndex = 0;
+    ucWriteBuffer[ucBufferIndex++] = CIC;
+    ucWriteBuffer[ucBufferIndex++] = 0x00;
+#if BMS003_TEMP_DDA_EN
+    ucWriteBuffer[ucBufferIndex++] = 0x44;
+#else
+    ucWriteBuffer[ucBufferIndex++] = 0x64;
+#endif
+    bms003_write_burst(0x01, ucWriteBuffer, ucBufferIndex, 1, 1);
+
+    bms003_write_cycle(IMEAS_REG_SEQ, 0x00, 1, 31);
+
+    ucBufferIndex = 0;
+    ucWriteBuffer[ucBufferIndex++] = 0x01;
+    ucWriteBuffer[ucBufferIndex++] = 0x01;
+    bms003_write_burst(0x017, ucWriteBuffer, ucBufferIndex, 17, 30);
+}
+
+
 
 
 
@@ -861,12 +949,16 @@ void bms003_wakeup_config(void)
 {
     uint8_t ucBufferIndex = 0;
     uint8_t ucWriteBuffer[32];
+    bms003_delay_us(1);
 
     ucBufferIndex = 0;
-    ucWriteBuffer[ucBufferIndex++] = CLK;
+    ucWriteBuffer[ucBufferIndex++] = CLK;                           // 写ICLK为4分频,PCLK8分频,FCLK Dynamic关闭
     ucWriteBuffer[ucBufferIndex++] = 0x0B;
     ucWriteBuffer[ucBufferIndex++] = 0x02;
     bms003_write_burst(0x3A, ucWriteBuffer, ucBufferIndex, 1, 1);
+
+    bms003_delay_us(1);
+
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = 0x03;                      //50使能BG,DAC[0:1]   //模拟保持状态关闭BG，DCDC分频
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //51默认为0
@@ -877,8 +969,10 @@ void bms003_wakeup_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //56默认为0
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //57参比电极以及辅助电极使能
     ucWriteBuffer[ucBufferIndex++] = 0x01;                      //58工作电极的偏置电压由第一个DAC生成使能	
-    ucWriteBuffer[ucBufferIndex++] = usWe1Vol&0xFF;             //59设置偏置电压[0:7]
-    ucWriteBuffer[ucBufferIndex++] = (usWe1Vol >> 8) & 0x3;     //5A设置偏置电压[8:9]
+    uint8_t ucCh1WeL8, ucCH1WeH2;
+    bms003_get_fix_ch1_din_we(&ucCh1WeL8, &ucCH1WeH2);
+    ucWriteBuffer[ucBufferIndex++] = ucCh1WeL8;                 //59设置偏置电压[0:7]
+    ucWriteBuffer[ucBufferIndex++] = ucCH1WeH2;                 //5A设置偏置电压[8:9]
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5B参比电极的偏置电压由第二个DAC生成使能[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5C配置CE[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5C配置CE[8:9]

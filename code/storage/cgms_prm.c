@@ -44,6 +44,16 @@ ret_code_t cgms_prm_db_write_flash()
         log_e("cgms_prm_flash_write fail:%d", ucResult);
         return ucResult;
     }
+    else
+    {
+        // 读取参数
+        cgms_prm_flash_read(0, (uint8_t*)&g_PrmDb, sizeof(g_PrmDb));
+        // 如果CRC错误,则将数据设为默认值
+        if (0x00 != do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb)))
+        {
+            log_e("cgms_prm_flash_write read back fail");
+        }
+    }
     return 0;
 }
 
@@ -63,19 +73,22 @@ ret_code_t cgms_prm_get_sn(char* buff)
     // 如果SN值非法,或者CRC错误,则恢复默认SN
     if ((0x00 != do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb))) || g_PrmDb.prmWMY[0] == 0xFF)
     {
-        g_PrmDb.prmWMY[0] = 'J'; //A
-        g_PrmDb.prmWMY[1] = 'D'; //B
-        g_PrmDb.prmWMY[2] = 'N'; //C
-        g_PrmDb.prmWMY[3] = 0;
-        if(bLogOutFlag==false)log_w("can not read SN,use default SN");
-        g_PrmDb.SN =53;
+        g_PrmDb.prmWMY[0] = 'A'; //A
+        g_PrmDb.prmWMY[1] = 'B'; //B
+        g_PrmDb.prmWMY[2] = 'C'; //C
+        g_PrmDb.prmWMY[3] = 0;  //null,end of string
+        if (bLogOutFlag == false)
+        {
+            log_w("can not read SN,use default SN");
+        }
+        g_PrmDb.SN =0;
         uiFlag = RET_CODE_FAIL;
     }
     else
     {
         uiFlag = RET_CODE_SUCCESS;
     }
-    sprintf(buff, "GN-%s%04d", (unsigned char*)g_PrmDb.prmWMY, g_PrmDb.SN);
+    sprintf(buff, "%s-%s%04d", BLE_ADV_NAME_PREFIXES,(unsigned char*)g_PrmDb.prmWMY, g_PrmDb.SN);
     if (bLogOutFlag == false)
     {
         log_i("SN:%s", buff);
@@ -102,9 +115,14 @@ void cgms_prm_db_power_on_init(void)
     // 如果CRC错误,则将数据设为默认值
     if (0x00 != do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb)))
     {
+        log_w("flash prm data crc fail");
         g_PrmDb.AdcB = 0;
         g_PrmDb.AdcK = 1000;
         g_PrmDb.DacVolOffset = 0;
+    }
+    else
+    {
+        log_i("flash prm data read done");
     }
 
     cgms_prm_get_sn((char*)g_ucSn);

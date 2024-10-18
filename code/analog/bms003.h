@@ -194,19 +194,22 @@
 #define ELE_BUF  0xf
 #define CHA_NUM  0x54
 
+#define BMS003_TEMP_DDA_EN                          0           // 是否使能温度DDA采集
+
 
 /* Private typedef -----------------------------------------------------------*/
+
+typedef void (*bms003_rewakeup_done_callback)(void);
 typedef void (*bms003_irq_callback)(void);
 
-
-// 启动过程状态机
 typedef enum
 {
-    BMS003_START_FSM_IDLE = 0,
-    BMS003_START_FSM_CHIP_EN,               // 拉高chip en
-    BMS003_START_FSM_WAKEUP,                // 拉高wakeup
-    BMS003_START_FSM_REG_CONFIG,            // 配置寄存器
-}bms003_start_fsm_t;
+    BMS003_REWAKEUP_IDLE = 0x00,                    // 空闲
+    BMS003_REWAKEUP_SLEEP = 0X02,                   // 当前AFE为睡眠状态
+    BMS003_REWAKEUP_WAKEUP = 0x03,                  // 当前AFE为唤醒状态
+}bms003_rewakeup_fsm_t;
+
+
 
 /* Private variables ---------------------------------------------------------*/
 

@@ -189,7 +189,6 @@ void cgms_debug_db_print(void)
     else
     {
         log_w("debug info is invalid");
-        elog_hexdump("g_mDebugInfo", 16, &g_mDebugInfo, sizeof(g_mDebugInfo));
     }
 }
 

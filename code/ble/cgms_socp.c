@@ -783,6 +783,7 @@ void cgms_socp_write_prm(__attribute__((unused)) ble_event_info_t BleEventInfo, 
             g_PrmDb.prmWMY[3] = 0;
             sTmp = uint16_decode(SocpRequest.pData + ucIndex);
             g_PrmDb.SN = (int16_t)sTmp;
+			log_i("write SN:%s%04d",g_PrmDb.prmWMY,g_PrmDb.SN);
             ucIndex += 2;
             g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
             break;
@@ -831,6 +832,7 @@ void cgms_socp_write_prm(__attribute__((unused)) ble_event_info_t BleEventInfo, 
         // 保存参数
         case SOCP_PRM_NO_SAVE_PRM:
         {
+            log_i("save prm data");
             cgms_prm_db_write_flash();
             pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
             break;
