@@ -59,15 +59,12 @@ int main(void)
 
     // 系统初始化
     sl_system_init();
-    EMU_BoostExternalShutdownEnable(false);
     MSC_Init();
 
     // 初始化GPIO的时钟
     CMU_ClockEnable(cmuClock_GPIO, true);
     // 设置MCU_POWER_LOCK引脚为推挽输出
     GPIO_PinModeSet(MCU_POWER_LOCK_PORT, MCU_POWER_LOCK_PIN, gpioModePushPull, 1);
-    // CS拉高
-    GPIO_PinOutSet(MCU_POWER_LOCK_PORT, MCU_POWER_LOCK_PIN);
     // 初始化log
     SEGGER_RTT_Init();
     SEGGER_RTT_SetTerminal(0);
@@ -84,13 +81,6 @@ int main(void)
 
     wdog_init();
 
-    // 初始化bms003的校准
-    bms003_bist_init();
-
-    log_i("bms003 bist done");
-
-    // SPI接口初始化
-    sl_spidrv_init_instances();
     // 这边只做了基本的初始化,固件的入口在:app_global.c里的app_init()函数
 
     while (1)

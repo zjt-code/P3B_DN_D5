@@ -481,6 +481,9 @@ void cgms_socp_start_the_session(__attribute__((unused))  ble_event_info_t BleEv
 
         log_i("!!SOCP_START_THE_SESSION   OK!!");
 
+        // 屏蔽BOOST EN
+        EMU_BoostExternalShutdownEnable(false);
+
         // 开始应用层血糖测量
         event_push(MAIN_LOOP_EVENT_SOCP_START_SESSION_EVENT, APP_GLUCOSE_MEAS_TYPE_USER_MEAS);
     }

@@ -32,6 +32,7 @@
 #include "gatt_db.h"
 #include "cgms_debug_db.h"
 #include "bms003_bist_if.h"
+#include "em_emu.h"
 /* Private variables ---------------------------------------------------------*/
 app_state_t g_app_state;
 event_info_t g_EventInfoArray[APP_EVENT_MAX_NUM];
@@ -287,6 +288,14 @@ void app_init(void)
     log_i("ResetCause:0x%x", g_uiRstCause);
     print_reset_cause(g_uiRstCause);
     cm_backtrace_init("P3A", "0.0.1", SOFT_VER);
+
+    // 初始化bms003的校准
+    bms003_bist_init();
+
+    log_i("bms003 bist done");
+
+    // SPI接口初始化
+    sl_spidrv_init_instances();
 
     // 初始化历史数据的flash接口
     cgms_db_flash_init();

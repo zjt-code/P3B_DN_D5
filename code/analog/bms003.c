@@ -426,6 +426,9 @@ void bms003_shot(uint8_t ucSampleingCnt)
         log_d("bms003_shot(%d)", ucSampleingCnt);
         sl_status_t status;
 
+        // 允许温度采样一次
+        g_bAfeTempMeasFlag = true;
+
         g_ucSampleingCnt = ucSampleingCnt;
         status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, sl_sleeptimer_ms_to_tick(SHOT_SLEEP_TIMER_INTERVAL), bms003_wakeup_timer_callback, (void*)NULL, 0, 0);
         if (status != SL_STATUS_OK)
@@ -551,6 +554,8 @@ void bms003_calc_current_and_send_fifo(void)
     bms003_write_cycle(0x3A, CLK | 0x80, 0, 1);
 
     bms003_delay_us(1);
+    
+    bms003_sleep();
 }
 
 /*******************************************************************************
@@ -645,7 +650,6 @@ void bms003_int_irq_handler(void)
     bms003_delay_us(1);
     bms003_write_cycle(IMEAS_INT, 0x01, 0, 6);
 
-    bms003_sleep();
 }
 
 /*******************************************************************************
