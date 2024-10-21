@@ -179,6 +179,50 @@ uint16_t app_glucose_meas_get_glucose_quality(void)
 
 
 /*******************************************************************************
+*                           陈苏阳@2024-10-21
+* Function Name  :  app_glucose_cal_abnormal_state
+* Description    :  计算异常状态
+* Input          :  cgm_measurement_sensor_state_t RawState
+* Input          :  float fCurrent
+* Input          :  float fCv
+* Output         :  None
+* Return         :  cgm_measurement_sensor_state_t
+*******************************************************************************/
+cgm_measurement_sensor_state_t app_glucose_cal_abnormal_state(cgm_measurement_sensor_state_t RawState, float fCurrent, float fCv)
+{
+    // 如果算法报传感器异常
+    if (RawState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_SENSOR_ABNORMAL)
+    {
+        // 如果电流小于等于0.1nA
+        if (fCurrent <= 0.1f)
+        {
+            // 报小电流异常
+            return CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_LOW;
+        }
+        // 如果电流大于等于50nA
+        else if (fCurrent >= 50)
+        {
+            // 报大电流异常
+            return CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_HIGH;
+        }
+
+        // 如果CV大于0.2
+        if (fCv > 0.2)
+        {
+            // 报CV异常
+            return CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CV_ERR;
+        }
+
+        // 否则报原始的0x22传感器异常
+        return RawState;
+    }
+    else
+    {
+        return RawState;
+    }
+}
+
+/*******************************************************************************
 *                           陈苏阳@2022-12-15
 * Function Name  :  app_glucose_handle
 * Description    :  血糖计算(3分钟一次)
@@ -214,8 +258,14 @@ static void app_glucose_handle(void)
     uint8_t ucTrend = cgms_cal_trend(g_fGlucoseConcentration, g_usGlucoseRecordsCurrentOffset);// 计算趋势
     rec.ucCV = (uint8_t)(fCv*100.0f);
     rec.ucTrend = ucTrend;
+
+    // 计算传感器异常状态
+    ucState = app_glucose_cal_abnormal_state(ucState, sfCurrI0, fCv);
+
     rec.ucState = ucState;
     att_get_cgm_status()->ucRunStatus = ucState;
+
+
     app_global_get_app_state()->CgmTrend = ucTrend;
     rec.usOffset = g_usGlucoseRecordsCurrentOffset;
     rec.usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_REAL;

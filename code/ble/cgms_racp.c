@@ -28,6 +28,7 @@
 #include <elog.h>
 #if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
 #include "cgms_aes128.h"
+#include "utility.h"
 #endif
 //#include "app_glucose_meas.h"
 /* Private variables ---------------------------------------------------------*/

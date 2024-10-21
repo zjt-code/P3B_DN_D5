@@ -155,6 +155,9 @@ typedef enum
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_SENSOR_ERROR = 0x23,                    // 传感器错误,请更换
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_INEFFECTIVE_IMPLANTATION = 0x31,        // 无效植入,请更换传感器(数据停止采样,蓝牙广播继续)
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP = 0x33,                         // 极化中
+    CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_HIGH = 0x41,                // 大电流
+    CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_LOW = 0x42,                 // 小电流
+    CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CV_ERR = 0x43,                          // CV异常
 }cgm_measurement_sensor_state_t;
 
 #else
