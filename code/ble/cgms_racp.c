@@ -189,6 +189,12 @@ void racp_response_send(ble_event_info_t BleEventInfo, racp_response_t ResponseC
     ble_cgms_racp_datapacket_t Datapacket;
     uint8_t ucOpCode = RacpRspDatapacket.ucOpCode;
 
+#if(USE_BLE_PROTOCOL==GN_2_PROTOCOL)
+    Datapacket.ucOpCode = 0x1C;
+    Datapacket.ucOperator = 0x01;
+    Datapacket.ucDataLen = 1;
+    Datapacket.ucData[0] =(uint8_t)ResponseCode;
+#else
     if (RACP_OPCODE_REPORT_NUM_RECS == ucOpCode)
     {
         Datapacket.ucOpCode = RACP_OPCODE_NUM_RECS_RESPONSE;
@@ -213,6 +219,7 @@ void racp_response_send(ble_event_info_t BleEventInfo, racp_response_t ResponseC
     	Datapacket.ucData[0] = ucOpCode;
     	Datapacket.ucData[1] = ResponseCode;
     }
+#endif
 
     ucLen = ble_racp_encode(&Datapacket, ucEncodedRacp);
 
@@ -327,10 +334,11 @@ uint8_t racp_findMeasDB(uint8_t filter, uint16_t operand1, uint16_t operand2)
 * Description    :  报告当前历史数据数量
 * Input          :  ble_event_info_t BleEventInfo
 * Input          :  ble_cgms_racp_datapacket_t RacpDatapacket
+* Input          :  bool bCrcPass
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void cgms_racp_report_num_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapacket_t RacpDatapacket)
+void cgms_racp_report_num_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapacket_t RacpDatapacket, bool bCrcPass)
 {
     racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
     ble_cgms_racp_datapacket_t RspDatapacket;
@@ -352,10 +360,11 @@ void cgms_racp_report_num_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_data
 * Description    :  删除历史数据
 * Input          :  ble_event_info_t BleEventInfo
 * Input          :  ble_cgms_racp_datapacket_t RacpDatapacket
+* Input          :  bool bCrcPass
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void cgms_racp_delete_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapacket_t RacpDatapacket)
+void cgms_racp_delete_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapacket_t RacpDatapacket, bool bCrcPass)
 {
     racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
     ble_cgms_racp_datapacket_t RspDatapacket;
@@ -372,10 +381,11 @@ void cgms_racp_delete_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapack
 * Description    :  上报历史数据
 * Input          :  ble_event_info_t BleEventInfo
 * Input          :  ble_cgms_racp_datapacket_t RacpDatapacket
+* Input          :  bool bCrcPass
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapacket_t RacpDatapacket)
+void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapacket_t RacpDatapacket, bool bCrcPass)
 {
     racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
     uint16_t usfilterData1 = 0x00;
@@ -383,15 +393,7 @@ void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapack
     ble_cgms_racp_datapacket_t RspDatapacket;
     memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
     RspDatapacket.ucOpCode = RacpDatapacket.ucOpCode;
-    // 效验命令的CRC
-    if (do_crc(RacpDatapacket.ucData, 8) != 0)
-    {
-        // CRC错误
-        ResponseCode = RACP_RESPONSE_RESULT_INVALID_OPERAND;
-        // 发送回应包
-        racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
-        return;
-    }
+#if(USE_BLE_PROTOCOL!=GN_2_PROTOCOL)
 
     if (0 == RacpDatapacket.ucOperator)
     {
@@ -401,7 +403,6 @@ void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapack
         racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
         return;
     }
-
     // 发送历史数据发送结束数据包
     if (RacpDatapacket.ucOperator >= 7)
     {
@@ -438,9 +439,26 @@ void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapack
         return;
     }
 
+#else
+    // 效验命令的CRC
+    if (!bCrcPass)
+    {
+        // CRC错误
+        ResponseCode = RACP_RESPONSE_RESULT_INVALID_OPERAND;
+        // 发送回应包
+        racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+        return;
+    }
+    usfilterData1 = uint16_decode(&RacpDatapacket.ucData[0]);
+    usfilterData2 = uint16_decode(&RacpDatapacket.ucData[2]);
     log_i("racp_findMeasDB %d/%d", usfilterData1, usfilterData2);
-    //Get the starting and ending index of the record meeting requriement  
-    if (racp_findMeasDB(RacpDatapacket.ucOperator, usfilterData1, usfilterData2))
+#endif
+    //Get the starting and ending index of the record meeting requriement
+#if(USE_BLE_PROTOCOL==GN_2_PROTOCOL)
+    if (racp_findMeasDB(RACP_OPERATOR_RANGE, usfilterData1, usfilterData2))
+#else
+    if (racp_findMeasDB(RACP_OPERATOR_RANGE, RacpDatapacket.ucOperator, usfilterData1, usfilterData2))
+#endif
     {
 
         ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
@@ -474,10 +492,11 @@ void cgms_racp_report_recs(ble_event_info_t BleEventInfo, ble_cgms_racp_datapack
 * Description    :  中止操作
 * Input          :  ble_event_info_t BleEventInfo
 * Input          :  ble_cgms_racp_datapacket_t RacpDatapacket
+* Input          :  bool bCrcPass
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void cgms_racp_abort_operation(ble_event_info_t BleEventInfo, __attribute__((unused))  ble_cgms_racp_datapacket_t RacpDatapacket)
+void cgms_racp_abort_operation(ble_event_info_t BleEventInfo, __attribute__((unused))  ble_cgms_racp_datapacket_t RacpDatapacket, bool bCrcPass)
 {
     racp_response_t ResponseCode = RACP_RESPONSE_RESULT_SUCCESS;
     ble_cgms_racp_datapacket_t RspDatapacket;
@@ -517,27 +536,32 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     ble_racp_decode(usLen, pData, &RacpDatapacket);
     elog_hexdump("datapacket", 16, pData, usLen);
     RspDatapacket.ucOpCode = RacpDatapacket.ucOpCode;
-
+    bool bCrcPassFlag = false;
+    // 效验命令的CRC
+    if (do_crc(pData, usLen) != 0)
+    {
+        bCrcPassFlag = true;
+    }
     switch (RacpDatapacket.ucOpCode)
     {
     case RACP_OPCODE_REPORT_RECS:
     {
-        cgms_racp_report_recs(BleEventInfo, RacpDatapacket);
+        cgms_racp_report_recs(BleEventInfo, RacpDatapacket, bCrcPassFlag);
         return;
     }
     case RACP_OPCODE_REPORT_NUM_RECS:
     {
-        cgms_racp_report_num_recs(BleEventInfo, RacpDatapacket);
+        cgms_racp_report_num_recs(BleEventInfo, RacpDatapacket, bCrcPassFlag);
         return;
     }
     case RACP_OPCODE_DELETE_RECS:
     {
-        cgms_racp_delete_recs(BleEventInfo, RacpDatapacket);
+        cgms_racp_delete_recs(BleEventInfo, RacpDatapacket, bCrcPassFlag);
         return;
     }
     case RACP_OPCODE_ABORT_OPERATION:
 
-        cgms_racp_abort_operation(BleEventInfo, RacpDatapacket);
+        cgms_racp_abort_operation(BleEventInfo, RacpDatapacket, bCrcPassFlag);
         return;
     default:
     {

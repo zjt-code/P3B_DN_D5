@@ -702,6 +702,11 @@ void cgms_socp_read_reset_reg(__attribute__((unused)) ble_event_info_t BleEventI
     pRspRequest->ucSizeVal = 8;
 }
 
+void cgms_socp_reset_mcu(__attribute__((unused)) ble_event_info_t BleEventInfo, __attribute__((unused))  ble_socp_datapacket_t  SocpRequest, bool bCrcPass, ble_socp_rsp_t* pRspRequest)
+{
+    pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+    NVIC_SystemReset();
+}
 /*******************************************************************************
 *                           陈苏阳@2024-06-24
 * Function Name  :  cgms_socp_start_ad_cali
@@ -791,36 +796,7 @@ void cgms_socp_write_prm(__attribute__((unused)) ble_event_info_t BleEventInfo, 
             g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
             break;
         }
-        // 写AFE电压偏移
-        case SOCP_PRM_WRITE_AFE_VOL_OFFISET:
-        {
-            pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
-            memcpy(&g_PrmDb.DacVolOffset, &(SocpRequest.pData[ucIndex]), 2);
-            log_i("write dac vol offset:%d", g_PrmDb.DacVolOffset);
-            g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
 
-            // 准实时地更新AFE的电压偏移
-            update_vol_offset(g_PrmDb.DacVolOffset);
-            break;
-        }
-        // 写AFE系数K
-        case SOCP_PRM_WRITE_AFE_COEFFICIENT_K:
-        {
-            pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
-            memcpy(&g_PrmDb.AdcK, &(SocpRequest.pData[ucIndex]), 2);
-            log_i("write adc k:%d", g_PrmDb.AdcK);
-            g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
-            break;
-        }
-        // 写AFE系数B
-        case SOCP_PRM_WRITE_AFE_COEFFICIENT_B:
-        {
-            pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
-            memcpy(&g_PrmDb.AdcB, &(SocpRequest.pData[ucIndex]), 2);
-            log_i("write adc b:%d", g_PrmDb.AdcB);
-            g_PrmDb.Crc16 = do_crc((uint8_t*)&g_PrmDb, sizeof(g_PrmDb) - 2);
-            break;
-        }
 #if (USE_BLE_PROTOCOL!=GN_2_PROTOCOL)
         // 写启动时间
         case SOCP_PRM_NO_WRITE_START_TIME:
@@ -1175,6 +1151,12 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
         cgms_socp_read_hard_fault_info(BleEventInfo, SocpRequest, bCrcPassFlag, &RspRequest);
         break;
     }
+    // 复位MCU
+    case SOCP_RESET_MCU:
+    {
+        cgms_socp_reset_mcu(BleEventInfo, SocpRequest, bCrcPassFlag, &RspRequest);
+        break;
+    }
     // 停止CGM
     case SOCP_STOP_THE_SESSION:
     {
@@ -1248,13 +1230,17 @@ bool cgms_socp_check_production_cmd(uint8_t* pData,__attribute__((unused))  uint
     {
         switch (pData[1])
         {
-            // 以下操作为生产操作
-            case SOCP_PRM_NO_WRITE_OR_READ_SN:
-            case SOCP_PRM_WRITE_AFE_VOL_OFFISET:
-            case SOCP_PRM_WRITE_AFE_COEFFICIENT_K:
-            case SOCP_PRM_WRITE_AFE_COEFFICIENT_B:
-            case SOCP_PRM_NO_SAVE_PRM:
-                return true;
+        // 以下操作为生产操作
+        case SOCP_PRM_NO_WRITE_OR_READ_SN:
+        {
+            if (usLen != 9)return false;
+            return true;
+        }
+        case SOCP_PRM_NO_SAVE_PRM:
+        {
+            if (usLen != 4)return false;
+            return true;
+        }
             default:
                 break;
         }
@@ -1267,25 +1253,39 @@ bool cgms_socp_check_production_cmd(uint8_t* pData,__attribute__((unused))  uint
         switch (pData[1])
         {
         case SOCP_PRM_NO_WRITE_OR_READ_SN:
+        {
+            if (usLen != 4)return false;
             return true;
+        }
         default:
             break;
         }
         break;
     }
-
-    // 如果是校准ADC命令
-    case SOCP_START_AD_CALI:
-    // 如果是读取校准ADC时的数据命令
-    case SOCP_READ_AD_CALI_DATA:
     // 如果是触发进入FOTA模式命令
     case SOCP_START_FOTA:
+    {
+        if (usLen != 1)return false;
+        return true;
+    }
     // 如果是读取复位原因寄存器命令
     case SOCP_READ_RESET_REG:
+    {
+        if (usLen != 1)return false;
+        return true;
+    }
     // 如果是读取硬错误信息命令
     case SOCP_READ_HARD_FAULT_INFO:
-        // 按生产操作返回
+    {
+        if (usLen != 1)return false;
         return true;
+    }
+    // 如果是复位MCU命令
+    case SOCP_RESET_MCU:
+    {
+        if (usLen != 1)return false;
+        return true;
+    }
     default:
         break;
     }

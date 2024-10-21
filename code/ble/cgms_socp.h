@@ -167,6 +167,7 @@ typedef enum
     SOCP_START_FOTA = 0xFF,                                            // 触发进入FOTA模式
     SOCP_READ_RESET_REG = 0xFE,                                        // 读取复位原因寄存器
     SOCP_READ_HARD_FAULT_INFO = 0xFD,                                  // 读取硬错误信息
+    SOCP_RESET_MCU = 0xF0,                                             // 复位MCU
     SOCP_READ_PRM_RESPONSE = 0x60,                                     // 读取参数响应包
     SOCP_WRITE_PRM = 0x61,                                             // 写入参数
     SOCP_READ_PRM = 0x62,                                              // 读取参数
@@ -193,9 +194,6 @@ typedef enum
 typedef enum
 {
     SOCP_PRM_NO_WRITE_OR_READ_SN = 0x04,                              // 写SN
-    SOCP_PRM_WRITE_AFE_VOL_OFFISET = 0x05,                            // 写AFE电压偏移
-    SOCP_PRM_WRITE_AFE_COEFFICIENT_K = 0x06,                          // 写AFE系数K
-    SOCP_PRM_WRITE_AFE_COEFFICIENT_B = 0x07,                          // 写AFE系数B
     SOCP_PRM_NO_WRITE_START_TIME = 0xFA,                              // 写启动时间
     SOCP_PRM_NO_SAVE_PRM = 0xFE,                                      // 保存参数
     SOCP_PRM_NO_READ_START_TIME = 0xA0,                               // 读启动时间

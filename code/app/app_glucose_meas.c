@@ -598,6 +598,19 @@ void app_glucose_meas_record_send_handelr(uint32_t uiArg)
     bool bSendSuccessFlag = true;
     log_i("app_glucose_meas_record_send_handler:%d", app_global_get_app_state()->bRecordSendFlag);
 
+    // 如果没有使能meas char的notify或者没有手机连接上发射器
+    if ((!ble_meas_notify_is_enable()) || (!app_have_a_active_ble_connect()))
+    {
+        // 停止发送历史数据
+        app_glucose_meas_record_send_stop();
+
+        // 清空历史数据发送状态信息
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordCnt = 0;
+        app_global_get_app_state()->RecordOptInfo.usRacpRecordSendCnt = 0;
+        app_global_get_app_state()->bRecordSendFlag = false;
+        return;
+    }
+
     // 如果发送历史数据标志位置位
     if (app_global_get_app_state()->bRecordSendFlag == true)
     {
@@ -651,6 +664,8 @@ void app_glucose_meas_record_send_handelr(uint32_t uiArg)
 
             // 设置code为发送完成
             CgmsHistorySpecialDatapcket.ucDatapacketCode = CGMS_HISTORY_SPECIAL_DATAPACKET_CODE_SEND_DONE;
+            CgmsHistorySpecialDatapcket.ucReserved[0] = 0x00;
+            CgmsHistorySpecialDatapcket.ucReserved[1] = 0x00;
             // 计算CRC
             CgmsHistorySpecialDatapcket.usCRC16 = do_crc(&CgmsHistorySpecialDatapcket, sizeof(CgmsHistorySpecialDatapcket) - 2);
 

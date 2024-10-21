@@ -47,9 +47,9 @@ typedef struct
 {
     uint8_t ucDatapacketCode;
     #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
-	uint8_t uc_Reserved[2];
+	uint8_t ucReserved[2];
     #else
-    uint8_t uc_Reserved[13];
+    uint8_t ucReserved[13];
     #endif
     uint16_t usCRC16;
 }__attribute__((packed)) cgms_history_special_datapcket_t;
