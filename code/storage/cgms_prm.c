@@ -140,3 +140,47 @@ uint8_t* cgms_prm_get_sn_p(void)
 {
     return g_ucSn;
 }
+
+/*******************************************************************************
+*                           陈苏阳@2024-10-22
+* Function Name  :  cgms_prm_db_write_user_usage_data
+* Description    :  写入用户使用数据
+* Input          :  user_usage_data_t * pData
+* Output         :  None
+* Return         :  ret_code_t
+*******************************************************************************/
+ret_code_t cgms_prm_db_write_user_usage_data(user_usage_data_t* pData)
+{
+  uint8_t ucResult;
+    if (pData)
+    {
+        // 擦除参数所在的Flash区域
+        ucResult = cgms_prm_flash_erase_sector(0);
+        if (ucResult)
+        {
+            log_e("cgms_prm_flash_erase_sector fail:%d", ucResult);
+            return ucResult;
+        }
+        // 写入参数结构体
+        ucResult = cgms_prm_flash_write(0, (uint8_t*)&g_PrmDb, sizeof(g_PrmDb));
+        
+        return ucResult;
+    }
+    else
+    {
+        return RET_CODE_FAIL;
+    }
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-10-22
+* Function Name  :  cgms_prm_db_read_user_usage_data
+* Description    :  读取用户使用数据
+* Input          :  user_usage_data_t * pData
+* Output         :  None
+* Return         :  ret_code_t
+*******************************************************************************/
+ret_code_t cgms_prm_db_read_user_usage_data(user_usage_data_t* pData)
+{
+        return RET_CODE_FAIL;
+}

@@ -123,7 +123,7 @@ typedef struct
 
 
 // BLE通知队列序号
-typedef enum
+typedef enum  __attribute__((__packed__))
 {
     CGMS_MEAS_HIS_SEQNUM = 1,
     CGMS_MEAS_REALTIME_SEQNUM = 2,
@@ -143,7 +143,7 @@ typedef enum
 #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 
 // CGM测量传感器状态
-typedef enum
+typedef enum  __attribute__((__packed__))
 {
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING = 0x00,                         // CGM运行中
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED = 0x01,                         // CGM没有运行
@@ -155,6 +155,7 @@ typedef enum
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_SENSOR_ERROR = 0x23,                    // 传感器错误,请更换
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_INEFFECTIVE_IMPLANTATION = 0x31,        // 无效植入,请更换传感器(数据停止采样,蓝牙广播继续)
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP = 0x33,                         // 极化中
+    CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP_FAIL = 0x34,                    // 极化失败
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_HIGH = 0x41,                // 大电流
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_LOW = 0x42,                 // 小电流
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CV_ERR = 0x43,                          // CV异常
@@ -162,7 +163,7 @@ typedef enum
 
 #else
 // CGM测量传感器状态
-typedef enum
+typedef enum  __attribute__((__packed__))
 {
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING = 0x00,                         // CGM运行中
     CGM_MEASUREMENT_SENSOR_STATUS_SESSION_COMMAND_STOPPED = 0x02,                 // 由于APP发送停止命令导致的停止
@@ -181,7 +182,7 @@ typedef enum
 
 
 // 血糖趋势
-typedef enum
+typedef enum  __attribute__((__packed__))
 {
     CGM_TREND_INVILD = 0x00,                        // 血糖趋势_无效趋势
     CGM_TREND_FAST_DOWN = 0x01,                     // 血糖趋势_快速下降

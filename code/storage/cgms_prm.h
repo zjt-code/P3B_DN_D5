@@ -25,32 +25,18 @@ typedef struct
     int16_t           DacVolOffset;
     int16_t           AdcK;
     int16_t           AdcB;
-    uint16_t          Crc16;
+    uint16_t          usCrc16;
 } prm_t;
-
-
-
-
-#define LEN_MAX_ERROR_FILE_NAME   128
 
 typedef struct
 {
-    uint32_t        id;
-    uint32_t        line_num;    /**< The line number where the error occurred. */
-
-    uint32_t        err_code;
-    uint8_t         file_name[LEN_MAX_ERROR_FILE_NAME]; /**< The file in which the error occurred. */
-    uint32_t        err_enter_pos;
-
-    uint16_t   	 reserved;
-    uint16_t   	 crc_value;
-
-
-}
-softreset_error_log_backup_t;
-
-
-
+    cgm_measurement_sensor_state_t LastCgmState;                    // 上一次的CGM工作状态
+    float fUseSensorK;                                              // 上一次使用的传感器Code
+    uint32_t LastCgmSessionStartTime;                               // 上一次的启动时间
+    uint8_t ucCgmSessionCnt;                                        // CGM使用次数
+    uint8_t ucNone[16];                                             // 未使用
+    uint16_t usCrc16;
+}user_usage_data_t;
 
 
 
@@ -62,9 +48,8 @@ ret_code_t cgms_prm_get_sn(char* buff);
 void cgms_prm_db_power_on_init(void);
 uint8_t* cgms_prm_get_sn_p(void);
 ret_code_t cgms_prm_db_write_flash(void);
-
-extern softreset_error_log_backup_t softreset_error_log;
-
+ret_code_t cgms_prm_db_write_user_usage_data(user_usage_data_t* pData);
+ret_code_t cgms_prm_db_read_user_usage_data(user_usage_data_t* pData);
 #endif /* __CGMS_PRM_H */
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/

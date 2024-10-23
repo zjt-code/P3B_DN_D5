@@ -216,6 +216,24 @@ cgm_measurement_sensor_state_t app_glucose_cal_abnormal_state(cgm_measurement_se
         // 否则报原始的0x22传感器异常
         return RawState;
     }
+    else if (RawState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP_FAIL)
+    {
+        // 如果电流小于等于0.1nA
+        if (fCurrent <= 0.1f)
+        {
+            // 报小电流异常
+            return CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_LOW;
+        }
+        // 如果电流大于等于50nA
+        else if (fCurrent >= 50)
+        {
+            // 报大电流异常
+            return CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_HIGH;
+        }
+
+        // 否则报原始的0x34极化失败
+        return RawState;
+    }
     else
     {
         return RawState;
