@@ -23,7 +23,6 @@ mbedtls_aes_context aes;
 /* Private functions ---------------------------------------------------------*/
 
 
-
 void cgms_aes128_update_key(uint8_t* value)
 {
     aes_ecb_128_key[14] = value[1];

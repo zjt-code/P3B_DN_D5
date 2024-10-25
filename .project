@@ -581,11 +581,6 @@
 			<locationURI>STUDIO_SDK_LOC/protocol/bluetooth/src/sli_bt_sync_config.c</locationURI>
 		</link>
 		<link>
-			<name>gecko_sdk_4.4.0/app/bluetooth/common/gatt_service_battery/sl_gatt_service_battery.c</name>
-			<type>1</type>
-			<locationURI>STUDIO_SDK_LOC/app/bluetooth/common/gatt_service_battery/sl_gatt_service_battery.c</locationURI>
-		</link>
-		<link>
 			<name>gecko_sdk_4.4.0/app/bluetooth/common/gatt_service_battery/sl_gatt_service_battery.h</name>
 			<type>1</type>
 			<locationURI>STUDIO_SDK_LOC/app/bluetooth/common/gatt_service_battery/sl_gatt_service_battery.h</locationURI>

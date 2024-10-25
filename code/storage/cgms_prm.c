@@ -17,6 +17,7 @@
 #include <elog.h>
 uint8_t g_ucSn[11] = { 'J','N','-','X','X', 'X', '0', '0', '0', '0',0x00 };
 prm_t g_PrmDb __attribute__((aligned(4)));
+user_usage_data_t g_UserUsageData __attribute__((aligned(4)));
 
 
 /*******************************************************************************
@@ -126,6 +127,9 @@ void cgms_prm_db_power_on_init(void)
     }
 
     cgms_prm_get_sn((char*)g_ucSn);
+
+    // 读取用户使用数据
+    cgms_prm_db_read_user_usage_data(&g_UserUsageData);
 }
 
 /*******************************************************************************
@@ -155,14 +159,19 @@ ret_code_t cgms_prm_db_write_user_usage_data(user_usage_data_t* pData)
     if (pData)
     {
         // 擦除参数所在的Flash区域
-        ucResult = cgms_prm_flash_erase_sector(0);
+        ucResult = cgms_prm_flash_erase_sector(4096);
         if (ucResult)
         {
             log_e("cgms_prm_flash_erase_sector fail:%d", ucResult);
             return ucResult;
         }
+        user_usage_data_t WriteData;
+        memcpy(&WriteData, pData, sizeof(user_usage_data_t));
+        // 计算当前要写入的数据的CRC
+        uint16_t usCrc = do_crc((uint8_t*)&WriteData, sizeof(user_usage_data_t) - 2);
+        WriteData.usCrc16 = usCrc;
         // 写入参数结构体
-        ucResult = cgms_prm_flash_write(0, (uint8_t*)&g_PrmDb, sizeof(g_PrmDb));
+        ucResult = cgms_prm_flash_write(4096, (uint8_t*)&WriteData, sizeof(user_usage_data_t));
         
         return ucResult;
     }
@@ -182,5 +191,47 @@ ret_code_t cgms_prm_db_write_user_usage_data(user_usage_data_t* pData)
 *******************************************************************************/
 ret_code_t cgms_prm_db_read_user_usage_data(user_usage_data_t* pData)
 {
+    // 读取参数
+    cgms_prm_flash_read(4096, (uint8_t*)pData, sizeof(user_usage_data_t));
+
+    // 如果CRC错误,则将数据设为默认值
+    if (0x00 != do_crc((uint8_t*)pData, sizeof(user_usage_data_t)))
+    {
+        log_w("flash user usage data crc fail");
+        memset(pData, 0x00, sizeof(user_usage_data_t));
         return RET_CODE_FAIL;
+    }
+    else
+    {
+        log_i("flash user usage data read done");
+        return RET_CODE_SUCCESS;
+    }
+
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-10-24
+* Function Name  :  cgms_prm_db_print_user_usage_data
+* Description    :  打印用户使用数据
+* Input          :  user_usage_data_t * pData
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void cgms_prm_db_print_user_usage_data(user_usage_data_t* pData)
+{
+    if (pData)
+    {
+        log_i("ucDataValidFlag:%d", pData->ucDataValidFlag);
+        if (pData->ucDataValidFlag == 0x01)
+        {
+            log_i("LastCgmState:%d", pData->LastCgmState);
+            log_i("fUseSensorK:%f", pData->fUseSensorK);
+            log_i("uiLastCgmSessionStartTime:%d", pData->uiLastCgmSessionStartTime);
+            log_i("ucLastTimeZone:%d", pData->ucLastTimeZone);
+            log_i("ucLastStartBy:%d", pData->ucLastStartBy);
+            log_i("ucLastStartByVersion:%d,%d,%d", pData->ucLastStartByVersion[2], pData->ucLastStartByVersion[1], pData->ucLastStartByVersion[0]);
+            log_i("usLastPassword:0x%04X", pData->usLastPassword);
+            log_i("ucCgmSessionCnt:%d", pData->ucCgmSessionCnt);
+        }
+    }
 }

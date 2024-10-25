@@ -108,7 +108,7 @@ void wdog_init(void)
     WDOG_Init_TypeDef wdogInit = WDOG_INIT_DEFAULT;
     wdogInit.debugRun = true;
     wdogInit.em3Run = true;
-    wdogInit.perSel = wdogPeriod_16k; //~ 16 seconds period
+    wdogInit.perSel = wdogPeriod_128k; //~ 128 seconds period
     wdogInit.warnSel = wdogWarnTime75pct; // Interrupt at 25% of the timeout period
     /* Initializing watchdog with chosen settings */
     WDOGn_Init(WDOG0, &wdogInit);

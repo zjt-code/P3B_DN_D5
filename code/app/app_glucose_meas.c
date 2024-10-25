@@ -184,11 +184,11 @@ uint16_t app_glucose_meas_get_glucose_quality(void)
 * Description    :  计算异常状态
 * Input          :  cgm_measurement_sensor_state_t RawState
 * Input          :  float fCurrent
-* Input          :  float fCv
+* Input          :  uint8_t ucCv
 * Output         :  None
 * Return         :  cgm_measurement_sensor_state_t
 *******************************************************************************/
-cgm_measurement_sensor_state_t app_glucose_cal_abnormal_state(cgm_measurement_sensor_state_t RawState, float fCurrent, float fCv)
+cgm_measurement_sensor_state_t app_glucose_cal_abnormal_state(cgm_measurement_sensor_state_t RawState, float fCurrent, uint8_t ucCv)
 {
     // 如果算法报传感器异常
     if (RawState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_SENSOR_ABNORMAL)
@@ -207,7 +207,7 @@ cgm_measurement_sensor_state_t app_glucose_cal_abnormal_state(cgm_measurement_se
         }
 
         // 如果CV大于0.2
-        if (fCv > 0.2)
+        if (ucCv > 20)
         {
             // 报CV异常
             return CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CV_ERR;
@@ -270,15 +270,15 @@ static void app_glucose_handle(void)
     rec.usCurrent = (uint16_t)(sfCurrI0 * 100.0f);
     g_usGlucoseElectricCurrent = rec.usCurrent;
     rec.usQuality = 0x00;
-    float fCv = cgms_i_cv(sfCurrI0, g_usGlucoseRecordsCurrentOffset);
+    uint8_t ucCv = cgms_i_cv(sfCurrI0, g_usGlucoseRecordsCurrentOffset);
     uint8_t ucState;
-    cgms_error_fault_cal(g_usGlucoseRecordsCurrentOffset, g_fGlucoseConcentration, sfCurrI0, &ucState, fCv); // 计算异常逻辑
+    cgms_error_fault_cal(g_usGlucoseRecordsCurrentOffset, g_fGlucoseConcentration, sfCurrI0, &ucState, ucCv); // 计算异常逻辑
     uint8_t ucTrend = cgms_cal_trend(g_fGlucoseConcentration, g_usGlucoseRecordsCurrentOffset);// 计算趋势
-    rec.ucCV = (uint8_t)(fCv*100.0f);
+    rec.ucCV = ucCv;
     rec.ucTrend = ucTrend;
 
     // 计算传感器异常状态
-    ucState = app_glucose_cal_abnormal_state(ucState, sfCurrI0, fCv);
+    ucState = app_glucose_cal_abnormal_state(ucState, sfCurrI0, ucCv);
 
     rec.ucState = ucState;
     att_get_cgm_status()->ucRunStatus = ucState;
@@ -461,70 +461,70 @@ void app_glucose_meas_glucose_handler(void)
 *******************************************************************************/
 void app_glucose_meas_handler(uint32_t uiArg)
 {
+    WDOGn_Feed(WDOG0);
+    // 如果当前测量类型为用户测量
+    if (g_AppGlucoseMeasType == APP_GLUCOSE_MEAS_TYPE_USER_MEAS)
+    {
+        // 测量电量
+        app_glucose_meas_battery_sub_handler();
 
-        // 如果当前测量类型为用户测量
-        if (g_AppGlucoseMeasType == APP_GLUCOSE_MEAS_TYPE_USER_MEAS)
+        // 如果当前记录已满且BLE的传感器状态属于正在采集的状态
+        if (g_usGlucoseRecordsCurrentOffset >= CGMS_DB_MAX_RECORDS && app_global_is_session_runing())
         {
-            // 测量电量
-            app_glucose_meas_battery_sub_handler();
+            log_i("app_glucose_meas_stop_session_handler");
 
-            // 如果当前记录已满且BLE的传感器状态属于正在采集的状态
-            if (g_usGlucoseRecordsCurrentOffset >= CGMS_DB_MAX_RECORDS && app_global_is_session_runing())
-            {
-                log_i("app_glucose_meas_stop_session_handler");
+            // 停止CGM
+            app_glucose_meas_stop_session_handler(CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED);
 
-                // 停止CGM
-                app_glucose_meas_stop_session_handler(CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED);
-
-                // 停止本定时器
-                app_glucose_meas_stop();
-            }
-
-            log_d("app_global_is_session_runing:%d", app_global_is_session_runing() ? 1 : 0);
-            // 如果当前已经开始了一次血糖测量周期
-            if (app_global_is_session_runing())
-            {
-            	#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)    	
-            	// 增加运行时间
-            	g_uiCgmWorkTimeCnt++;
-            	log_d("g_uiCgmWorkTimeCnt:%d", g_uiCgmWorkTimeCnt);
-            	// 更新运行时间
-            	att_get_start_time()->uiRunTime = g_uiCgmWorkTimeCnt;
-
-            	// 更新运行时间CRC
-            	att_update_start_time_char_data_crc();	
-            	#endif
-                // 如果AFE还未开始工作,则启动AFE
-                if (afe_is_working() == false)
-                {
-                    // 开始AFE,使用猝发采样模式
-                    afe_start(AFE_RUN_MODE_SHOT);
-                }
-                else
-                {
-                    // 测量处理
-                    app_glucose_meas_afe_meas_handler();
-                }
-
-                // 血糖处理
-                app_glucose_meas_glucose_handler();
-            }
+            // 停止本定时器
+            app_glucose_meas_stop();
         }
-        // 如果是工厂测量
-        else
+
+        log_d("app_global_is_session_runing:%d", app_global_is_session_runing() ? 1 : 0);
+        // 如果当前已经开始了一次血糖测量周期
+        if (app_global_is_session_runing())
         {
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)    	
+            // 增加运行时间
+            g_uiCgmWorkTimeCnt++;
+            log_d("g_uiCgmWorkTimeCnt:%d", g_uiCgmWorkTimeCnt);
+            // 更新运行时间
+            att_get_start_time()->uiRunTime = g_uiCgmWorkTimeCnt;
+
+            // 更新运行时间CRC
+            att_update_start_time_char_data_crc();
+#endif
             // 如果AFE还未开始工作,则启动AFE
             if (afe_is_working() == false)
             {
-                // 开始采样,使用连续采样模式
-                afe_start(AFE_RUN_MODE_CONTINUOUS);
+                // 开始AFE,使用猝发采样模式
+                afe_start(AFE_RUN_MODE_SHOT);
             }
             else
             {
                 // 测量处理
                 app_glucose_meas_afe_meas_handler();
             }
+
+            // 血糖处理
+            app_glucose_meas_glucose_handler();
         }
+    }
+    // 如果是工厂测量
+    else
+    {
+        // 如果AFE还未开始工作,则启动AFE
+        if (afe_is_working() == false)
+        {
+            // 开始采样,使用连续采样模式
+            afe_start(AFE_RUN_MODE_CONTINUOUS);
+        }
+        else
+        {
+            // 测量处理
+            app_glucose_meas_afe_meas_handler();
+        }
+    }
 
 }
 /*******************************************************************************

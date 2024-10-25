@@ -333,9 +333,48 @@ void app_init(void)
     // 初始化启动时间
     cgms_sst_init();
 
+    // 打印用户使用数据
+    cgms_prm_db_print_user_usage_data(&g_UserUsageData);
+
 #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
-    // 设置CGM状态为CGM没有运行
-    app_global_get_app_state()->Status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
+    if (g_UserUsageData.ucDataValidFlag == 0x01 && g_UserUsageData.LastCgmState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING)
+    {
+        // 还原启动方式
+        att_get_feature()->ucStartBy = g_UserUsageData.ucLastStartBy;
+        att_get_feature()->ucStartByVersion[0] = g_UserUsageData.ucLastStartByVersion[0];
+        att_get_feature()->ucStartByVersion[1] = g_UserUsageData.ucLastStartByVersion[1];
+        att_get_feature()->ucStartByVersion[2] = g_UserUsageData.ucLastStartByVersion[2];
+
+        // 设置密码
+        att_get_feature()->ucPasswordExist = 0x01;
+        cgms_socp_set_ble_protocol_password(g_UserUsageData.usLastPassword);
+        // 设置CGM状态为CGM意外停止
+        if ((g_uiRstCause & EMU_RSTCAUSE_WDOG0) || (g_uiRstCause & EMU_RSTCAUSE_LOCKUP) || (g_uiRstCause & EMU_RSTCAUSE_SYSREQ))
+        {
+            app_global_get_app_state()->Status = CGM_MEASUREMENT_SENSOR_STATUS_UNEXPECTED_STOP1;
+        }
+        else
+        {
+            app_global_get_app_state()->Status = CGM_MEASUREMENT_SENSOR_STATUS_UNEXPECTED_STOP2;
+        }
+
+        // 还原工厂校准码
+        att_get_cgm_status()->usFactoryCode = (uint16_t)(g_UserUsageData.fUseSensorK * 1000);
+
+        // 更新start time char中的启动时间
+        att_get_start_time()->uiStartTime = g_UserUsageData.uiLastCgmSessionStartTime;
+        att_get_start_time()->ucTimeZone = g_UserUsageData.ucLastTimeZone;
+
+
+        // 更新Start Time和Feature char的CRC
+        att_update_start_time_char_data_crc();
+        att_update_feature_char_data_crc();
+    }
+    else
+    {
+        // 设置CGM状态为CGM没有运行
+        app_global_get_app_state()->Status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
+    }
 #else
     // 设置CGM状态为CGM结束
     app_global_get_app_state()->Status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_M3RESET_STOPPED;

@@ -51,7 +51,7 @@
 static bool g_bBleSocpNotifyIsEnableFlag = false;						// BLE SOCP通知使能标志位
 #if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
 static bool g_bProduction=false;
-static uint16_t g_usBleProtocolPassword =0;
+static uint16_t g_usBleProtocolPassword = 0;
 #endif
 //extern float sfCurrBg;//add by woo
 uint8_t	caliTag;
@@ -273,6 +273,9 @@ void cgms_socp_start_session_event_callback(uint32_t uiArg)
 
     // 更新CGM状态char的内容
     att_update_cgm_status_char_data();
+
+    // 写用户使用数据
+    if(g_UserUsageData.ucDataValidFlag==0x01)cgms_prm_db_write_user_usage_data(&g_UserUsageData);
 }
 
 /*******************************************************************************
@@ -476,10 +479,37 @@ void cgms_socp_start_the_session(__attribute__((unused))  ble_event_info_t BleEv
         // 更新record_index中的SST
         cgms_db_record_index_update_sst(g_mSST);
 
-        // 清空历史数据
-        cgms_db_reset();
-
         log_i("!!SOCP_START_THE_SESSION   OK!!");
+
+        // 记录启动方式
+        g_UserUsageData.ucLastStartBy = SocpStartTheSessionDatapacket.ucFrom;
+
+        // 记录软件版本
+        g_UserUsageData.ucLastStartByVersion[0] = SocpStartTheSessionDatapacket.ucSoftwareVersion[0];
+        g_UserUsageData.ucLastStartByVersion[1] = SocpStartTheSessionDatapacket.ucSoftwareVersion[1];
+        g_UserUsageData.ucLastStartByVersion[2] = SocpStartTheSessionDatapacket.ucSoftwareVersion[2];
+
+        // 记录密码
+        g_UserUsageData.ucLastPasswordExist = 1;
+        g_UserUsageData.usLastPassword = g_usBleProtocolPassword;
+
+        // 记录CGM状态
+        g_UserUsageData.LastCgmState = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING;
+
+        // 记录启动时间
+        g_UserUsageData.uiLastCgmSessionStartTime = SocpStartTheSessionDatapacket.uiStartTime;
+
+        // 记录时区
+        g_UserUsageData.ucLastTimeZone = SocpStartTheSessionDatapacket.ucTimeZone;
+
+        // 记录工厂校准码
+        g_UserUsageData.fUseSensorK = fTmpSensorK;
+
+        // 累计使用次数
+        if (g_UserUsageData.ucCgmSessionCnt < 3)g_UserUsageData.ucCgmSessionCnt = g_UserUsageData.ucCgmSessionCnt + 1;
+
+        // 设置数据有效标志位
+        g_UserUsageData.ucDataValidFlag = 0x01;
 
         // 屏蔽BOOST EN
         EMU_BoostExternalShutdownEnable(false);
@@ -702,8 +732,21 @@ void cgms_socp_read_reset_reg(__attribute__((unused)) ble_event_info_t BleEventI
     pRspRequest->ucSizeVal = 8;
 }
 
+/*******************************************************************************
+*                           陈苏阳@2024-10-23
+* Function Name  :  cgms_socp_reset_mcu
+* Description    :  复位MCU
+* Input          :  ble_event_info_t BleEventInfo
+* Input          :  ble_socp_datapacket_t SocpRequest
+* Input          :  bool bCrcPass
+* Input          :  ble_socp_rsp_t * pRspRequest
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
 void cgms_socp_reset_mcu(__attribute__((unused)) ble_event_info_t BleEventInfo, __attribute__((unused))  ble_socp_datapacket_t  SocpRequest, bool bCrcPass, ble_socp_rsp_t* pRspRequest)
 {
+    memset(&g_UserUsageData, 0x00, sizeof(user_usage_data_t));
+    cgms_prm_db_write_user_usage_data(&g_UserUsageData);
     pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
     NVIC_SystemReset();
 }
@@ -977,6 +1020,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
             // 如果当前的命令不是密码验证命令,且当前密码还未验证成功
             if ((pData[0] != SOCP_VERIFY_PWD) && (app_global_get_app_state()->bCgmsPwdVerifyOk == false))
             {
+                log_d("illegal opt");
                 // 返回操作非法回应包
                 RspRequest.ucOpCode = SOCP_RESPONSE_ILLEGAL_CODE;
                 RspRequest.ucReqOpcode = 0X00;
@@ -1292,5 +1336,19 @@ bool cgms_socp_check_production_cmd(uint8_t* pData,__attribute__((unused))  uint
     return false;
 }
 
+/*******************************************************************************
+*                           陈苏阳@2024-10-24
+* Function Name  :  cgms_socp_set_ble_protocol_password
+* Description    :  设置BLE通讯协议的密码
+* Input          :  uint16_t usPassword
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void cgms_socp_set_ble_protocol_password(uint16_t usPassword)
+{
+    log_i("set_ble_protocol_password:0x%04X", usPassword);
+    g_usBleProtocolPassword = usPassword;
+    cgms_aes128_update_key(&usPassword);
+}
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/

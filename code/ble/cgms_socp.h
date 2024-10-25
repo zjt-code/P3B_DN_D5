@@ -303,7 +303,7 @@ typedef enum
 
 /* Private function prototypes -----------------------------------------------*/
 void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t* pData);
-
+void cgms_socp_set_ble_protocol_password(uint16_t usPassword);
 void cgms_socp_stop_session_event_callback(uint32_t uiArg);
 void cgms_socp_start_session_event_callback(uint32_t uiArg);
 void ble_socp_notify_enable(void);
