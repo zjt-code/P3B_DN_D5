@@ -177,71 +177,6 @@ uint16_t app_glucose_meas_get_glucose_quality(void)
     return g_usGlucoseElectricCurrent;
 }
 
-
-/*******************************************************************************
-*                           陈苏阳@2024-10-21
-* Function Name  :  app_glucose_cal_abnormal_state
-* Description    :  计算异常状态
-* Input          :  cgm_measurement_sensor_state_t RawState
-* Input          :  float fCurrent
-* Input          :  uint8_t ucCv
-* Output         :  None
-* Return         :  cgm_measurement_sensor_state_t
-*******************************************************************************/
-cgm_measurement_sensor_state_t app_glucose_cal_abnormal_state(cgm_measurement_sensor_state_t RawState, float fCurrent, uint8_t ucCv)
-{
-    extern float cur_error_min_value;
-    extern float cur_error_max_value;
-    // 如果算法报传感器异常
-    if (RawState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_SENSOR_ABNORMAL)
-    {
-        // 如果电流小于等于0.1nA
-        if (fCurrent <= cur_error_min_value)
-        {
-            // 报小电流异常
-            return CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_LOW;
-        }
-        // 如果电流大于等于50nA
-        else if (fCurrent >= cur_error_max_value)
-        {
-            // 报大电流异常
-            return CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_HIGH;
-        }
-
-        // 如果CV大于0.2
-        if (ucCv > 20)
-        {
-            // 报CV异常
-            return CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CV_ERR;
-        }
-
-        // 否则报CV异常
-        return CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CV_ERR;
-    }
-    else if (RawState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_WARM_UP_FAIL)
-    {
-        // 如果电流小于等于0.1nA
-        if (fCurrent <= cur_error_min_value)
-        {
-            // 报小电流异常
-            return CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_LOW;
-        }
-        // 如果电流大于等于50nA
-        else if (fCurrent >= cur_error_max_value)
-        {
-            // 报大电流异常
-            return CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_HIGH;
-        }
-
-        // 否则报原始的0x34极化失败
-        return RawState;
-    }
-    else
-    {
-        return RawState;
-    }
-}
-
 /*******************************************************************************
 *                           陈苏阳@2022-12-15
 * Function Name  :  app_glucose_handle
@@ -278,10 +213,6 @@ static void app_glucose_handle(void)
     uint8_t ucTrend = cgms_cal_trend(g_fGlucoseConcentration, g_usGlucoseRecordsCurrentOffset);// 计算趋势
     rec.ucCV = ucCv;
     rec.ucTrend = ucTrend;
-
-    // 计算传感器异常状态
-    ucState = app_glucose_cal_abnormal_state(ucState, sfCurrI0, ucCv);
-
     rec.ucState = ucState;
     att_get_cgm_status()->ucRunStatus = ucState;
 
