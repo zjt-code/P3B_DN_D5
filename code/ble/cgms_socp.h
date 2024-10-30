@@ -197,7 +197,7 @@ typedef enum
     SOCP_PRM_NO_WRITE_START_TIME = 0xFA,                              // 写启动时间
     SOCP_PRM_NO_SAVE_PRM = 0xFE,                                      // 保存参数
     SOCP_PRM_NO_READ_START_TIME = 0xA0,                               // 读启动时间
-
+    SOCP_PRM_NO_READ_BATTERY_INFO = 0xA1,                             // 读电池信息
 }socp_prm_no_t;
 
 // SOCP回应包的回应码
@@ -217,7 +217,7 @@ typedef enum
     SOCP_START_THE_SESSION_RSP_CODE_IS_STOPED = 0x05,                  // 发射器已经停止,不能再次启动
     SOCP_START_THE_SESSION_RSP_CODE_IS_END = 0x06,                     // 监测周期已结束,不能再次启动
     SOCP_START_THE_SESSION_RSP_CODE_CRC_ERR = 0x07,                    // CRC错误
-    SOCP_START_THE_SESSION_RSP_COD_UNKNOWN_REASON = 0x08,              // 未知原因导致无法启动
+    SOCP_START_THE_SESSION_RSP_COD_UNKNOWN_REASON = 0x0A,              // 未知原因导致无法启动
 }socp_start_the_session_rsp_code_t;
 
 // SOCP 停止CGM命令返回值

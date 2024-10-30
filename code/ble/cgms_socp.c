@@ -25,6 +25,7 @@
 #include "cgms_crc.h"
 #include "app_util.h"
 #include "app_global.h"
+#include "app_battery.h"
 #if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
 #include "cgms_aes128.h"
 #include "utility.h"
@@ -45,6 +46,7 @@
 #include "simplegluco.h"
 #include "cur_filter.h"
 #include "afe.h"
+#include "em_emu.h"
 /* Private variables ---------------------------------------------------------*/
 #define NRF_BLE_CGMS_PLUS_INFINTE                     0x07FE
 #define NRF_BLE_CGMS_MINUS_INFINTE                    0x0802
@@ -399,6 +401,13 @@ void cgms_socp_start_the_session(__attribute__((unused))  ble_event_info_t BleEv
         log_e("state==runing or state==warm_up");
         // 返回对应错误码
         pRspRequest->ucRspCode = SOCP_START_THE_SESSION_RSP_CODE_IS_STARTED;
+    }
+    // 如果是之前已经启动过
+    else if (g_UserUsageData.ucDataValidFlag == 0x01 && g_UserUsageData.LastCgmState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING)
+    {
+        log_e("state==unexpcted_stop");
+        // 返回对应错误码
+        pRspRequest->ucRspCode = SOCP_START_THE_SESSION_RSP_COD_UNKNOWN_REASON;
     }
     else
     {
@@ -920,6 +929,25 @@ void cgms_socp_read_prm(__attribute__((unused)) ble_event_info_t BleEventInfo, b
             pRspRequest->ucSizeVal = ucIndex;
             break;
         }
+        // 读电量信息
+        case SOCP_PRM_NO_READ_BATTERY_INFO:
+        {
+            pRspRequest->ucOpCode = SOCP_READ_PRM_RESPONSE;
+
+            *(pRspRequest->ucRespVal) = ucPrmNo;
+            ucIndex += 1;
+
+            uint16_encode((uint16_t)(app_battery_get_run_time()/60/6), (pRspRequest->ucRespVal + ucIndex));
+            ucIndex += 2;
+            uint16_encode((uint16_t)4000, (pRspRequest->ucRespVal + ucIndex));
+            ucIndex += 2;
+            uint16_encode(app_battery_read_battery_vol(), (pRspRequest->ucRespVal + ucIndex));
+            ucIndex += 2;
+
+            pRspRequest->ucSizeVal = ucIndex;
+
+            break;
+        }
         default:
         {
             pRspRequest->ucRspCode = SOCP_RSP_INVALID_OPERAND;
@@ -1297,6 +1325,11 @@ bool cgms_socp_check_production_cmd(uint8_t* pData,__attribute__((unused))  uint
         switch (pData[1])
         {
         case SOCP_PRM_NO_WRITE_OR_READ_SN:
+        {
+            if (usLen != 4)return false;
+            return true;
+        }
+        case SOCP_PRM_NO_READ_BATTERY_INFO:
         {
             if (usLen != 4)return false;
             return true;

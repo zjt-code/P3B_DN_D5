@@ -19,7 +19,7 @@
 /* Private define ------------------------------------------------------------*/
 
 
-#define SOFT_VER         "0.1.5"              // 软件版本号
+#define SOFT_VER         "0.1.7"              // 软件版本号
 
 
 /*************************Main Loop事件ID*****************************/
@@ -80,7 +80,7 @@ typedef enum
 #define SOCP_SKIP_CRC_CHECK                         1                  // 是否跳过CRC检查
 #define SOCP_SKIP_SEC_AUTH_CHECK                    1                  // 是否跳过安全认证检查
 
-#define SOCP_SET_SENSOR_CODE_MAX_ERR_VAL            (1.1f)             // 设置传感器Code时会触发非法Code的最大值边界
+#define SOCP_SET_SENSOR_CODE_MAX_ERR_VAL            (1.8f)             // 设置传感器Code时会触发非法Code的最大值边界
 #define SOCP_SET_SENSOR_CODE_MIN_ERR_VAL            (0.3f)             // 设置传感器Code时会触发非法Code的最小值边界
 
 /**********************************************************************/
@@ -107,6 +107,7 @@ typedef enum
 
 
 /**********************************************************************/
+
 /* Private typedef -----------------------------------------------------------*/
 
 // 事件回调

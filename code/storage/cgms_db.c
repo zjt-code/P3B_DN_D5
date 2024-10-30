@@ -531,7 +531,7 @@ static ret_code_t cgms_db_record_get_raw_data(uint16_t usRecordIndex, cgms_meas_
 #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
 			cgms_db_flash_read(uiReadAddr, &TmpRecord, sizeof(one_record_storage_unit_t));
             log_i("cgms_db_record_get_raw_data3  0x%x", uiReadAddr);
-            elog_hexdump("data", 8, (uint8_t*)uiReadAddr, sizeof(one_record_storage_unit_t));
+            elog_hexdump("data", 8, (uint8_t*)&TmpRecord, sizeof(one_record_storage_unit_t));
             #else
             cgms_db_flash_read(uiReadAddr, (uint8_t*)&TmpRecord, sizeof(one_record_storage_unit_t));
             log_i("cgms_db_record_get_raw_data3  0x%x", uiReadAddr);

@@ -28,23 +28,24 @@ typedef enum
 
 typedef enum
 {
-    APP_BATTERY_LEVEL_VOL_MAX = 3300,                               // mV
-    APP_BATTERY_LEVEL_VOL_100 = 2600,                               // mV
-    APP_BATTERY_LEVEL_VOL_10 = 2400,                                // mV
-    APP_BATTERY_LEVEL_VOL_5 = 2200,                                 // mV
-    APP_BATTERY_LEVEL_VOL_1 = 1900                                  // mV
+    APP_BATTERY_LEVEL_VOL_MAX = 1600,                               // mV
+    APP_BATTERY_LEVEL_VOL_100 = 1500,                               // mV
+    APP_BATTERY_LEVEL_VOL_10 = 1300,                                // mV
+    APP_BATTERY_LEVEL_VOL_5 = 1250,                                 // mV
+    APP_BATTERY_LEVEL_VOL_1 = 1200                                  // mV
 }app_battery_level_vol_e;
+
 
 /* Private typedef -----------------------------------------------------------*/
 
 
 /* Private variables ---------------------------------------------------------*/
 
-
 /* Private function prototypes -----------------------------------------------*/
 
 
 void app_battery_init(void);
+uint16_t app_battery_read_battery_vol(void);
 uint32_t app_battery_get_run_time(void);
 void app_battery_timer_handler(uint16_t usInterval);
 #endif /* __APP_BATTERY_H */

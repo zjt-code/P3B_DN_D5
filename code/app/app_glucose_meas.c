@@ -202,32 +202,31 @@ static void app_glucose_handle(void)
     simpleGlucoCalc(&g_fGlucoseConcentration, g_usGlucoseRecordsCurrentOffset);
     log_i("simpleGlucoCalc(%f)  sfCurrI0:%f", g_fGlucoseConcentration, sfCurrI0);
     cgms_meas_t rec;
-    memset(&rec, 0, sizeof(cgms_meas_t));
-    rec.usGlucose = (uint16_t)(g_fGlucoseConcentration * 10.0f);
+        memset(&rec, 0, sizeof(cgms_meas_t));
+        rec.usGlucose = (uint16_t)(g_fGlucoseConcentration * 10.0f);
     rec.usCurrent = (uint16_t)(sfCurrI0 * 100.0f);
     g_usGlucoseElectricCurrent = rec.usCurrent;
-    rec.usQuality = 0x00;
+        rec.usQuality = 0x00;
     uint8_t ucCv = cgms_i_cv(sfCurrI0, g_usGlucoseRecordsCurrentOffset);
     uint8_t ucState;
     cgms_error_fault_cal(g_usGlucoseRecordsCurrentOffset, g_fGlucoseConcentration, sfCurrI0, &ucState, ucCv); // 计算异常逻辑
     uint8_t ucTrend = cgms_cal_trend(g_fGlucoseConcentration, g_usGlucoseRecordsCurrentOffset);// 计算趋势
     rec.ucCV = ucCv;
     rec.ucTrend = ucTrend;
-    rec.ucState = ucState;
+        rec.ucState = ucState;
     att_get_cgm_status()->ucRunStatus = ucState;
 
 
     app_global_get_app_state()->CgmTrend = ucTrend;
-    rec.usOffset = g_usGlucoseRecordsCurrentOffset;
-    rec.usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_REAL;
-    log_i("cgms_meas_create  %d,%d,%d", rec.usOffset, rec.usGlucose, rec.usCurrent);
-
-    // 存储历史记录
-    ret_code_t ErrCode = cgms_db_record_add(&rec);
-    if (ErrCode != RET_CODE_SUCCESS)
-    {
-        log_e("cgms_db_record_add fail:%d", ErrCode);
-    }
+        rec.usOffset = g_usGlucoseRecordsCurrentOffset;
+        rec.usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_REAL;
+        log_i("cgms_meas_create  %d,%d,%d", rec.usOffset, rec.usGlucose, rec.usCurrent);
+        // 存储历史记录
+        ret_code_t ErrCode = cgms_db_record_add(&rec);
+        if (ErrCode != RET_CODE_SUCCESS)
+        {
+            log_e("cgms_db_record_add fail:%d", ErrCode);
+        }
     // 通过BLE发送本次的测量记录
 
     if ((ble_meas_notify_is_enable()) && app_have_a_active_ble_connect())

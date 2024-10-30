@@ -13,7 +13,7 @@
 #define LOG_TAG                "APP_BATTERY"
 #endif
 #undef LOG_LVL
-#define LOG_LVL                ELOG_LVL_INFO
+#define LOG_LVL                ELOG_LVL_DEBUG
 
 #include <elog.h>
 #include "app_battery.h"
@@ -39,6 +39,21 @@ IADC_Init_t init = IADC_INIT_DEFAULT;
 IADC_AllConfigs_t initAllConfigs = IADC_ALLCONFIGS_DEFAULT;
 IADC_InitSingle_t initSingle = IADC_INITSINGLE_DEFAULT;
 IADC_SingleInput_t initSingleInput = IADC_SINGLEINPUT_DEFAULT;
+
+uint16_t g_ucBatteryVolToLevel[10][2] = {
+    {100,1530},
+    {90,1500},
+    {80,1470},
+    {70,1450},
+    {60,1430},
+    {50,1400},
+    {40,1370},
+    {30,1350},
+    {20,1350},
+    {10,1300},
+    {0,1270}
+};
+
 /* Private function prototypes -----------------------------------------------*/
 
 
@@ -102,7 +117,7 @@ void app_battery_trigger_read_battery_vol(void)
         init.srcClkPrescale);
 
     //配置输入源
-    initSingleInput.posInput = iadcPosInputAvdd;
+    initSingleInput.posInput = (_IADC_SCAN_PORTPOS_SUPPLY << (_IADC_SCAN_PORTPOS_SHIFT - _IADC_SCAN_PINPOS_SHIFT)) | 2;
     initSingleInput.negInput = iadcNegInputGnd;
 
     // 初始化IADC
@@ -140,9 +155,7 @@ bool app_battery_read_battery_vol_is_complete(void)
 *******************************************************************************/
 uint16_t app_battery_read_battery_vol(void)
 {
-    int32_t sample = IADC_pullSingleFifoResult(IADC0).data;
-    log_d("idac:%d", sample);
-    return (uint16_t)((sample * 1210 / 0xFFF) * 4);
+    return g_usBattaryVol;
 }
 
 
@@ -176,20 +189,15 @@ uint8_t app_battery_calculate_battery_level(uint16_t usVol, uint32_t uiRunTime)
     uint32_t uiBatteryRunTimeCnt = uiRunTime > 60 * 60 * 24 * 14 ? 60 * 60 * 24 * 14 : uiRunTime;
 
     // 限制最大电压
-    uint16_t usBatteryVol = usVol > 3300 ? 3300 : usVol;
-    uint8_t ucBatteryLevel = 100;
-
-    if (usBatteryVol > APP_BATTERY_LEVEL_VOL_100)
+    uint16_t usBatteryVol = usVol > 1600 ? 1600 : usVol;
+    uint8_t ucBatteryLevel = 0;
+    for (uint8_t i = 0; i < 10; i++)
     {
-        ucBatteryLevel = (usBatteryVol - APP_BATTERY_LEVEL_VOL_100) / ((3300 - APP_BATTERY_LEVEL_VOL_100) / 90);
-    }
-    else if (usBatteryVol > APP_BATTERY_LEVEL_VOL_10)
-    {
-        ucBatteryLevel = (usBatteryVol - APP_BATTERY_LEVEL_VOL_10) / ((APP_BATTERY_LEVEL_VOL_100 - APP_BATTERY_LEVEL_VOL_10) / 9);
-    }
-    else if (usBatteryVol > APP_BATTERY_LEVEL_VOL_1)
-    {
-        ucBatteryLevel = 1;
+        if (g_ucBatteryVolToLevel[i][1] >= usBatteryVol)
+        {
+            ucBatteryLevel = g_ucBatteryVolToLevel[i][0];
+            break;
+        }
     }
     ucBatteryLevel = ucBatteryLevel > 100 ? 100 : ucBatteryLevel;
     return ucBatteryLevel;
@@ -225,11 +233,14 @@ void battery_meas_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* dat
     if (app_battery_read_battery_vol_is_complete())
     {
         // 读取电压
-        g_usBattaryVol = app_battery_read_battery_vol();
+        int32_t sample = IADC_pullSingleFifoResult(IADC0).data;
+        log_d("idac:%d", sample);
+        g_usBattaryVol = (uint16_t)((sample * 1210 / 0xFFF) * 4);
+        log_d("g_usBattaryVol:%d", g_usBattaryVol);
 
         // 关闭ADC
         app_battery_close_adc();
-        
+
         // 计算电量
         g_ucBatteryLevel = app_battery_calculate_battery_level(g_usBattaryVol, g_uiBatteryLifeTimeCnt);
 
