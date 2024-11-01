@@ -334,7 +334,7 @@ void cgms_socp_write_glucose_calibration_value(__attribute__((unused))  ble_even
         return;
     }
     // 判断是否处于第一天,返回极化中无法校准
-    if (app_glucose_get_records_current_offset() < 480 - 1)
+    if (app_glucose_get_records_current_offset() <= 480)
     {
         pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_ON_THE_FIRST_DAY;
         return;
