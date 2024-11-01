@@ -314,7 +314,7 @@ void cgms_socp_write_glucose_calibration_value(__attribute__((unused))  ble_even
     memcpy(&SocpWriteGlucoseCalibrationDatapacket, SocpRequest.pData, sizeof(SocpWriteGlucoseCalibrationDatapacket));
 
     // 判断当前血糖趋势是否稳定
-    if ((app_global_get_app_state()->CgmTrend != CGM_TREND_DOWN_DOWN) && (app_global_get_app_state()->CgmTrend != CGM_TREND_STABLE) && (app_global_get_app_state()->CgmTrend != CGM_TREND_SLOW_UP))
+    if ((app_global_get_app_state()->CgmTrend != CGM_TREND_SLOW_DOWN) && (app_global_get_app_state()->CgmTrend != CGM_TREND_STABLE) && (app_global_get_app_state()->CgmTrend != CGM_TREND_SLOW_UP))
     {
         pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_GLUCOSE_FLUCTUATE;
         return;
@@ -343,6 +343,7 @@ void cgms_socp_write_glucose_calibration_value(__attribute__((unused))  ble_even
     if (!gvg_get_result() && !gluco_check_bg((float)(SocpWriteGlucoseCalibrationDatapacket.usCalibration / 10.0f)))
     {
         pRspRequest->ucRspCode = SOCP_WRITE_GLUCOSE_CALIBRATION_RSP_CODE_ON_THE_30_MIN;
+        return;
     }
 
     usBfFlg = 1;

@@ -40,18 +40,19 @@ IADC_AllConfigs_t initAllConfigs = IADC_ALLCONFIGS_DEFAULT;
 IADC_InitSingle_t initSingle = IADC_INITSINGLE_DEFAULT;
 IADC_SingleInput_t initSingleInput = IADC_SINGLEINPUT_DEFAULT;
 
-uint16_t g_ucBatteryVolToLevel[10][2] = {
-    {100,1530},
-    {90,1500},
-    {80,1470},
-    {70,1450},
-    {60,1430},
-    {50,1400},
-    {40,1370},
-    {30,1350},
-    {20,1350},
-    {10,1300},
-    {0,1270}
+app_battery_vol_level_point_t g_BatteryVolToLevelArray[12] = {
+    {.ucLevel = 100,.usVol = 1630},
+    {.ucLevel = 100,.usVol = 1530},
+    {.ucLevel = 90,.usVol = 1500},
+    {.ucLevel = 80,.usVol = 1470},
+    {.ucLevel = 70,.usVol = 1450},
+    {.ucLevel = 60,.usVol = 1430},
+    {.ucLevel = 50,.usVol = 1400},
+    {.ucLevel = 40,.usVol = 1370},
+    {.ucLevel = 30,.usVol = 1350},
+    {.ucLevel = 20,.usVol = 1350},
+    {.ucLevel = 10,.usVol = 1300},
+    {.ucLevel = 5,.usVol = 1270}
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -173,7 +174,6 @@ uint32_t app_battery_get_run_time(void)
 }
 
 
-
 /*******************************************************************************
 *                           陈苏阳@2024-03-14
 * Function Name  :  app_battery_calculate_battery_level
@@ -185,17 +185,18 @@ uint32_t app_battery_get_run_time(void)
 *******************************************************************************/
 uint8_t app_battery_calculate_battery_level(uint16_t usVol, uint32_t uiRunTime)
 {
-    // 限制最大时间
-    uint32_t uiBatteryRunTimeCnt = uiRunTime > 60 * 60 * 24 * 14 ? 60 * 60 * 24 * 14 : uiRunTime;
-
+	// 先固定返回100
+	return 100;
+	
     // 限制最大电压
     uint16_t usBatteryVol = usVol > 1600 ? 1600 : usVol;
     uint8_t ucBatteryLevel = 0;
-    for (uint8_t i = 0; i < 10; i++)
+
+    for (uint8_t i = 0; i < sizeof(g_BatteryVolToLevelArray); i++)
     {
-        if (g_ucBatteryVolToLevel[i][1] >= usBatteryVol)
+        if (g_BatteryVolToLevelArray[i].usVol <= usBatteryVol)
         {
-            ucBatteryLevel = g_ucBatteryVolToLevel[i][0];
+            ucBatteryLevel = g_BatteryVolToLevelArray[i].ucLevel + (usBatteryVol - g_BatteryVolToLevelArray[i].usVol) / ((g_BatteryVolToLevelArray[i - 1].usVol / g_BatteryVolToLevelArray[i].usVol) / 10);
             break;
         }
     }

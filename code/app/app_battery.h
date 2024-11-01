@@ -35,6 +35,11 @@ typedef enum
     APP_BATTERY_LEVEL_VOL_1 = 1200                                  // mV
 }app_battery_level_vol_e;
 
+typedef struct
+{
+    uint16_t usVol;
+    uint8_t ucLevel;
+}app_battery_vol_level_point_t;
 
 /* Private typedef -----------------------------------------------------------*/
 
