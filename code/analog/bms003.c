@@ -68,10 +68,10 @@ sl_sleeptimer_timer_handle_t g_Bms003WakeupTimer;
 sl_sleeptimer_timer_handle_t g_Bms003MeasureTimer;
 
 /* Private function prototypes -----------------------------------------------*/
-uint8_t bms003_read_cycle(uint8_t ucRegAddr, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs);
-void bms003_read_burst(uint8_t ucRegAddr, uint8_t* pData, uint8_t ucLen, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs);
-void bms003_write_burst(uint8_t ucRegAddr, uint8_t* pData,uint8_t ucLen, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs);
-void bms003_write_cycle(uint8_t ucRegAddr, uint8_t ucData, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs);
+uint8_t bms003_read_cycle(uint8_t ucRegAddr);
+void bms003_read_burst(uint8_t ucRegAddr, uint8_t* pData, uint8_t ucLen);
+void bms003_write_burst(uint8_t ucRegAddr, uint8_t* pData,uint8_t ucLen);
+void bms003_write_cycle(uint8_t ucRegAddr, uint8_t ucData);
 void bms003_int_irq_callback(uint8_t intNo, void* ctx);
 void bms003_measure_timer_handler(void);
 void bms003_wakeup_timer_handler(void);
@@ -82,6 +82,7 @@ void bms003_sleep(void);
 void bms003_int_irq_handler(void);
 void bms003_booting_config(void);
 void bms003_wakeup_config(void);
+void bms003_booting_temp_config(void);
 /* Private functions ---------------------------------------------------------*/
 
 
@@ -539,19 +540,19 @@ void bms003_calc_current_and_send_fifo(void)
 
     bms003_delay_us(1);
 
-    bms003_write_cycle(0x3A, CLK, 0, 1);
+    bms003_write_cycle(0x3A, CLK);
 
     bms003_delay_us(1);
 
-    bms003_write_cycle(0x50, 0x02, 0, 1);
+    bms003_write_cycle(0x50, 0x02);
 
     bms003_delay_us(1);
 
-    bms003_write_cycle(0x61, 0x00, 0, 1);
+    bms003_write_cycle(0x61, 0x00);
 
     bms003_delay_us(1);
 
-    bms003_write_cycle(0x3A, CLK | 0x80, 0, 1);
+    bms003_write_cycle(0x3A, CLK | 0x80);
 
     bms003_delay_us(1);
     
@@ -575,11 +576,11 @@ void bms003_int_irq_handler(void)
 
     uint16_t usBuff = 0;      //AD中转存储值
     bms003_delay_us(1);
-    bms003_write_cycle(IMEAS_REG_SEQ, 0x01, 0, 1);
+    bms003_write_cycle(IMEAS_REG_SEQ, 0x01);
     bms003_delay_us(1);
 
     uint8_t ucCh0Data[2];
-    bms003_read_burst(IMEAS_CH0DATA_0, ucCh0Data, 2, 0, 0);
+    bms003_read_burst(IMEAS_CH0DATA_0, ucCh0Data, 2);
     usBuff = (ucCh0Data[1] << 8) + ucCh0Data[0];
     // 累计中断次数
     ucIrqCnt++;
@@ -591,11 +592,11 @@ void bms003_int_irq_handler(void)
     {
         g_BaseWeVol = usBuff;
         log_d("g_BaseWeVol:%d", g_BaseWeVol);
-        bms003_write_cycle(0x3A, CLK, 1, 30);
-        bms003_write_cycle(0x3B, 0x0B, 1, 31);
-        bms003_write_cycle(0x61, 0x0d, 0, 31);
-        bms003_write_cycle(0x3A, CLK | 0x80, 0, 30);
-        bms003_write_cycle(0x61, 0x00, 0, 1);
+        bms003_write_cycle(0x3A, CLK);
+        bms003_write_cycle(0x3B, 0x0B);
+        bms003_write_cycle(0x61, 0x0d);
+        bms003_write_cycle(0x3A, CLK | 0x80);
+        bms003_write_cycle(0x61, 0x00);
     }
     // 开始正常采集
     else if (ucIrqCnt >= 2)
@@ -648,7 +649,7 @@ void bms003_int_irq_handler(void)
     }
     //addr:0x4  清除中断状态
     bms003_delay_us(1);
-    bms003_write_cycle(IMEAS_INT, 0x01, 0, 6);
+    bms003_write_cycle(IMEAS_INT, 0x01);
 
 }
 
@@ -674,12 +675,10 @@ void bms003_int_irq_callback(uint8_t intNo, void* ctx)
 * Description    :  写单个数据
 * Input          :  uint8_t ucRegAddr
 * Input          :  uint8_t ucData
-* Input          :  uint32_t uiStartDelayUs
-* Input          :  uint32_t uiStopDelayUs
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void bms003_write_cycle(uint8_t ucRegAddr, uint8_t ucData, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs)
+void bms003_write_cycle(uint8_t ucRegAddr, uint8_t ucData)
 {
     uint8_t ucWriteBuffer[4];
     uint8_t ucBufferIndex = 0;
@@ -690,9 +689,9 @@ void bms003_write_cycle(uint8_t ucRegAddr, uint8_t ucData, uint32_t uiStartDelay
     ucWriteBuffer[ucBufferIndex++] = PAD;
     bms003_delay_us(5);
     GPIO_PinOutClear(SPI_CS_PORT, SPI_CS_PIN);
-    if (uiStartDelayUs)bms003_delay_us(10);
+    bms003_delay_us(20);
     bms003_spi_write_data(ucWriteBuffer, ucBufferIndex);
-    if (uiStopDelayUs)bms003_delay_us(10);
+    bms003_delay_us(10);
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
     bms003_delay_us(5);
 }
@@ -704,12 +703,10 @@ void bms003_write_cycle(uint8_t ucRegAddr, uint8_t ucData, uint32_t uiStartDelay
 * Input          :  uint8_t ucRegAddr
 * Input          :  uint8_t * pData
 * Input          :  uint8_t ucLen
-* Input          :  uint32_t uiStartDelayUs
-* Input          :  uint32_t uiStopDelayUs
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void bms003_write_burst(uint8_t ucRegAddr, uint8_t* pData,uint8_t ucLen,uint32_t uiStartDelayUs,uint32_t uiStopDelayUs)
+void bms003_write_burst(uint8_t ucRegAddr, uint8_t* pData,uint8_t ucLen)
 {
     uint8_t ucWriteBuffer[64];
     uint8_t ucBufferIndex = 0;
@@ -722,9 +719,9 @@ void bms003_write_burst(uint8_t ucRegAddr, uint8_t* pData,uint8_t ucLen,uint32_t
     ucWriteBuffer[ucBufferIndex++] = PAD;
     bms003_delay_us(5);
     GPIO_PinOutClear(SPI_CS_PORT, SPI_CS_PIN);
-    if(uiStartDelayUs)bms003_delay_us(10);
+    bms003_delay_us(20);
     bms003_spi_write_data(ucWriteBuffer, ucBufferIndex);
-    if(uiStopDelayUs)bms003_delay_us(10);
+    bms003_delay_us(10);
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
     bms003_delay_us(5);
 }
@@ -734,12 +731,10 @@ void bms003_write_burst(uint8_t ucRegAddr, uint8_t* pData,uint8_t ucLen,uint32_t
 * Function Name  :  bms003_read_cycle
 * Description    :  读单个数据
 * Input          :  uint8_t ucRegAddr
-* Input          :  uint32_t uiStartDelayUs
-* Input          :  uint32_t uiStopDelayUs
 * Output         :  None
 * Return         :  uint8_t
 *******************************************************************************/
-uint8_t bms003_read_cycle(uint8_t ucRegAddr, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs)
+uint8_t bms003_read_cycle(uint8_t ucRegAddr)
 {
     uint8_t ucWriteBuffer[3];
     uint8_t ucReadBuffer[3] = {0, 0, 0};
@@ -749,9 +744,9 @@ uint8_t bms003_read_cycle(uint8_t ucRegAddr, uint32_t uiStartDelayUs, uint32_t u
     ucWriteBuffer[ucBufferIndex++] = PAD;
     bms003_delay_us(5);
     GPIO_PinOutClear(SPI_CS_PORT, SPI_CS_PIN);
-    if (uiStartDelayUs)bms003_delay_us(10);
+    bms003_delay_us(20);
     bms003_spi_transfer(ucWriteBuffer, ucReadBuffer, 3);
-    if (uiStopDelayUs)bms003_delay_us(10);
+    bms003_delay_us(10);
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
     bms003_delay_us(5);
     return ucReadBuffer[2];
@@ -764,12 +759,10 @@ uint8_t bms003_read_cycle(uint8_t ucRegAddr, uint32_t uiStartDelayUs, uint32_t u
 * Input          :  uint8_t ucRegAddr
 * Input          :  uint8_t * pData
 * Input          :  uint8_t ucLen
-* Input          :  uint32_t uiStartDelayUs
-* Input          :  uint32_t uiStopDelayUs
 * Output         :  None
 * Return         :  void
 *******************************************************************************/
-void bms003_read_burst(uint8_t ucRegAddr, uint8_t* pData, uint8_t ucLen, uint32_t uiStartDelayUs, uint32_t uiStopDelayUs)
+void bms003_read_burst(uint8_t ucRegAddr, uint8_t* pData, uint8_t ucLen)
 {
     uint8_t ucWriteBuffer[32 + 3];
     uint8_t ucReadBuffer[32 + 3];
@@ -778,9 +771,9 @@ void bms003_read_burst(uint8_t ucRegAddr, uint8_t* pData, uint8_t ucLen, uint32_
     ucWriteBuffer[ucBufferIndex++] = RD_BURST_REG_CMD;
     bms003_delay_us(5);
     GPIO_PinOutClear(SPI_CS_PORT, SPI_CS_PIN);
-    if (uiStartDelayUs)bms003_delay_us(10);
+    bms003_delay_us(20);
     bms003_spi_transfer(ucWriteBuffer, ucReadBuffer, ucLen + 3);
-    if (uiStopDelayUs)bms003_delay_us(10);
+    bms003_delay_us(10);
     GPIO_PinOutSet(SPI_CS_PORT, SPI_CS_PIN);
     bms003_delay_us(5);
     memcpy(pData,&ucReadBuffer[2], ucLen);
@@ -802,7 +795,7 @@ void bms003_booting_config(void)
     ucWriteBuffer[ucBufferIndex++] = CLK;
     ucWriteBuffer[ucBufferIndex++] = 0xb;
     ucWriteBuffer[ucBufferIndex++] = 0x02;
-    bms003_write_burst(0x3A, ucWriteBuffer, ucBufferIndex, 1, 1);
+    bms003_write_burst(0x3A, ucWriteBuffer, ucBufferIndex);
 
     bms003_delay_us(1);
 
@@ -823,33 +816,33 @@ void bms003_booting_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5B 参比电极的偏置电压由第二个DAC生成使能[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5C 配置CE[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5D 配置CE[8:9]
-    bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex, 1, 1);
+    bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex);
 
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = ELE_BUF;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
-    bms003_write_burst(0x61, ucWriteBuffer, ucBufferIndex, 1, 1);
+    bms003_write_burst(0x61, ucWriteBuffer, ucBufferIndex);
 
-    bms003_write_cycle(0x3A, CLK|0x80, 1, 1);
+    bms003_write_cycle(0x3A, CLK|0x80);
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = CIC;
     ucWriteBuffer[ucBufferIndex++] = 0x00;
     ucWriteBuffer[ucBufferIndex++] = CHA_NUM;
-    bms003_write_burst(0x01, ucWriteBuffer, ucBufferIndex, 1, 1);
+    bms003_write_burst(0x01, ucWriteBuffer, ucBufferIndex);
 
-    bms003_write_cycle(IMEAS_REG_SEQ, 0x00, 1, 2);
+    bms003_write_cycle(IMEAS_REG_SEQ, 0x00);
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
-    bms003_write_burst(0x017, ucWriteBuffer, ucBufferIndex, 1, 1);
+    bms003_write_burst(0x017, ucWriteBuffer, ucBufferIndex);
     uint8_t ucReadBuffer[32];
     memset(ucReadBuffer, 0x00, sizeof(ucReadBuffer));
 
     // 回读校验
-    bms003_read_burst(0x53, ucReadBuffer, 2, 1, 1);
+    bms003_read_burst(0x53, ucReadBuffer, 2);
     if (ucReadBuffer[0] == CH1_WE1_RFB_SEL && ucReadBuffer[1] == CH1_WE1_VGAIN_SEL)
     {
         log_i("bms003_booting_config done");
@@ -879,7 +872,7 @@ void bms003_booting_temp_config(void)
     ucWriteBuffer[ucBufferIndex++] = CLK;
     ucWriteBuffer[ucBufferIndex++] = 0xB;
     ucWriteBuffer[ucBufferIndex++] = 0x2;
-    bms003_write_burst(0x3A, ucWriteBuffer, ucBufferIndex, 15, 30);
+    bms003_write_burst(0x3A, ucWriteBuffer, ucBufferIndex);
 
     bms003_delay_us(3);
 
@@ -908,15 +901,15 @@ void bms003_booting_temp_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5D 配置CE[8:9]
     ucWriteBuffer[ucBufferIndex++] = 0x03;// addr:0x5E
     ucWriteBuffer[ucBufferIndex++] = 0x09;// addr:0x5F
-    bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex, 15, 30);
+    bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex);
 
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = 0x00;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
-    bms003_write_burst(0x61, ucWriteBuffer, ucBufferIndex, 1, 30);
+    bms003_write_burst(0x61, ucWriteBuffer, ucBufferIndex);
 
-    bms003_write_cycle(0x3A, CLK | 0x80, 1, 1);
+    bms003_write_cycle(0x3A, CLK | 0x80);
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = CIC;
@@ -926,14 +919,14 @@ void bms003_booting_temp_config(void)
 #else
     ucWriteBuffer[ucBufferIndex++] = 0x64;
 #endif
-    bms003_write_burst(0x01, ucWriteBuffer, ucBufferIndex, 1, 1);
+    bms003_write_burst(0x01, ucWriteBuffer, ucBufferIndex);
 
-    bms003_write_cycle(IMEAS_REG_SEQ, 0x00, 1, 31);
+    bms003_write_cycle(IMEAS_REG_SEQ, 0x00);
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
-    bms003_write_burst(0x017, ucWriteBuffer, ucBufferIndex, 17, 30);
+    bms003_write_burst(0x017, ucWriteBuffer, ucBufferIndex);
 }
 
 
@@ -959,7 +952,7 @@ void bms003_wakeup_config(void)
     ucWriteBuffer[ucBufferIndex++] = CLK;                           // 写ICLK为4分频,PCLK8分频,FCLK Dynamic关闭
     ucWriteBuffer[ucBufferIndex++] = 0x0B;
     ucWriteBuffer[ucBufferIndex++] = 0x02;
-    bms003_write_burst(0x3A, ucWriteBuffer, ucBufferIndex, 1, 1);
+    bms003_write_burst(0x3A, ucWriteBuffer, ucBufferIndex);
 
     bms003_delay_us(1);
 
@@ -980,27 +973,27 @@ void bms003_wakeup_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5B参比电极的偏置电压由第二个DAC生成使能[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5C配置CE[0:7]
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5C配置CE[8:9]
-    bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex, 1, 1);
+    bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex);
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = 0x0D;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
-    bms003_write_burst(0x61, ucWriteBuffer, ucBufferIndex, 1, 1);
+    bms003_write_burst(0x61, ucWriteBuffer, ucBufferIndex);
 
-    bms003_write_cycle(0x3A, CLK|0x80, 1, 1);
+    bms003_write_cycle(0x3A, CLK|0x80);
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = CIC;
     ucWriteBuffer[ucBufferIndex++] = 0x00;
     ucWriteBuffer[ucBufferIndex++] = CHA_NUM;
-    bms003_write_burst(0x01, ucWriteBuffer, ucBufferIndex, 1, 1);
+    bms003_write_burst(0x01, ucWriteBuffer, ucBufferIndex);
 
-    bms003_write_cycle(IMEAS_REG_SEQ, 0x00, 1, 1);
+    bms003_write_cycle(IMEAS_REG_SEQ, 0x00);
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
-    bms003_write_burst(0x17, ucWriteBuffer, ucBufferIndex, 1, 1);
+    bms003_write_burst(0x17, ucWriteBuffer, ucBufferIndex);
 
 }
 #endif
