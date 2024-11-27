@@ -40,12 +40,22 @@ typedef struct
     uint8_t ucLastPasswordExist;                                    // 上一次是否被设置过密码
     uint16_t usLastPassword;                                        // 上一次设置的密码
     uint8_t ucCgmSessionCnt;                                        // CGM使用次数
-    uint8_t ucNone[8];                                             // 未使用
+    uint8_t ucNone[8];                                              // 未使用
     uint16_t usCrc16;
 }__attribute__((packed)) user_usage_data_t;
 
 
+typedef struct
+{
+    uint8_t ucDataValidFlag;                                        // 数据有效标志位
+    uint32_t uiBatteryRunTime;                                      // 电池运行时间
+    uint16_t usLastBatteryVol;                                      // 上一次的电池电压
+    uint8_t ucNone[8];                                              // 未使用
+    uint16_t usCrc16;
+}__attribute__((packed)) battery_info_t;
+
 extern user_usage_data_t g_UserUsageData;
+extern battery_info_t g_BatteryInfo;
 extern prm_t g_PrmDb;
 extern uint8_t g_ucSn[];
 
@@ -57,6 +67,11 @@ ret_code_t cgms_prm_db_write_flash(void);
 ret_code_t cgms_prm_db_write_user_usage_data(user_usage_data_t* pData);
 ret_code_t cgms_prm_db_read_user_usage_data(user_usage_data_t* pData);
 void cgms_prm_db_print_user_usage_data(user_usage_data_t* pData);
+
+ret_code_t cgms_prm_db_write_battery_info(battery_info_t* pData);
+ret_code_t cgms_prm_db_read_battery_info(battery_info_t* pData);
+void cgms_prm_db_print_battery_info(battery_info_t* pData);
+
 #endif /* __CGMS_PRM_H */
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/

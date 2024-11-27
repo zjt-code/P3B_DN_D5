@@ -29,8 +29,7 @@
 #define CLK_SRC_ADC_FREQ          5000000 // CLK_SRC_ADC
 #define CLK_ADC_FREQ               100 // CLK_ADC - 10MHz max in normal mode
 
-static uint16_t g_usBattaryVol = 4000;              // 当前电池电压
-static uint32_t g_uiBatteryLifeTimeCnt;             // 电池生命周期的秒数
+static uint16_t g_usBattaryVol = 1600;              // 当前电池电压
 uint8_t g_ucBatteryLevel = 99;                     // 电池电量
 
 sl_sleeptimer_timer_handle_t g_BatteryMeasTimer;
@@ -170,7 +169,7 @@ uint16_t app_battery_read_battery_vol(void)
 *******************************************************************************/
 uint32_t app_battery_get_run_time(void)
 {
-    return g_uiBatteryLifeTimeCnt;
+    return g_BatteryInfo.uiBatteryRunTime;
 }
 
 
@@ -265,22 +264,22 @@ void battery_meas_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* dat
 *                           陈苏阳@2022-12-23
 * Function Name  :  app_battery_timer_handler
 * Description    :  电量采集定时器回调函数
-* Input          :  uint16_t usInterval
+* Input          :  uint16_t usInterval(与上次调用时的间隔秒数)
 * Output         :  None
 * Return         :  None
 *******************************************************************************/
 void app_battery_timer_handler(uint16_t usInterval)
 {
-    g_uiBatteryLifeTimeCnt += usInterval;
+    g_BatteryInfo.uiBatteryRunTime += usInterval;
 
     bool bRunFsmFlag = false;
-    if (g_usBattaryVol >=4000)
+    if (g_usBattaryVol >=1600)
     {
         bRunFsmFlag = true;
     }
     else
     {
-        if (g_uiBatteryLifeTimeCnt % 1800 == 0)
+        if (g_BatteryInfo.uiBatteryRunTime % 1800 == 0)
         {
             bRunFsmFlag = true;
         }
@@ -302,7 +301,19 @@ void app_battery_timer_handler(uint16_t usInterval)
     {
         log_e("sl_sleeptimer_start_timer fail:%d", status);
     }
-    
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-11-27
+* Function Name  :  app_battery_save_battery_info_to_flash
+* Description    :  保存电池信息到flash
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void app_battery_save_battery_info_to_flash(void)
+{
+    cgms_prm_db_write_battery_info(&g_BatteryInfo);
 }
 
 

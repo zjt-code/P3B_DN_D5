@@ -756,7 +756,12 @@ void cgms_socp_read_reset_reg(__attribute__((unused)) ble_event_info_t BleEventI
 void cgms_socp_reset_mcu(__attribute__((unused)) ble_event_info_t BleEventInfo, __attribute__((unused))  ble_socp_datapacket_t  SocpRequest, bool bCrcPass, ble_socp_rsp_t* pRspRequest)
 {
     memset(&g_UserUsageData, 0x00, sizeof(user_usage_data_t));
+
+    // 清除用户使用数据
     cgms_prm_db_write_user_usage_data(&g_UserUsageData);
+
+    // 保存电池信息
+    app_battery_save_battery_info_to_flash();
     pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
     NVIC_SystemReset();
 }
@@ -866,6 +871,12 @@ void cgms_socp_write_prm(__attribute__((unused)) ble_event_info_t BleEventInfo, 
         {
             log_i("save prm data");
             cgms_prm_db_write_flash();
+            pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
+            break;
+        }
+        // 清空电量信息
+        case SOCP_PRM_NO_CLEAR_BATTERY_INFO:
+        {
             pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
             break;
         }

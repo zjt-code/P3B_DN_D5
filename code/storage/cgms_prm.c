@@ -18,7 +18,7 @@
 uint8_t g_ucSn[11] = { 'J','N','-','X','X', 'X', '0', '0', '0', '0',0x00 };
 prm_t g_PrmDb __attribute__((aligned(4)));
 user_usage_data_t g_UserUsageData __attribute__((aligned(4)));
-
+battery_info_t g_BatteryInfo __attribute__((aligned(4)));
 
 /*******************************************************************************
 *                           陈苏阳@2022-12-26
@@ -130,6 +130,9 @@ void cgms_prm_db_power_on_init(void)
 
     // 读取用户使用数据
     cgms_prm_db_read_user_usage_data(&g_UserUsageData);
+
+    // 读取电池信息
+    cgms_prm_db_read_battery_info(&g_BatteryInfo);
 }
 
 /*******************************************************************************
@@ -155,7 +158,7 @@ uint8_t* cgms_prm_get_sn_p(void)
 *******************************************************************************/
 ret_code_t cgms_prm_db_write_user_usage_data(user_usage_data_t* pData)
 {
-  uint8_t ucResult;
+    uint8_t ucResult;
     if (pData)
     {
         // 擦除参数所在的Flash区域
@@ -172,7 +175,7 @@ ret_code_t cgms_prm_db_write_user_usage_data(user_usage_data_t* pData)
         WriteData.usCrc16 = usCrc;
         // 写入参数结构体
         ucResult = cgms_prm_flash_write(4096, (uint8_t*)&WriteData, sizeof(user_usage_data_t));
-        
+
         return ucResult;
     }
     else
@@ -206,7 +209,6 @@ ret_code_t cgms_prm_db_read_user_usage_data(user_usage_data_t* pData)
         log_i("flash user usage data read done");
         return RET_CODE_SUCCESS;
     }
-
 }
 
 /*******************************************************************************
@@ -232,6 +234,94 @@ void cgms_prm_db_print_user_usage_data(user_usage_data_t* pData)
             log_i("ucLastStartByVersion:%d,%d,%d", pData->ucLastStartByVersion[2], pData->ucLastStartByVersion[1], pData->ucLastStartByVersion[0]);
             log_i("usLastPassword:0x%04X", pData->usLastPassword);
             log_i("ucCgmSessionCnt:%d", pData->ucCgmSessionCnt);
+        }
+    }
+}
+
+
+
+/*******************************************************************************
+*                           陈苏阳@2024-11-27
+* Function Name  :  cgms_prm_db_write_battery_info
+* Description    :  写入电池信息
+* Input          :  battery_info_t * pData
+* Output         :  None
+* Return         :  ret_code_t
+*******************************************************************************/
+ret_code_t cgms_prm_db_write_battery_info(battery_info_t* pData)
+{
+    uint8_t ucResult;
+    if (pData)
+    {
+        // 擦除参数所在的Flash区域
+        ucResult = cgms_prm_flash_erase_sector(8192);
+        if (ucResult)
+        {
+            log_e("cgms_prm_flash_erase_sector fail:%d", ucResult);
+            return ucResult;
+        }
+        battery_info_t WriteData;
+        memcpy(&WriteData, pData, sizeof(battery_info_t));
+        WriteData.ucDataValidFlag = 0x01;
+        // 计算当前要写入的数据的CRC
+        uint16_t usCrc = do_crc((uint8_t*)&WriteData, sizeof(battery_info_t) - 2);
+        WriteData.usCrc16 = usCrc;
+        // 写入参数结构体
+        ucResult = cgms_prm_flash_write(8192, (uint8_t*)&WriteData, sizeof(battery_info_t));
+
+        return ucResult;
+    }
+    else
+    {
+        return RET_CODE_FAIL;
+    }
+}
+
+
+/*******************************************************************************
+*                           陈苏阳@2024-11-27
+* Function Name  :  cgms_prm_db_read_battery_info
+* Description    :  读取电池信息
+* Input          :  battery_info_t * pData
+* Output         :  None
+* Return         :  ret_code_t
+*******************************************************************************/
+ret_code_t cgms_prm_db_read_battery_info(battery_info_t* pData)
+{
+    // 读取参数
+    cgms_prm_flash_read(8192, (uint8_t*)pData, sizeof(battery_info_t));
+
+    // 如果CRC错误,则将数据设为默认值
+    if (0x00 != do_crc((uint8_t*)pData, sizeof(battery_info_t)))
+    {
+        log_w("flash battery info crc fail");
+        memset(pData, 0x00, sizeof(battery_info_t));
+        return RET_CODE_FAIL;
+    }
+    else
+    {
+        log_i("flash battery info read done");
+        return RET_CODE_SUCCESS;
+    }
+}
+
+/*******************************************************************************
+*                           陈苏阳@2024-11-27
+* Function Name  :  cgms_prm_db_print_battery_info
+* Description    :  打印电池信息
+* Input          :  battery_info_t * pData
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void cgms_prm_db_print_battery_info(battery_info_t* pData)
+{
+    if (pData)
+    {
+        log_i("ucDataValidFlag:%d", pData->ucDataValidFlag);
+        if (pData->ucDataValidFlag == 0x01)
+        {
+            log_i("uiBatteryRunTime:%d", pData->uiBatteryRunTime);
+            log_i("usLastBatteryVol:%d", pData->usLastBatteryVol);
         }
     }
 }

@@ -198,6 +198,7 @@ typedef enum
     SOCP_PRM_NO_SAVE_PRM = 0xFE,                                      // 保存参数
     SOCP_PRM_NO_READ_START_TIME = 0xA0,                               // 读启动时间
     SOCP_PRM_NO_READ_BATTERY_INFO = 0xA1,                             // 读电池信息
+    SOCP_PRM_NO_CLEAR_BATTERY_INFO = 0xFD,                            // 清除电池信息
 }socp_prm_no_t;
 
 // SOCP回应包的回应码
