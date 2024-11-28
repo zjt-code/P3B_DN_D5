@@ -387,7 +387,7 @@ void bms003_start(afe_run_mode_t RunMode)
     // 设置AFE的INT引脚中断
     GPIO_ExtIntConfig(AFE_INT_PORT, AFE_INT_PIN, g_Bms003IrqInterrupt, true, false, true);
 
-    // 如果采样次数为0,说明是连续采样,则直接开定时器
+    // 如果是连续采样,则直接开定时器
     if (RunMode == AFE_RUN_MODE_CONTINUOUS)
     {
         status = sl_sleeptimer_start_periodic_timer(&g_Bms003WakeupTimer, sl_sleeptimer_ms_to_tick(SLEEP_TIMER_INTERVAL), bms003_wakeup_timer_callback, (void*)NULL, 0, 0);

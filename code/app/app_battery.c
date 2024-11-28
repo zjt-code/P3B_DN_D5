@@ -23,6 +23,7 @@
 #include "em_cmu.h"
 #include "em_emu.h"
 #include "sl_sleeptimer.h"
+#include "cgms_prm.h"
 /* Private variables ---------------------------------------------------------*/
 
 // Set CLK_ADC to 10MHz
@@ -169,7 +170,7 @@ uint16_t app_battery_read_battery_vol(void)
 *******************************************************************************/
 uint32_t app_battery_get_run_time(void)
 {
-    return g_BatteryInfo.uiBatteryRunTime;
+    return g_BatteryInfo.uiBatteryRunTime==0?1:g_BatteryInfo.uiBatteryRunTime;
 }
 
 
@@ -242,11 +243,10 @@ void battery_meas_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* dat
         app_battery_close_adc();
 
         // 计算电量
-        g_ucBatteryLevel = app_battery_calculate_battery_level(g_usBattaryVol, g_uiBatteryLifeTimeCnt);
+        g_ucBatteryLevel = app_battery_calculate_battery_level(g_usBattaryVol, g_BatteryInfo.uiBatteryRunTime);
 
         // 关闭定时器
         sl_sleeptimer_stop_timer(&g_BatteryMeasTimer);
-
     }
     else
     {
@@ -270,6 +270,7 @@ void battery_meas_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* dat
 *******************************************************************************/
 void app_battery_timer_handler(uint16_t usInterval)
 {
+    log_i("app_battery_timer_handler(%d)", usInterval);
     g_BatteryInfo.uiBatteryRunTime += usInterval;
 
     bool bRunFsmFlag = false;

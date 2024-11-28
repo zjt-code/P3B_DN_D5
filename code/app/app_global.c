@@ -261,11 +261,14 @@ void app_event_ble_disconnect_callback(uint16_t usConnectionHandle)
     // 删除连接
     app_remove_ble_connect(usConnectionHandle);
 
-    // 历史数据发送标志位取消 todo:这边会有冲突问题,待完善
+    // 历史数据发送标志位取消
     app_global_get_app_state()->bRecordSendFlag = false;
 
     // 清除密码效验成功标志
     app_global_get_app_state()->bCgmsPwdVerifyOk = false;
+
+    // 清除工厂模式标志位
+    app_global_get_app_state()->bProduction = false;
 
     // 关闭发送历史数据定时器
     app_glucose_meas_record_send_stop();
@@ -337,6 +340,9 @@ void app_init(void)
     cgms_prm_db_print_user_usage_data(&g_UserUsageData);
 
 #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
+
+    att_get_feature()->ucWorkTime = 14;                         // 工作时间,如3天,7天,14天,用于计算结束时间,默认0x0E
+    att_get_feature()->ucSampleTime = 3;                       // 数据发送间隔3分钟或5分钟,默认0x03
     if (g_UserUsageData.ucDataValidFlag == 0x01 && g_UserUsageData.LastCgmState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING)
     {
         // 还原启动方式
@@ -372,6 +378,8 @@ void app_init(void)
     }
     else
     {
+        // 更新Feature char的CRC
+        att_update_feature_char_data_crc();
         // 设置CGM状态为CGM没有运行
         app_global_get_app_state()->Status = CGM_MEASUREMENT_SENSOR_STATUS_SESSION_STOPPED;
     }

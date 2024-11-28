@@ -58,7 +58,6 @@ SL_WEAK void sl_bt_on_event(sl_bt_msg_t* evt)
 void sl_bt_process_event(sl_bt_msg_t *evt)
 {
   sl_bt_in_place_ota_dfu_on_event(evt);
-  sl_gatt_service_battery_on_event(evt);
   sl_gatt_service_device_information_on_event(evt);
   sl_bt_on_event(evt);
 }

@@ -53,6 +53,7 @@ void app_battery_init(void);
 uint16_t app_battery_read_battery_vol(void);
 uint32_t app_battery_get_run_time(void);
 void app_battery_timer_handler(uint16_t usInterval);
+void app_battery_save_battery_info_to_flash(void);
 #endif /* __APP_BATTERY_H */
 
 /******************* (C) COPYRIGHT 2023 陈苏阳 **** END OF FILE ****************/

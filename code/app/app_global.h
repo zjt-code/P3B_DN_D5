@@ -19,7 +19,7 @@
 /* Private define ------------------------------------------------------------*/
 
 
-#define SOFT_VER         "0.1.9"              // 软件版本号
+#define SOFT_VER         "0.2.0"              // 软件版本号
 
 
 /*************************Main Loop事件ID*****************************/
@@ -238,6 +238,7 @@ typedef struct
     bool bCgmsPwdVerifyOk;                                             // 当前密码是否验证成功
     uint16_t usPasswordSaved;                                          // 保存的密码
     #endif
+    bool bProduction;                                                  // 是否是生产模式
     bool bSentRacpSuccess;                                             // RACP发送完成标志位
     bool bSentSocpSuccess;                                             // COAP发送完成标志位
     bool bSentMeasSuccess;                                             // MEAS发送完成标志位

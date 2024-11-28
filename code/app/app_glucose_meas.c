@@ -514,6 +514,13 @@ void app_glucose_meas_start(app_glucose_meas_type_t GlucoseMeasType)
     }
     // 初始化平均电流计算
     app_glucose_avg_electric_current_cal_init();
+
+    // 如果是用户测量状态,且AFE还未开始工作,则先启动AFE,以及时输出WE电压
+    if (GlucoseMeasType == APP_GLUCOSE_MEAS_TYPE_USER_MEAS && afe_is_working() == false)
+    {
+        // 开始AFE,使用猝发采样模式
+        afe_start(AFE_RUN_MODE_SHOT);
+    }
 }
 
 
@@ -730,7 +737,7 @@ void app_battery_meas_handelr(uint32_t uiArg)
     else
     {
         // 触发电量采集定时器处理函数
-        app_battery_timer_handler(5);
+        app_battery_timer_handler(60);
         // 启动一个1分钟的单次定时器
         status = sl_sleeptimer_start_timer(&g_AppBatteryMeasTimer, sl_sleeptimer_ms_to_tick(60*1000), app_battery_meas_timer_callback, (void*)NULL, 0, 0);
         if (status != SL_STATUS_OK)

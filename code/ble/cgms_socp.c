@@ -52,7 +52,6 @@
 #define NRF_BLE_CGMS_MINUS_INFINTE                    0x0802
 static bool g_bBleSocpNotifyIsEnableFlag = false;						// BLE SOCP通知使能标志位
 #if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
-static bool g_bProduction=false;
 static uint16_t g_usBleProtocolPassword = 0;
 #endif
 //extern float sfCurrBg;//add by woo
@@ -200,7 +199,7 @@ static ret_code_t socp_send(ble_event_info_t BleEventInfo, ble_socp_rsp_t SocpRs
 
 #if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
     //如果当前处理的是生产命令,则跳过加密,如果是正常命令,则走加密流程发包
-    if (g_bProduction == false)
+    if (app_global_get_app_state()->bProduction == false)
     {
         // 根据通讯协议对原始数据包进行填充和加密
         ucLen = datapacket_padding_and_encrpty(EncodedRespDatapacketBuffer, EncodedRespDatapacketBuffer, ucLen);
@@ -277,7 +276,7 @@ void cgms_socp_start_session_event_callback(uint32_t uiArg)
     att_update_cgm_status_char_data();
 
     // 写用户使用数据
-    if(g_UserUsageData.ucDataValidFlag==0x01)cgms_prm_db_write_user_usage_data(&g_UserUsageData);
+    if (g_UserUsageData.ucDataValidFlag == 0x01)cgms_prm_db_write_user_usage_data(&g_UserUsageData);
 }
 
 /*******************************************************************************
@@ -676,21 +675,21 @@ void cgms_socp_write_sensor_code(__attribute__((unused)) ble_event_info_t BleEve
     }
     else
     {
-    // 更新CGM Status中的工厂校准码
-    att_get_cgm_status()->usFactoryCode = usSensorCode;
-    // 更新CGM状态char的内容
-    att_update_cgm_status_char_data();
-    //设置传感器Code
-    sensorK = (float)usSensorCode / 1000.0f;
-    cur_get_cur_error_value(sensorK);
-    log_i("cur_get_cur_error_value(%f)", sensorK);
-    log_i("sensor code update:%d", usSensorCode);
+        // 更新CGM Status中的工厂校准码
+        att_get_cgm_status()->usFactoryCode = usSensorCode;
+        // 更新CGM状态char的内容
+        att_update_cgm_status_char_data();
+        //设置传感器Code
+        sensorK = (float)usSensorCode / 1000.0f;
+        cur_get_cur_error_value(sensorK);
+        log_i("cur_get_cur_error_value(%f)", sensorK);
+        log_i("sensor code update:%d", usSensorCode);
 
-    extern float cur_error_min_value;
-    extern float cur_error_max_value;
+        extern float cur_error_min_value;
+        extern float cur_error_max_value;
 
-    log_i("cur_error_min_value(%f)", cur_error_min_value);
-    log_i("cur_error_max_value(%f)", cur_error_max_value);
+        log_i("cur_error_min_value(%f)", cur_error_min_value);
+        log_i("cur_error_max_value(%f)", cur_error_max_value);
 
         log_i("sensor code update done");
         pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
@@ -775,7 +774,7 @@ void cgms_socp_reset_mcu(__attribute__((unused)) ble_event_info_t BleEventInfo, 
 * Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_start_ad_cali(__attribute__((unused)) ble_event_info_t BleEventInfo,__attribute__((unused))  ble_socp_datapacket_t  SocpRequest, bool bCrcPass, ble_socp_rsp_t* pRspRequest)
+void cgms_socp_start_ad_cali(__attribute__((unused)) ble_event_info_t BleEventInfo, __attribute__((unused))  ble_socp_datapacket_t  SocpRequest, bool bCrcPass, ble_socp_rsp_t* pRspRequest)
 {
     if (app_global_is_session_runing())
     {
@@ -800,7 +799,7 @@ void cgms_socp_start_ad_cali(__attribute__((unused)) ble_event_info_t BleEventIn
 * Output         :  ble_socp_rsp_t * pRspRequest
 * Return         :  void
 *******************************************************************************/
-void cgms_socp_read_ad_cali_data(__attribute__((unused)) ble_event_info_t BleEventInfo,__attribute__((unused))  ble_socp_datapacket_t  SocpRequest, bool bCrcPass, ble_socp_rsp_t* pRspRequest)
+void cgms_socp_read_ad_cali_data(__attribute__((unused)) ble_event_info_t BleEventInfo, __attribute__((unused))  ble_socp_datapacket_t  SocpRequest, bool bCrcPass, ble_socp_rsp_t* pRspRequest)
 {
     uint32_t uiMeasElectricCurrent = 0;
     app_glucose_meas_get_factory_meas_electric_current(&uiMeasElectricCurrent);
@@ -877,6 +876,9 @@ void cgms_socp_write_prm(__attribute__((unused)) ble_event_info_t BleEventInfo, 
         // 清空电量信息
         case SOCP_PRM_NO_CLEAR_BATTERY_INFO:
         {
+            g_BatteryInfo.uiBatteryRunTime = 0;
+            // 保存电池信息
+            app_battery_save_battery_info_to_flash();
             pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;
             break;
         }
@@ -948,8 +950,9 @@ void cgms_socp_read_prm(__attribute__((unused)) ble_event_info_t BleEventInfo, b
 
             *(pRspRequest->ucRespVal) = ucPrmNo;
             ucIndex += 1;
-
-            uint16_encode((uint16_t)(app_battery_get_run_time()/60/6), (pRspRequest->ucRespVal + ucIndex));
+            uint32_t uiRunTimeMinute = app_battery_get_run_time() / 60;
+            if (uiRunTimeMinute > 0xFFFF)uiRunTimeMinute = 0xFFFF;
+            uint16_encode((uint16_t)uiRunTimeMinute, (pRspRequest->ucRespVal + ucIndex));
             ucIndex += 2;
             uint16_encode((uint16_t)4000, (pRspRequest->ucRespVal + ucIndex));
             ucIndex += 2;
@@ -1043,7 +1046,7 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     if (cgms_socp_check_production_cmd(pData, usLen))
     {
         log_d("is production cmd.");
-        g_bProduction = true;
+        app_global_get_app_state()->bProduction = true;
     }
     else
     {
@@ -1321,6 +1324,11 @@ bool cgms_socp_check_production_cmd(uint8_t* pData,__attribute__((unused))  uint
             return true;
         }
         case SOCP_PRM_NO_SAVE_PRM:
+        {
+            if (usLen != 4)return false;
+            return true;
+        }
+        case SOCP_PRM_NO_CLEAR_BATTERY_INFO:
         {
             if (usLen != 4)return false;
             return true;
