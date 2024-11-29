@@ -25,6 +25,8 @@
 #include <elog.h>
 #include "sl_bt_api.h"
 #include "cgms_prm.h"
+#include "cgms_db.h"
+#include "cgms_db_port.h"
 #include "ble_customss.h"
 #include "cgms_socp.h"
 #include "afe.h"
@@ -33,6 +35,8 @@
 #include "cgms_debug_db.h"
 #include "bms003_bist_if.h"
 #include "em_emu.h"
+#include "utility.h"
+#include "cm_backtrace.h"
 /* Private variables ---------------------------------------------------------*/
 app_state_t g_app_state;
 event_info_t g_EventInfoArray[APP_EVENT_MAX_NUM];
@@ -113,33 +117,11 @@ void app_ble_connect_info_init(BleConnectInfo_t* p)
 *******************************************************************************/
 void app_add_new_ble_connect(uint16_t usConnectionHandle)
 {
-    // 如果有重复的,直接退出
-    for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
-    {
-        if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true && app_global_get_app_state()->BleConnectInfo[i].usBleConidx == usConnectionHandle)
-        {
-            memset(&(app_global_get_app_state()->BleConnectInfo[i]), 0x00, sizeof(app_global_get_app_state()->BleConnectInfo[i]));
-            app_global_get_app_state()->BleConnectInfo[i].bIsConnected = true;
-            app_global_get_app_state()->BleConnectInfo[i].usBleConidx = usConnectionHandle;
-            app_global_get_app_state()->BleConnectInfo[i].bIsUpdateConnectParameter = false;
-            app_global_get_app_state()->BleConnectInfo[i].ulConenctedTimeCnt = 0;
-            return;
-        }
-    }
-
-    // 找到一个未连接的位置,添加信息
-    for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
-    {
-        if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == false)
-        {
-            memset(&(app_global_get_app_state()->BleConnectInfo[i]),0x00,sizeof(app_global_get_app_state()->BleConnectInfo[i]));
-            app_global_get_app_state()->BleConnectInfo[i].bIsConnected = true;
-            app_global_get_app_state()->BleConnectInfo[i].usBleConidx = usConnectionHandle;
-            app_global_get_app_state()->BleConnectInfo[i].bIsUpdateConnectParameter = false;
-            app_global_get_app_state()->BleConnectInfo[i].ulConenctedTimeCnt = 0;
-            break;
-        }
-    }
+    memset(&(app_global_get_app_state()->BleConnectInfo), 0x00, sizeof(app_global_get_app_state()->BleConnectInfo));
+    app_global_get_app_state()->BleConnectInfo.bIsConnected = true;
+    app_global_get_app_state()->BleConnectInfo.usBleConidx = usConnectionHandle;
+    app_global_get_app_state()->BleConnectInfo.bIsUpdateConnectParameter = false;
+    app_global_get_app_state()->BleConnectInfo.ulConenctedTimeCnt = 0;
 }
 
 
@@ -153,14 +135,8 @@ void app_add_new_ble_connect(uint16_t usConnectionHandle)
 *******************************************************************************/
 void app_remove_ble_connect(uint16_t usConnectionHandle)
 {
-    for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
-    {
-        if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true && app_global_get_app_state()->BleConnectInfo[i].usBleConidx == usConnectionHandle)
-        {
-            // 初始化结构体
-            app_ble_connect_info_init(&(app_global_get_app_state()->BleConnectInfo[i]));
-        }
-    }
+    // 初始化结构体
+    app_ble_connect_info_init(&(app_global_get_app_state()->BleConnectInfo));
 }
 
 /*******************************************************************************
@@ -173,10 +149,7 @@ void app_remove_ble_connect(uint16_t usConnectionHandle)
 *******************************************************************************/
 bool app_have_a_active_ble_connect(void)
 {
-    for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
-    {
-        if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true)return true;
-    }
+    if (app_global_get_app_state()->BleConnectInfo.bIsConnected == true)return true;
     return false;
 }
 
@@ -219,26 +192,23 @@ void app_event_ble_param_updated_callback(uint16_t usConnectionHandle, uint16_t 
 {
     log_i("app_event_ble_param_updated_callback:%d,%d,%d,%d", usConnectionHandle, usConnectInterval, usConnectLatency, usConnectTimeout);
 
-    for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
+    // 找到对应的连接信息,并记录当前的连接参数
+    if (app_global_get_app_state()->BleConnectInfo.bIsConnected == true && app_global_get_app_state()->BleConnectInfo.usBleConidx == usConnectionHandle)
     {
-        // 找到对应的连接信息,并记录当前的连接参数
-        if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true && app_global_get_app_state()->BleConnectInfo[i].usBleConidx == usConnectionHandle)
-        {
-            app_global_get_app_state()->BleConnectInfo[i].usConnectInterval = usConnectInterval;
-            app_global_get_app_state()->BleConnectInfo[i].usConnectLatency = usConnectLatency;
-            app_global_get_app_state()->BleConnectInfo[i].usConnectTimeout = usConnectTimeout;
+        app_global_get_app_state()->BleConnectInfo.usConnectInterval = usConnectInterval;
+        app_global_get_app_state()->BleConnectInfo.usConnectLatency = usConnectLatency;
+        app_global_get_app_state()->BleConnectInfo.usConnectTimeout = usConnectTimeout;
 
-            // 判断当前连接参数是否符合要求
-            if (ble_update_connect_param_is_pass(usConnectionHandle))
-            {
-                // 更新标志位
-                app_global_get_app_state()->BleConnectInfo[i].bIsUpdateConnectParameter = true;
-            }
-            else
-            {
-                // 如果不符合要求,启动连接参数更新定时器
-                ble_update_connect_param_start();
-            }
+        // 判断当前连接参数是否符合要求
+        if (ble_update_connect_param_is_pass(usConnectionHandle))
+        {
+            // 更新标志位
+            app_global_get_app_state()->BleConnectInfo.bIsUpdateConnectParameter = true;
+        }
+        else
+        {
+            // 如果不符合要求,启动连接参数更新定时器
+            ble_update_connect_param_start();
         }
     }
 }
@@ -319,12 +289,8 @@ void app_init(void)
     app_state_t* pAppState = app_global_get_app_state();
     memset(pAppState, 0x00, sizeof(app_state_t));
 
-    // 初始化BLE连接信息列表
-    for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
-    {
-        // 初始化结构体
-        app_ble_connect_info_init(&(app_global_get_app_state()->BleConnectInfo[i]));
-    }
+    // 初始化BLE连接信息
+    app_ble_connect_info_init(&(app_global_get_app_state()->BleConnectInfo));
 
     // 初始化事件处理
     event_init();
@@ -548,17 +514,6 @@ void app_global_ota_delay_param_timer_callback(__attribute__((unused))  sl_sleep
 *******************************************************************************/
 void app_global_ota_start(void)
 {
-  /*
-    // 触发更新
-    for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
-    {
-        sl_status_t sc = sl_bt_connection_set_parameters(app_global_get_app_state()->BleConnectInfo[i].usBleConidx, 24, 24, 0, 72, 0xffff, 0xffff);
-        if (sc != SL_STATUS_OK)
-        {
-            log_e("sl_bt_connection_set_parameters fail:%d", sc);
-        }
-    }
-    */
     // 触发连接参数更新定时器
     sl_sleeptimer_restart_timer(&g_OtaDelayParamTimer, sl_sleeptimer_ms_to_tick(1000), app_global_ota_delay_param_timer_callback, NULL, 0, 0);
 }

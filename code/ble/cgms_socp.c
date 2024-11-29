@@ -1063,13 +1063,9 @@ void on_socp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
             // 如果当前的命令不是密码验证命令,且当前密码还未验证成功
             if ((pData[0] != SOCP_VERIFY_PWD) && (app_global_get_app_state()->bCgmsPwdVerifyOk == false))
             {
-                log_d("illegal opt");
-                // 返回操作非法回应包
-                RspRequest.ucOpCode = SOCP_RESPONSE_ILLEGAL_CODE;
-                RspRequest.ucReqOpcode = 0X00;
-                RspRequest.ucRspCode = 0X00;
-                RspRequest.ucSizeVal = 0;
-                socp_send(BleEventInfo, RspRequest);
+                log_w("Ble Password Not Verify,Ble disconnect");
+                // 断开蓝牙连接
+                sl_bt_connection_close(BleEventInfo.usHandle);
                 return;
             }
             // 如果是密码验证命令

@@ -59,15 +59,12 @@ void ble_update_connect_param_timer_callback(sl_sleeptimer_timer_handle_t *handl
 *******************************************************************************/
 bool ble_update_connect_param_is_pass(uint16_t usConnectionHandle)
 {
-    for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
+    // 找到对应的连接信息
+    if (app_global_get_app_state()->BleConnectInfo.bIsConnected == true && app_global_get_app_state()->BleConnectInfo.usBleConidx == usConnectionHandle)
     {
-        // 找到对应的连接信息
-        if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true && app_global_get_app_state()->BleConnectInfo[i].usBleConidx == usConnectionHandle)
+        if ((app_global_get_app_state()->BleConnectInfo.usConnectInterval < BLE_NORMAL_INTERVAL_MIN) || (app_global_get_app_state()->BleConnectInfo.usConnectInterval > BLE_NORMAL_INTERVAL_MAX) || (app_global_get_app_state()->BleConnectInfo.usConnectLatency != BLE_NORMAL_LATENCY))
         {
-            if ((app_global_get_app_state()->BleConnectInfo[i].usConnectInterval < BLE_NORMAL_INTERVAL_MIN) || (app_global_get_app_state()->BleConnectInfo[i].usConnectInterval > BLE_NORMAL_INTERVAL_MAX) || (app_global_get_app_state()->BleConnectInfo[i].usConnectLatency != BLE_NORMAL_LATENCY))
-            {
-                return false;
-            }
+            return false;
         }
     }
     return true;
@@ -84,35 +81,32 @@ bool ble_update_connect_param_is_pass(uint16_t usConnectionHandle)
 *******************************************************************************/
 void ble_update_connect_param_handle(uint32_t uiArg)
 {
-    // 如果单签已经准备OTA,则放弃连接参数变更
+    // 如果当前已经准备OTA,则放弃连接参数变更
     if (sl_bt_in_place_ota_dfu_is_boot_to_dfu())
     {
         return;
     }
 
     bool bRestartTimerFlag = false;
-    for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
+    // 如果当前连接的连接参数还不满足要求
+    if (app_global_get_app_state()->BleConnectInfo.bIsConnected == true && ble_update_connect_param_is_pass(app_global_get_app_state()->BleConnectInfo.usBleConidx) == false)
     {
-        // 如果当前连接的连接参数还不满足要求
-        if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true && ble_update_connect_param_is_pass(app_global_get_app_state()->BleConnectInfo[i].usBleConidx) == false)
+        // 已达到需要更新连接参数的时间
+        if (app_global_get_app_state()->BleConnectInfo.ulConenctedTimeCnt >= 5)
         {
-            // 已达到需要更新连接参数的时间
-            if (app_global_get_app_state()->BleConnectInfo[i].ulConenctedTimeCnt >= 5)
+            // 触发更新
+            sl_status_t sc = sl_bt_connection_set_parameters(app_global_get_app_state()->BleConnectInfo.usBleConidx, BLE_NORMAL_INTERVAL_MIN, BLE_NORMAL_INTERVAL_MAX, BLE_NORMAL_LATENCY, BLE_NORMAL_TIMEOUT, 0xffff, 0xffff);
+            if (sc != SL_STATUS_OK)
             {
-                // 触发更新
-                sl_status_t sc = sl_bt_connection_set_parameters(app_global_get_app_state()->BleConnectInfo[i].usBleConidx, BLE_NORMAL_INTERVAL_MIN, BLE_NORMAL_INTERVAL_MAX, BLE_NORMAL_LATENCY, BLE_NORMAL_TIMEOUT, 0xffff, 0xffff);
-                if (sc != SL_STATUS_OK)
-                {
-                    log_e("sl_bt_connection_set_parameters fail:%d", sc);
-                }
+                log_e("sl_bt_connection_set_parameters fail:%d", sc);
             }
-            else
-            {
-                // 累计时间
-                app_global_get_app_state()->BleConnectInfo[i].ulConenctedTimeCnt++;
-            }
-            bRestartTimerFlag = true;
         }
+        else
+        {
+            // 累计时间
+            app_global_get_app_state()->BleConnectInfo.ulConenctedTimeCnt++;
+        }
+        bRestartTimerFlag = true;
     }
     // 如果需要重启定时器
     if (bRestartTimerFlag && g_bBleUpdateConnectParamEnableFlag)

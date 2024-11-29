@@ -98,7 +98,6 @@ typedef enum
 #define BLE_NORMAL_INTERVAL_MAX                     100                // 期望的BLE连接间隔(最大值)(*1.25ms)
 #define BLE_NORMAL_LATENCY                          7                  // 期望的BLE连接可跳过的包数
 #define BLE_NORMAL_TIMEOUT                          500                // 期望的BLE超时时间
-#define BLE_MAX_CONNECTED_NUM                       1                  // 设备可以同时被连接的最大数量
 #define P3_PROTOCOL									(0)				   // P3通讯协议宏定义
 #define P3_ENCRYPT_PROTOCOL						    (1)				   // P3加密协议宏定义
 #define GN_2_PROTOCOL						     	(2)				   // GN-2加密协议宏定义
@@ -230,7 +229,7 @@ typedef struct
 
 typedef struct
 {
-    BleConnectInfo_t BleConnectInfo[BLE_MAX_CONNECTED_NUM];            // 当前BLE连接信息数组
+    BleConnectInfo_t BleConnectInfo;                                // 当前BLE连接信息
     #if (USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) 
     bool bCgmsPwdVerifyOk;                                             // 当前密码是否验证成功
     uint16_t usPasswordSaved;                                          // 保存的密码

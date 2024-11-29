@@ -233,19 +233,16 @@ static void app_glucose_handle(void)
     {
         app_global_get_app_state()->bSentMeasSuccess = false;
 
-        for (uint8_t i = 0; i < BLE_MAX_CONNECTED_NUM; i++)
+        // 如果发现一个连接,且效验过密码
+        if (app_have_a_active_ble_connect() && app_global_get_app_state()->bCgmsPwdVerifyOk)
         {
-            // 如果发现一个连接
-            if (app_global_get_app_state()->BleConnectInfo[i].bIsConnected == true)
+            ble_event_info_t BleEventInfo;
+            BleEventInfo.ucConidx = app_global_get_app_state()->BleConnectInfo.usBleConidx;
+            BleEventInfo.usHandle = gattdb_cgm_measurement;
+            ErrCode = cgms_meas_send(BleEventInfo, rec);
+            if (ErrCode != RET_CODE_SUCCESS)
             {
-                ble_event_info_t BleEventInfo;
-                BleEventInfo.ucConidx = app_global_get_app_state()->BleConnectInfo[i].usBleConidx;
-                BleEventInfo.usHandle = gattdb_cgm_measurement;
-                ErrCode = cgms_meas_send(BleEventInfo, rec);
-                if (ErrCode != RET_CODE_SUCCESS)
-                {
-                    log_e("cgms_meas_send fail:%d", ErrCode);
-                }
+                log_e("cgms_meas_send fail:%d", ErrCode);
             }
         }
     }

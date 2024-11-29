@@ -530,7 +530,7 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
 #if ((USE_BLE_PROTOCOL==P3_ENCRYPT_PROTOCOL) ||(USE_BLE_PROTOCOL==GN_2_PROTOCOL))
     uint8_t ucTempDatapacketBuffer[16];
-    elog_hexdump("racp_rev", 16,pData, usLen);
+    elog_hexdump("racp_rev", 16, pData, usLen);
     cgms_aes128_decrpty(pData, ucTempDatapacketBuffer);
     memcpy(pData, ucTempDatapacketBuffer, 16);
 #endif
@@ -538,46 +538,58 @@ void on_racp_value_write(ble_event_info_t BleEventInfo, uint16_t usLen, uint8_t*
     elog_hexdump("datapacket", 16, pData, usLen);
     RspDatapacket.ucOpCode = RacpDatapacket.ucOpCode;
     bool bCrcPassFlag = false;
-    // 效验命令的CRC
-    if (do_crc(pData, usLen) != 0)
-    {
-        bCrcPassFlag = true;
-    }
-    switch (RacpDatapacket.ucOpCode)
-    {
-    case RACP_OPCODE_REPORT_RECS:
-    {
-        cgms_racp_report_recs(BleEventInfo, RacpDatapacket, bCrcPassFlag);
-        return;
-    }
-    case RACP_OPCODE_REPORT_NUM_RECS:
-    {
-        cgms_racp_report_num_recs(BleEventInfo, RacpDatapacket, bCrcPassFlag);
-        return;
-    }
-    case RACP_OPCODE_DELETE_RECS:
-    {
-        cgms_racp_delete_recs(BleEventInfo, RacpDatapacket, bCrcPassFlag);
-        return;
-    }
-    case RACP_OPCODE_ABORT_OPERATION:
 
-        cgms_racp_abort_operation(BleEventInfo, RacpDatapacket, bCrcPassFlag);
-        return;
-    default:
+    // 如果已经通过了密码效验
+    if (app_global_get_app_state()->bCgmsPwdVerifyOk)
     {
-        ble_cgms_racp_datapacket_t RspDatapacket;
-        memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
-        log_w("RACP_RESPONSE_RESULT_OPCODE_UNSUPPORTED");
-        // Respond with error code
-        ResponseCode = RACP_RESPONSE_RESULT_OPCODE_UNSUPPORTED;
+        // 效验命令的CRC
+        if (do_crc(pData, usLen) != 0)
+        {
+            bCrcPassFlag = true;
+        }
+        switch (RacpDatapacket.ucOpCode)
+        {
+        case RACP_OPCODE_REPORT_RECS:
+        {
+            cgms_racp_report_recs(BleEventInfo, RacpDatapacket, bCrcPassFlag);
+            return;
+        }
+        case RACP_OPCODE_REPORT_NUM_RECS:
+        {
+            cgms_racp_report_num_recs(BleEventInfo, RacpDatapacket, bCrcPassFlag);
+            return;
+        }
+        case RACP_OPCODE_DELETE_RECS:
+        {
+            cgms_racp_delete_recs(BleEventInfo, RacpDatapacket, bCrcPassFlag);
+            return;
+        }
+        case RACP_OPCODE_ABORT_OPERATION:
+
+            cgms_racp_abort_operation(BleEventInfo, RacpDatapacket, bCrcPassFlag);
+            return;
+        default:
+        {
+            ble_cgms_racp_datapacket_t RspDatapacket;
+            memset(&RspDatapacket, 0x00, sizeof(RspDatapacket));
+            log_w("RACP_RESPONSE_RESULT_OPCODE_UNSUPPORTED");
+            // Respond with error code
+            ResponseCode = RACP_RESPONSE_RESULT_OPCODE_UNSUPPORTED;
+            // 发送回应包
+            racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
+            return;
+        }
+        }
+
         // 发送回应包
         racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
-        return;
     }
+    else
+    {
+        log_w("Ble Password Not Verify,Ble disconnect");
+        // 断开蓝牙连接
+        sl_bt_connection_close(BleEventInfo.usHandle);
     }
-    // 发送回应包
-    racp_response_send(BleEventInfo, ResponseCode, RspDatapacket);
 }
 
 
