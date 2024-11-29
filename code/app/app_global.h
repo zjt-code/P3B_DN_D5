@@ -30,6 +30,7 @@ typedef enum
  MAIN_LOOP_EVENT_NONE,                              // 无效事件
  MAIN_LOOP_EVENT_BLE_UPDATE_CONNECT_PARAMETERS,     // 更新BLE连接参数事件
  MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER,                  // AFE周期唤醒定时器事件
+ MAIN_LOOP_EVENT_AFE_INIT_DELAY_TIMER,              // AFE初始化延时定时器事件
  MAIN_LOOP_EVENT_AFE_MEASURE_TIMER,                 // AFE触发测量定时器事件
  MAIN_LOOP_EVENT_AFE_CONFIG_AFTER_TIMER,            // AFE配置后处理定时器事件
  MAIN_LOOP_EVENT_AFE_IRQ,                           // AFE中断触发事件

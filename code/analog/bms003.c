@@ -66,7 +66,7 @@ static double g_fAfeTemp = 30.0;                                    // AFE测量
 static bool g_bAfeTempMeasFlag = true;                              // AFE是否触发测量温度标志位
 sl_sleeptimer_timer_handle_t g_Bms003WakeupTimer;
 sl_sleeptimer_timer_handle_t g_Bms003MeasureTimer;
-
+sl_sleeptimer_timer_handle_t g_Bms003InitTimer;
 /* Private function prototypes -----------------------------------------------*/
 uint8_t bms003_read_cycle(uint8_t ucRegAddr);
 void bms003_read_burst(uint8_t ucRegAddr, uint8_t* pData, uint8_t ucLen);
@@ -75,6 +75,7 @@ void bms003_write_cycle(uint8_t ucRegAddr, uint8_t ucData);
 void bms003_int_irq_callback(uint8_t intNo, void* ctx);
 void bms003_measure_timer_handler(void);
 void bms003_wakeup_timer_handler(void);
+void bms003_init_timer_handler(void);
 void bms003_start(afe_run_mode_t RunMode);
 void bms003_stop(void);
 void bms003_wakeup(void);
@@ -264,7 +265,36 @@ void bms003_measure_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* d
 }
 
 
+/*******************************************************************************
+*                           陈苏阳@2024-11-29
+* Function Name  :  bms003_init_timer_callback
+* Description    :  bms003初始化定时器回调
+* Input          :  sl_sleeptimer_timer_handle_t * handle
+* Input          :  void * data
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void bms003_init_timer_callback(sl_sleeptimer_timer_handle_t* handle, void* data)
+{
+    log_d("bms003_init_timer_callback");
+    // 发送事件
+    event_push(MAIN_LOOP_EVENT_AFE_INIT_DELAY_TIMER, NULL);
+}
 
+/*******************************************************************************
+*                           陈苏阳@2024-11-29
+* Function Name  :  bms003_init_timer_handler
+* Description    :  BMS003初始化软件定时器
+* Input          :  void
+* Output         :  None
+* Return         :  void
+*******************************************************************************/
+void bms003_init_timer_handler(void)
+{
+    // 使能BMS003
+    bms003_enable();
+    g_uiChipEnTime = rtc_get_curr_time();
+}
 
 
 /*******************************************************************************
@@ -299,6 +329,7 @@ void bms003_init(void)
     // 添加事件
     event_add(MAIN_LOOP_EVENT_AFE_MEASURE_TIMER, bms003_measure_timer_handler);
     event_add(MAIN_LOOP_EVENT_AFE_WAKEUP_TIMER, bms003_wakeup_timer_handler);
+    event_add(MAIN_LOOP_EVENT_AFE_INIT_DELAY_TIMER, bms003_init_timer_handler);
     event_add(MAIN_LOOP_EVENT_AFE_IRQ, bms003_int_irq_handler);
     // 创建fifo
     fifo_create(&g_NewDataFifo, g_fNewDataFifoBuffer, sizeof(g_fNewDataFifoBuffer[0]), sizeof(g_fNewDataFifoBuffer) / sizeof(g_fNewDataFifoBuffer[0]));
@@ -306,13 +337,15 @@ void bms003_init(void)
     // 失能BMS003
     bms003_disable();
     bms003_sleep();
-    bms003_delay_us(2000);
-    // 使能BMS003
-    bms003_enable();
-
-    g_uiChipEnTime = rtc_get_curr_time();
-            }
-            
+    sl_status_t status;
+    // 启动一个200ms后的单次定时器
+    status = sl_sleeptimer_start_timer(&g_Bms003InitTimer, sl_sleeptimer_ms_to_tick(200), bms003_init_timer_callback, (void*)NULL, 0, 0);
+    if (status != SL_STATUS_OK)
+    {
+        log_e("sl_sleeptimer_start_timer failed");
+        return;
+    }
+}       
 
 /*******************************************************************************
 *                           陈苏阳@2023-11-02
@@ -944,6 +977,7 @@ void bms003_booting_temp_config(void)
 *******************************************************************************/
 void bms003_wakeup_config(void)
 {
+    log_d("bms003_wakeup_config");
     uint8_t ucBufferIndex = 0;
     uint8_t ucWriteBuffer[32];
     bms003_delay_us(1);
@@ -994,7 +1028,6 @@ void bms003_wakeup_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     bms003_write_burst(0x17, ucWriteBuffer, ucBufferIndex);
-
 }
 #endif
 
