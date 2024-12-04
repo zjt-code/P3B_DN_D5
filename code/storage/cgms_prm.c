@@ -19,7 +19,6 @@ uint8_t g_ucSn[11] = { 'J','N','-','X','X', 'X', '0', '0', '0', '0',0x00 };
 prm_t g_PrmDb __attribute__((aligned(4)));
 user_usage_data_t g_UserUsageData __attribute__((aligned(4)));
 battery_info_t g_BatteryInfo __attribute__((aligned(4)));
-
 /*******************************************************************************
 *                           陈苏阳@2022-12-26
 * Function Name  :  cgms_prm_db_write_flash

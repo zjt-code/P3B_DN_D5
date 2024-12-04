@@ -877,6 +877,7 @@ void cgms_socp_write_prm(__attribute__((unused)) ble_event_info_t BleEventInfo, 
         case SOCP_PRM_NO_CLEAR_BATTERY_INFO:
         {
             g_BatteryInfo.uiBatteryRunTime = 0;
+            g_BatteryInfo.uiLastSaveBatteryRunTime = 0;
             // 保存电池信息
             app_battery_save_battery_info_to_flash();
             pRspRequest->ucRspCode = SOCP_RSP_SUCCESS;

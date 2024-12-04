@@ -55,6 +55,8 @@ app_battery_vol_level_point_t g_BatteryVolToLevelArray[12] = {
     {.ucLevel = 5,.usVol = 1270}
 };
 
+
+uint32_t g_uiLastSaveBatteryRunTime = 0;
 /* Private function prototypes -----------------------------------------------*/
 
 
@@ -288,6 +290,14 @@ void app_battery_timer_handler(uint16_t usInterval)
         {
             bRunFsmFlag = false;
         }
+    }
+    
+    // 如果当前电池时间已经超过上一次存储的电池时间10分钟
+    if (g_BatteryInfo.uiBatteryRunTime - g_BatteryInfo.uiLastSaveBatteryRunTime >= (10 * 60))
+    {
+        // 强制触发一次存储
+        app_battery_save_battery_info_to_flash();
+        g_BatteryInfo.uiLastSaveBatteryRunTime = g_BatteryInfo.uiBatteryRunTime;
     }
 
     if (bRunFsmFlag == false)return;

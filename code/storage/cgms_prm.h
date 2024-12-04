@@ -49,6 +49,7 @@ typedef struct
 {
     uint8_t ucDataValidFlag;                                        // 数据有效标志位
     uint32_t uiBatteryRunTime;                                      // 电池运行时间
+    uint32_t uiLastSaveBatteryRunTime;                              // 上一次保存的电池运行时间
     uint16_t usLastBatteryVol;                                      // 上一次的电池电压
     uint8_t ucNone[8];                                              // 未使用
     uint16_t usCrc16;
