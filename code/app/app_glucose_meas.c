@@ -202,36 +202,46 @@ static void app_glucose_handle(void)
     simpleGlucoCalc(&g_fGlucoseConcentration, g_usGlucoseRecordsCurrentOffset);
     log_i("simpleGlucoCalc(%f)  sfCurrI0:%f", g_fGlucoseConcentration, sfCurrI0);
     cgms_meas_t rec;
-        memset(&rec, 0, sizeof(cgms_meas_t));
-        rec.usGlucose = (uint16_t)(g_fGlucoseConcentration * 10.0f);
+    memset(&rec, 0, sizeof(cgms_meas_t));
+    rec.usGlucose = (uint16_t)(g_fGlucoseConcentration * 10.0f);
     rec.usCurrent = (uint16_t)(sfCurrI0 * 100.0f);
     g_usGlucoseElectricCurrent = rec.usCurrent;
-        rec.usQuality = 0x00;
+    rec.usQuality = 0x00;
     uint8_t ucCv = cgms_i_cv(sfCurrI0, g_usGlucoseRecordsCurrentOffset);
     uint8_t ucState;
     cgms_error_fault_cal(g_usGlucoseRecordsCurrentOffset, g_fGlucoseConcentration, sfCurrI0, &ucState, ucCv); // 计算异常逻辑
     uint8_t ucTrend = cgms_cal_trend(g_fGlucoseConcentration, g_usGlucoseRecordsCurrentOffset);// 计算趋势
     rec.ucCV = ucCv;
     rec.ucTrend = ucTrend;
-        rec.ucState = ucState;
+
+    // 如果是最后一条数据
+    if (g_usGlucoseRecordsCurrentOffset == (CGMS_DB_MAX_RECORDS - 1))
+    {
+    	// 强制将最后一条数据的状态设置为到期停止
+        if (ucState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING)ucState = CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED;
+        if (ucState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_HIGH)ucState = CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED;
+        if (ucState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_LOW)ucState = CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED;
+        if (ucState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CV_ERR)ucState = CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED;
+    }
+    rec.ucState = ucState;
     att_get_cgm_status()->ucRunStatus = ucState;
 
 
     app_global_get_app_state()->CgmTrend = ucTrend;
-        rec.usOffset = g_usGlucoseRecordsCurrentOffset;
-        rec.usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_REAL;
+    rec.usOffset = g_usGlucoseRecordsCurrentOffset;
+    rec.usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_REAL;
 #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
     // 计算CRC
     rec.usCRC16 = do_crc(&rec, sizeof(rec) - 2);
 #endif
 
-        log_i("cgms_meas_create  %d,%d,%d", rec.usOffset, rec.usGlucose, rec.usCurrent);
-        // 存储历史记录
-        ret_code_t ErrCode = cgms_db_record_add(&rec);
-        if (ErrCode != RET_CODE_SUCCESS)
-        {
-            log_e("cgms_db_record_add fail:%d", ErrCode);
-        }
+    log_i("cgms_meas_create  %d,%d,%d", rec.usOffset, rec.usGlucose, rec.usCurrent);
+    // 存储历史记录
+    ret_code_t ErrCode = cgms_db_record_add(&rec);
+    if (ErrCode != RET_CODE_SUCCESS)
+    {
+        log_e("cgms_db_record_add fail:%d", ErrCode);
+    }
     // 通过BLE发送本次的测量记录
 
     if ((ble_meas_notify_is_enable()) && app_have_a_active_ble_connect())
@@ -268,8 +278,8 @@ static void app_glucose_handle(void)
     // 更新CGM状态char的offset
     att_get_cgm_status()->usNumberOfReadings = app_global_get_app_state()->usTimeOffset + 1;
 #if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
-	// 更新CGM状态char的内容
-	att_update_cgm_status_char_data_crc();
+    // 更新CGM状态char的内容
+    att_update_cgm_status_char_data_crc();
 #else
     // 更新CGM状态char的内容
     att_update_cgm_status_char_data();
