@@ -37,8 +37,8 @@ typedef struct
     
     #else
     uint8_t ucNone[7];// 填充
-    #endif
     uint16_t usChecksum;// 校验
+    #endif
 }__attribute__((packed))  one_record_storage_unit_t;// 单个历史数据存储结构体
 
 typedef struct

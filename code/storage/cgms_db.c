@@ -596,10 +596,12 @@ ret_code_t cgms_db_record_add(cgms_meas_t* pRec)
     one_record_storage_unit_t TmpBuffer;
     memcpy(&TmpBuffer.Record, pRec, sizeof(TmpBuffer.Record));
 
+#if (USE_BLE_PROTOCOL!=GN_2_PROTOCOL)
     // 计算CRC
     uint8_t* p = (uint8_t*)&TmpBuffer;
     uint16_t usTmpCrc = do_crc(p, sizeof(TmpBuffer) - 2);
     TmpBuffer.usChecksum = usTmpCrc;
+#endif
 
     // 计算当前要写入的历史数据的位置
     uint16_t usPageIndex, usPosInPage;

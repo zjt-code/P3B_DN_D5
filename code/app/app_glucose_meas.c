@@ -103,10 +103,10 @@ void app_glucose_avg_electric_current_cal_add_data(double dElectricCurrent)
 *******************************************************************************/
 float* app_glucose_avg_electric_current_get_electric_current_array(void)
 {
-    // 如果数组中的数据不足20个,则补齐
-    if (g_ucAvgElectricCurrentCalTempArrayCnt < 20)
+    // 如果数组中的数据不足,则补齐
+    if (g_ucAvgElectricCurrentCalTempArrayCnt < APP_GLUCOSE_MEAS_ONE_MEAS_SAMPLE_NUM)
     {
-        for (uint8_t i = g_ucAvgElectricCurrentCalTempArrayCnt; i < 20; i++)
+        for (uint8_t i = g_ucAvgElectricCurrentCalTempArrayCnt; i < APP_GLUCOSE_MEAS_ONE_MEAS_SAMPLE_NUM; i++)
         {
             if (i > 0)
             {
@@ -220,6 +220,11 @@ static void app_glucose_handle(void)
     app_global_get_app_state()->CgmTrend = ucTrend;
         rec.usOffset = g_usGlucoseRecordsCurrentOffset;
         rec.usHistoryFlag = CGMS_MEAS_HISTORY_FLAG_REAL;
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
+    // 计算CRC
+    rec.usCRC16 = do_crc(&rec, sizeof(rec) - 2);
+#endif
+
         log_i("cgms_meas_create  %d,%d,%d", rec.usOffset, rec.usGlucose, rec.usCurrent);
         // 存储历史记录
         ret_code_t ErrCode = cgms_db_record_add(&rec);
@@ -374,8 +379,8 @@ void app_glucose_meas_glucose_handler(void)
     // 如果到达了猝发采样的开始时间点
     else if (g_ucGlucoseMeasTimeCnt == (APP_GLUCOSE_MEAS_MEAS_INTERVAL - 1))
     {
-        // 开始20次猝发采样
-        afe_shot(20);
+        // 开始猝发采样
+        afe_shot(APP_GLUCOSE_MEAS_ONE_MEAS_SAMPLE_NUM);
     }
 
 }
@@ -504,7 +509,7 @@ void app_glucose_meas_start(app_glucose_meas_type_t GlucoseMeasType)
     g_AppGlucoseMeasType = GlucoseMeasType;
     log_d("app glucose meas start");
     // 启动一个1分钟的循环定时器
-    sl_status_t status = sl_sleeptimer_start_periodic_timer(&g_AppGlucoseMeasTimer, sl_sleeptimer_ms_to_tick(60 * 1000), app_glucose_meas_timer_callback, (void*)NULL, 0, 0);
+    sl_status_t status = sl_sleeptimer_start_periodic_timer(&g_AppGlucoseMeasTimer, sl_sleeptimer_ms_to_tick(APP_GLUCOSE_MEAS_SOFTTIMER_INTERVAL), app_glucose_meas_timer_callback, (void*)NULL, 0, 0);
     if (status != SL_STATUS_OK)
     {
         log_e("sl_sleeptimer_start_timer failed");
