@@ -213,16 +213,6 @@ static void app_glucose_handle(void)
     uint8_t ucTrend = cgms_cal_trend(g_fGlucoseConcentration, g_usGlucoseRecordsCurrentOffset);// 计算趋势
     rec.ucCV = ucCv;
     rec.ucTrend = ucTrend;
-
-    // 如果是最后一条数据
-    if (g_usGlucoseRecordsCurrentOffset == (CGMS_DB_MAX_RECORDS - 1))
-    {
-    	// 强制将最后一条数据的状态设置为到期停止
-        if (ucState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_RUNNING)ucState = CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED;
-        if (ucState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_HIGH)ucState = CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED;
-        if (ucState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CURRENT_TOO_LOW)ucState = CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED;
-        if (ucState == CGM_MEASUREMENT_SENSOR_STATUS_SESSION_CV_ERR)ucState = CGM_MEASUREMENT_SENSOR_STATUS_SENSION_EXPRIED;
-    }
     rec.ucState = ucState;
     att_get_cgm_status()->ucRunStatus = ucState;
 

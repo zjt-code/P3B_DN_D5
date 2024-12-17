@@ -29,8 +29,8 @@
   <service advertise="false" id="device_information" name="Device Information" requirement="mandatory" sourceId="org.bluetooth.service.device_information" type="primary" uuid="180A">
     <informativeText>Abstract: The Device Information Service exposes manufacturer and/or vendor information about a device. Summary: This service exposes manufacturer information about a device. The Device Information Service is instantiated as a Primary Service. Only one instance of the Device Information Service is exposed on a device.</informativeText>
 
-    <!--Device Model String-->
-    <characteristic const="false" id="device_model_string" name="Device Model String" sourceId="org.bluetooth.characteristic.model_number_string" uuid="2A24">
+    <!--Manufacturer Name-->
+    <characteristic const="false" id="manufacturer_name_string" name="Manufacturer Name" sourceId="org.bluetooth.characteristic.model_number_string" uuid="2A24">
       <informativeText>Abstract: The value of this characteristic is a UTF-8 string representing the model number assigned by the device vendor.</informativeText>
       <value length="0" type="utf-8" variable_length="false">Infinovo</value>
       <properties>
@@ -38,10 +38,10 @@
       </properties>
     </characteristic>
 
-    <!--SN_String-->
-    <characteristic const="false" id="sn_string" name="SN_String" sourceId="org.bluetooth.characteristic.model_number_string" uuid="2A25">
+    <!--Model Name-->
+    <characteristic const="false" id="model_name_string" name="Model Name" sourceId="org.bluetooth.characteristic.model_number_string" uuid="2A25">
       <informativeText>Abstract: The value of this characteristic is a UTF-8 string representing the model number assigned by the device vendor.</informativeText>
-      <value length="0" type="utf-8" variable_length="false">D3</value>
+      <value length="0" type="utf-8" variable_length="false">DN</value>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>

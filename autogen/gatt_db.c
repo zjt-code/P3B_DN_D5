@@ -95,7 +95,7 @@ GATT_DATA(sli_bt_gattdb_attribute_chrvalue_t gattdb_attribute_field_19) = {
 GATT_DATA(sli_bt_gattdb_attribute_chrvalue_t gattdb_attribute_field_17) = {
   .properties = 0x02,
   .max_len = 2,
-  .data = { 0x44, 0x33, },
+  .data = { 0x44, 0x4e, },
 };
 GATT_DATA(sli_bt_gattdb_attribute_chrvalue_t gattdb_attribute_field_15) = {
   .properties = 0x02,
