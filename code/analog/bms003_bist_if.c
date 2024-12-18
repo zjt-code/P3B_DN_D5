@@ -582,7 +582,9 @@ void read_param_value(void)
 {
     test_Read();
     dac1WE1 = WE1_Read();                   // WE1偏置电压(DAC1)校准值 10bit
+    dac1WE1 = dac1WE1 - (400 / 1.66f);
     dac2RE = RE_Read();                     // RE偏置电压(DAC2)校准值 10bit
+    //dac2RE = dac2RE + (500 / 1.66f);
     tempK = TEMP_K_Read();                  // 温度K
     tempB = TEMP_B_Read();                  // 温度B
     tempWE1 = TEMP_WE1_Read();              // WE1温漂系数

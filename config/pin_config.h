@@ -109,22 +109,6 @@
 #define EUSART0_CS_PIN                           4
 #endif
 
-// EUSART0 CTS on PA02
-#ifndef EUSART0_CTS_PORT                        
-#define EUSART0_CTS_PORT                         gpioPortA
-#endif
-#ifndef EUSART0_CTS_PIN                         
-#define EUSART0_CTS_PIN                          2
-#endif
-
-// EUSART0 RTS on PA03
-#ifndef EUSART0_RTS_PORT                        
-#define EUSART0_RTS_PORT                         gpioPortA
-#endif
-#ifndef EUSART0_RTS_PIN                         
-#define EUSART0_RTS_PIN                          3
-#endif
-
 // EUSART0 RX on PC02
 #ifndef EUSART0_RX_PORT                         
 #define EUSART0_RX_PORT                          gpioPortC
@@ -177,13 +161,6 @@
 #endif
 #ifndef AFE_INT_PIN                             
 #define AFE_INT_PIN                              6
-#endif
-
-#ifndef MCU_POWER_LOCK_PORT                     
-#define MCU_POWER_LOCK_PORT                      gpioPortB
-#endif
-#ifndef MCU_POWER_LOCK_PIN                      
-#define MCU_POWER_LOCK_PIN                       1
 #endif
 
 #ifndef TMODE1_PORT                             

@@ -65,7 +65,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/config}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/config/btconf}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/autogen}&quot;"/>
-									<listOptionValue builtIn="false" value="C:/SiliconLabs/SimplicityStudio/v5/developer/sdks/gecko_sdk_suite/v4.4.0/app/bluetooth/example/bt_soc_blinky"/>
 									<listOptionValue builtIn="false" value="&quot;${StudioSdkPath}/platform/Device/SiliconLabs/EFR32BG27/Include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${StudioSdkPath}/app/common/util/app_assert&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${StudioSdkPath}/app/common/util/app_timer&quot;"/>

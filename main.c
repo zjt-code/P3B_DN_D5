@@ -63,8 +63,7 @@ int main(void)
 
     // 初始化GPIO的时钟
     CMU_ClockEnable(cmuClock_GPIO, true);
-    // 设置MCU_POWER_LOCK引脚为推挽输出
-    GPIO_PinModeSet(MCU_POWER_LOCK_PORT, MCU_POWER_LOCK_PIN, gpioModePushPull, 1);
+
     // 初始化log
     SEGGER_RTT_Init();
     SEGGER_RTT_SetTerminal(0);

@@ -823,6 +823,9 @@ void bms003_read_burst(uint8_t ucRegAddr, uint8_t* pData, uint8_t ucLen)
 *******************************************************************************/
 void bms003_booting_config(void)
 {
+    uint8_t ucReadBuffer[32];
+    memset(ucReadBuffer, 0x00, sizeof(ucReadBuffer));
+
     uint8_t ucWriteBuffer[32];
     uint8_t ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = CLK;
@@ -840,17 +843,25 @@ void bms003_booting_config(void)
     ucWriteBuffer[ucBufferIndex++] = CH1_WE1_VGAIN_SEL;// addr:0x54 配置DDA增益倍数
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x55 默认为0
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x56 默认为0
-    ucWriteBuffer[ucBufferIndex++] = 0x0;// addr:0x57 参比电极以及辅助电极使能
+    ucWriteBuffer[ucBufferIndex++] = 0x1;// addr:0x57 参比电极以及辅助电极使能
     ucWriteBuffer[ucBufferIndex++] = 0x1;// addr:0x58 工作电极的偏置电压由第一个DAC生成使能
     uint8_t ucCh1WeL8, ucCH1WeH2;
     bms003_get_fix_ch1_din_we(&ucCh1WeL8, &ucCH1WeH2);
     ucWriteBuffer[ucBufferIndex++] = ucCh1WeL8;// addr:0x59 设置偏置电压[0:7]
     ucWriteBuffer[ucBufferIndex++] = ucCH1WeH2;// addr:0x5A 设置偏置电压[8:9]
-    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5B 参比电极的偏置电压由第二个DAC生成使能[0:7]
-    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5C 配置CE[0:7]
-    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5D 配置CE[8:9]
+    ucWriteBuffer[ucBufferIndex++] = 0x01;// addr:0x5B 参比电极的偏置电压由第二个DAC生成使能[0:7]
+    uint8_t ucCh1ReceL8, ucCH1ReceH2;
+    bms003_get_fix_ch1_dinRce(&ucCh1ReceL8, ucCH1ReceH2);
+    ucWriteBuffer[ucBufferIndex++] = ucCh1ReceL8;// addr:0x5C 配置CE[0:7]
+    ucWriteBuffer[ucBufferIndex++] = ucCH1ReceH2;// addr:0x5D 配置CE[8:9]
     bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex);
-
+    bms003_delay_us(1);
+    // 回读校验
+    bms003_read_burst(0x53, ucReadBuffer, 2);
+    if (ucReadBuffer[0] != CH1_WE1_RFB_SEL || ucReadBuffer[1] != CH1_WE1_VGAIN_SEL)
+    {
+        log_e("bms003_booting_config half read back check error 0x53:0x%02X   0x54:0x%02X", ucReadBuffer[0], ucReadBuffer[1]);
+    }
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = ELE_BUF;
@@ -871,7 +882,7 @@ void bms003_booting_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     bms003_write_burst(0x017, ucWriteBuffer, ucBufferIndex);
-    uint8_t ucReadBuffer[32];
+
     memset(ucReadBuffer, 0x00, sizeof(ucReadBuffer));
 
     // 回读校验
@@ -882,7 +893,7 @@ void bms003_booting_config(void)
 }
     else
     {
-        log_e("bms003_booting_config error:%d 0x53:%02X   0x54:%02X", ucReadBuffer[0], ucReadBuffer[1]);
+        log_e("bms003_booting_config error 0x53:0x%02X   0x54:0x%02X", ucReadBuffer[0], ucReadBuffer[1]);
     }
 }
 
@@ -922,16 +933,18 @@ void bms003_booting_temp_config(void)
     ucWriteBuffer[ucBufferIndex++] = CH1_WE1_VGAIN_SEL;// addr:0x54 配置DDA增益倍数
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x55 默认为0
     ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x56 默认为0
-    ucWriteBuffer[ucBufferIndex++] = 0x0;// addr:0x57 参比电极以及辅助电极使能
+    ucWriteBuffer[ucBufferIndex++] = 0x1;// addr:0x57 参比电极以及辅助电极使能
     ucWriteBuffer[ucBufferIndex++] = 0x1;// addr:0x58 工作电极的偏置电压由第一个DAC生成使能
     uint8_t ucCh1WeL8, ucCH1WeH2;
 
     bms003_get_fix_ch1_din_we(&ucCh1WeL8, &ucCH1WeH2);
     ucWriteBuffer[ucBufferIndex++] = ucCh1WeL8;// addr:0x59 设置偏置电压[0:7]
     ucWriteBuffer[ucBufferIndex++] = ucCH1WeH2;// addr:0x5A 设置偏置电压[8:9]
-    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5B 参比电极的偏置电压由第二个DAC生成使能[0:7]
-    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5C 配置CE[0:7]
-    ucWriteBuffer[ucBufferIndex++] = 0x00;// addr:0x5D 配置CE[8:9]
+    ucWriteBuffer[ucBufferIndex++] = 0x01;// addr:0x5B 参比电极的偏置电压由第二个DAC生成使能[0:7]
+    uint8_t ucCh1ReceL8, ucCH1ReceH2;
+    bms003_get_fix_ch1_dinRce(&ucCh1ReceL8, ucCH1ReceH2);
+    ucWriteBuffer[ucBufferIndex++] = ucCh1ReceL8;// addr:0x5C 配置CE[0:7]
+    ucWriteBuffer[ucBufferIndex++] = ucCH1ReceH2;// addr:0x5D 配置CE[8:9]
     ucWriteBuffer[ucBufferIndex++] = 0x03;// addr:0x5E
     ucWriteBuffer[ucBufferIndex++] = 0x09;// addr:0x5F
     bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex);
@@ -977,7 +990,6 @@ void bms003_booting_temp_config(void)
 *******************************************************************************/
 void bms003_wakeup_config(void)
 {
-    log_d("bms003_wakeup_config");
     uint8_t ucBufferIndex = 0;
     uint8_t ucWriteBuffer[32];
     bms003_delay_us(1);
@@ -998,15 +1010,17 @@ void bms003_wakeup_config(void)
     ucWriteBuffer[ucBufferIndex++] = CH1_WE1_VGAIN_SEL;         //54配置DDA增益倍数  0 8 10 18 20 28 30 38    1 2 3 4 8 15 22 29
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //55默认为0
     ucWriteBuffer[ucBufferIndex++] = 0x00;                      //56默认为0
-    ucWriteBuffer[ucBufferIndex++] = 0x00;                      //57参比电极以及辅助电极使能
+    ucWriteBuffer[ucBufferIndex++] = 0x01;                      //57参比电极以及辅助电极使能
     ucWriteBuffer[ucBufferIndex++] = 0x01;                      //58工作电极的偏置电压由第一个DAC生成使能	
     uint8_t ucCh1WeL8, ucCH1WeH2;
     bms003_get_fix_ch1_din_we(&ucCh1WeL8, &ucCH1WeH2);
     ucWriteBuffer[ucBufferIndex++] = ucCh1WeL8;                 //59设置偏置电压[0:7]
     ucWriteBuffer[ucBufferIndex++] = ucCH1WeH2;                 //5A设置偏置电压[8:9]
-    ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5B参比电极的偏置电压由第二个DAC生成使能[0:7]
-    ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5C配置CE[0:7]
-    ucWriteBuffer[ucBufferIndex++] = 0x00;                      //5C配置CE[8:9]
+    ucWriteBuffer[ucBufferIndex++] = 0x01;// addr:0x5B 参比电极的偏置电压由第二个DAC生成使能[0:7]
+    uint8_t ucCh1ReceL8, ucCH1ReceH2;
+    bms003_get_fix_ch1_dinRce(&ucCh1ReceL8, ucCH1ReceH2);
+    ucWriteBuffer[ucBufferIndex++] = ucCh1ReceL8;// addr:0x5C 配置CE[0:7]
+    ucWriteBuffer[ucBufferIndex++] = ucCH1ReceH2;// addr:0x5D 配置CE[8:9]
     bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex);
 
     ucBufferIndex = 0;
