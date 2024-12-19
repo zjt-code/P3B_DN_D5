@@ -19,7 +19,7 @@
 /* Private define ------------------------------------------------------------*/
 
 
-#define SOFT_VER         "0.2.5"              // 软件版本号
+#define SOFT_VER         "0.0.1"              // 软件版本号
 
 
 /*************************Main Loop事件ID*****************************/
@@ -103,7 +103,7 @@ typedef enum
 #define P3_ENCRYPT_PROTOCOL						    (1)				   // P3加密协议宏定义
 #define GN_2_PROTOCOL						     	(2)				   // GN-2加密协议宏定义
 #define USE_BLE_PROTOCOL							(GN_2_PROTOCOL)	   // 使用的BLE通讯协议格式
-#define BLE_ADV_NAME_PREFIXES                       "DN\0"             // 蓝牙广播名前缀
+#define BLE_ADV_NAME_PREFIXES                       "DX\0"             // 蓝牙广播名前缀
 
 
 /**********************************************************************/

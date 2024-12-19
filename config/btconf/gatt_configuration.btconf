@@ -41,7 +41,7 @@
     <!--Model Name-->
     <characteristic const="false" id="model_name_string" name="Model Name" sourceId="org.bluetooth.characteristic.model_number_string" uuid="2A25">
       <informativeText>Abstract: The value of this characteristic is a UTF-8 string representing the model number assigned by the device vendor.</informativeText>
-      <value length="0" type="utf-8" variable_length="false">DN</value>
+      <value length="0" type="utf-8" variable_length="false">DX</value>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>

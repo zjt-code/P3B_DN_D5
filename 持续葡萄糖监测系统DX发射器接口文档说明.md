@@ -1,0 +1,1514 @@
+# 持续葡萄糖监测系统DX发射器接口文档说明
+
+
+
+#### 版本:V1.1
+
+#### 编制:陈苏阳
+
+#### 日期:2024年12月16日
+
+
+
+<table>
+<thead>
+<tr>
+<th align="center" colspan="3")>文档修改记录</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">版本号</td>
+<td align="left">修改内容</td>
+<td align="left">修改时间</td>
+</tr>
+<tr>
+<td align="left">V1.1</td>
+<td align="left">初稿</td>
+<td align="left">2024.12.16</td>
+</tr>
+</tbody></table>
+
+
+
+
+
+
+## 目录
+
+1.[项目描述](#项目描述)
+2.[BLE接口概览](#接口概览)
+3.[接口说明](#接口说明)
+3.1.[CGM测量数据](#CGM测量数据)
+3.2.[CGM特性](#CGM特性)
+3.3.[CGM状态](#CGM状态)
+3.4.[记录存取控制点](#记录存取控制点)
+3.5.[CGM轮次开始时间](#CGM轮次开始时间)
+3.6.[特殊操作控制点](#特殊操作控制点)
+3.7.[制造商名称](#制造商名称)
+3.8.[型号名称](#型号名称)
+3.9.[硬件版本](#硬件版本)
+3.10.[固件版本](#固件版本)
+3.11.[软件版本](#软件版本)
+3.12.[电池电量](#电池电量)
+4.1.[pkcs7概述与示例代码](#pkcs7)
+4.2.[AES加密概述与示例代码](#AES)
+4.3.[设置密码命令额外说明](#AdditionalInstructionsForPasswordCommand)
+4.4.[启动发射器命令额外说明](#LaunchCommandAdditionalInstructions)
+4.5.[建议与发射器的交互流程](#FlowOfInteraction)
+
+
+
+<h2 id="项目描述">项目描述</h2>
+
+​	DX发射器与App，传感器组成持续葡萄糖监测系统，实现持续监测患者血糖的功能。发射器从传感器端获取电信号转化为血糖信号，并以一定的时间间隔通过蓝牙通信发送到手机端。手机端可以通过蓝牙通信与发射器交互，通过命令控制发射器的运行状态。
+
+
+
+
+
+<h2 id="接口概览">BLE接口概览</h2>
+
+- **Continuous Glucose Monitoring(持续血糖监测服务) 服务UUID:181F**
+
+  [CGM Measurement(CGM测量数据) 特征UUID:2AA7](#CGM测量数据)
+  
+  ​	*支持的属性:Notification* 
+  
+  ​	*用途:用于获取发射器的实时血糖数据与历史血糖数据*
+  
+  [CGM Feature(CGM特性) 特征UUID:2AA8](#CGM特性)
+  
+  ​	*支持的属性:Read*
+  
+  ​	*用途:读取由APP设置的一些特性和本身的一些特性*
+  
+  [CGM Status(CGM状态) 特征UUID:2AA9](#CGM状态)
+  
+  ​	*支持的属性:Read*
+  
+  ​	*用途:读取发射器的运行状态*
+  
+  [Record Access Control Point(记录存取控制点) 特征UUID:2A52](#记录存取控制点)
+  
+  ​	*支持的属性:Write/Write without response/Notify/Indicate*
+  
+  ​	*用途:与发射器进行历史数据相关的命令交互操作*
+  
+  [CGM Session Start Time(CGM轮次开始时间) 特征UUID:2AAA](#CGM轮次开始时间)
+  
+  ​	*支持的属性:Read*
+  
+  ​	*用途:读取发射器本轮次的启动时间*与运行时间
+  
+  [CGM Specific Ops Control Point(特殊操作控制点) 特征UUID:2AAC](#特殊操作控制点)
+  
+  ​	*支持的属性:Write/Write without response/Notify/Indicate*
+  
+  ​	*用途:通过发送命令向发射器传递特性和控制发射器*
+  
+- **BatteryService(电池服务) 服务UUID:180F**
+
+  [Battery Level(电池电量) 特征UUID:180F](#电池电量)
+
+  ​	*支持的属性:Read/Notification* 
+
+  ​	*用途:获取当前发射器电量百分比*
+
+- **Device Information(设备信息服务) 服务UUID:180A**
+
+​	[Manufacturer Name(制造商名称)  特征UUID:2A24](#制造商名称)
+
+​		*支持的属性:Read*
+
+​		*用途:按ASCII读取,内容为Infinovo*
+
+​	[Model Name(型号名称) 特征UUID:2A25](#型号名称)
+
+​		*支持的属性:Read*
+
+​		用途:按ASCII读取,内容为DX
+
+​	[Hardware Revision(硬件版本) 特征UUID:2A27](#硬件版本)
+
+​		*支持的属性:Read*
+
+​		*用途:按ASCII读取,内容为000*
+
+​	[Software Revision(软件版本) 特征UUID:2A28](#软件版本)
+
+​		*支持的属性:Read*
+
+​		*用途:按ASCII读取,内容为0.2.4*
+
+
+<h2 id="接口说明">接口说明</h2>
+
+<h3 id="CGM测量数据">CGM Measurement(CGM测量数据)</h3>
+
+
+特征UUID:2AA7
+
+支持的属性:Notification
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Len</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">表示该条数据的长度</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">Offset</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">该条血糖从启动开始计数的第几个广播数据的序列号，从0开始，转化为双字节16进制，低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">序列号的高字节</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">Glucose</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">该条血糖的数值（mmol/L的单位）*10，转化为双字节16进制，低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">血糖值的高字节</td>
+</tr>
+<td align="left">Is_History</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">是否为历史数据，是为0x80，不是为0x00</td>
+</tr>
+<tr>
+<td align="left">Trend</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">与之前的血糖值相比的每分钟变化率，从0x01-0x07共7个档，表示快速下降，下降，缓慢下降，平稳，缓慢上升，上升和快速上升；默认值0x00，表示不支持趋势计算</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">Current</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">该条血糖的电流值（nA）*100，转化为双字节16进制，低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">电流值的高字节</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">Quality</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00:正常，0x01:血糖过低，0x02:血糖过高，0x03:预留</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00</td>
+</tr>
+<tr>
+<td align="left">Status</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00：正常<br>
+0x08：到期停止<br>
+0x33: 极化过程中<br>
+0x41: 大电流<br>
+0x42: 小电流<br>
+0x43: CV异常<br>
+0x24: 大电流停止<br>
+0x25: 小电流停止<br>
+0x26: CV停止
+</tr>
+<tr>
+<td align="left">CV</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">转换成整数后除以100</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+
+<h4 id="加密">加密:</h4>
+
+CGM测量数据需要进行加密，加密方法为AES128加密方法；模型为ECB
+
+**初始秘钥为：0x2B7EAA1633AED2A5ABF7AAC500DDACEF**
+
+其中后四位ACEF，为用户设置的密码（见4.3.1）的16进制值低字节在前。
+
+用户设置密码后，补全后四位，替换掉ACEF，组成该用户的特殊密码。
+
+历史数据同样需要加密。
+
+#### 历史数据:
+
+历史数据包通过[CGM Measurement(CGM测量数据)特征](#CGM测量数据)发送，历史数据包的长度是固定不变的，是16字节长度。
+
+历史数据包优先发送最新历史数据。
+
+#### 其他数据:
+
+当某一次历史数据发送结束时,发射器会在[CGM Measurement(CGM测量数据)特征](#CGM测量数据)中发一条代表历史数据发送结束的特殊数据包,其结构如下:
+
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>类型</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">0xAA</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">历史数据发送结束标志位</td>
+</tr>
+<tr>
+<td align="left">0x00</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">无效填充</td>
+</tr>
+<tr>
+<td align="left">0x00</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">无效填充</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+当某一次历史数据发送出错时,发射器会在[CGM Measurement(CGM测量数据)特征](#CGM测量数据)中发一条代表历史数据发送出错的特殊数据包,其结构如下(当历史数据发送出错时,需要APP重新设置区间再次读取历史数据):
+
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>类型</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">0xBB</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">历史数据发送出错标志位</td>
+</tr>
+<tr>
+<td align="left">0x00</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">无效填充</td>
+</tr>
+<tr>
+<td align="left">0x00</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">无效填充</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+为保证方法的统一，历史数据错误和历史数据结束的广播同样需要加密。
+
+
+
+<h3 id="特殊操作控制点">CGM Specific Ops Control Point(特殊操作控制点)</h3>
+
+
+ 特征UUID:2AAC
+
+支持的属性:Write/Write without response/Notify/Indicate
+
+注意：除了[设置密码命令](#设置密码)加密方式不同以外，其他命令均需要加密，方法同[CGM测量数据加密](#加密)中的方法。发射器解密后，如果不能识别则被判定为非法数据包，按照[非法命令](#非法命令)的回复内容进行回复。
+
+
+
+<h4 id="设置密码">设置密码:</h4>
+
+命令说明：
+
+​	发射器首次连接的时候为开放连接，密码为空，此时发射器不接受任何的其他命令，只在限定的时间范围内等待设置密码的命令（超时断开连接），对于第一个使用该发射器的用户，需要设置密码；是否需要设置密码应从“[CGM Feature(CGM特性) 特征](#CGM特性)”获得。没有设置密码的时候发送任何命令会立即断开，不会产生返回值。
+
+​	用户设置的密码为4位数字，两两拆分转化为两个字节的16进制数。如1234，转化为0x12 0x34。
+
+​	用户设置的密码报文按照AES128加密的方法，模型为ECB。
+
+​	设置密码命令使用的固定秘钥为：0x2B7EAA1633AED2A5ABF7AAC500DD**+**ACEF
+
+​	报文内容为用户设置密码明文2字节+发射器序列号内的所有字符均使用ASCII转化为16进制值。加密前总长度要<=15个字节。最后整个报文总长度17字节。
+
+##### 设置密码命令数据包结构说明:
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Op_code</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x7A</td>
+<td align="left">操作数(不加密)</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">Password</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">密码低字节</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">密码高字节</td>
+</tr>
+<tr>
+<td align="left">SN</td>
+<td align="left" nowrap="nowrap">无符号1字节*7</td>
+<td align="left"></td>
+<td align="left">7个字节长度,例如DX-ABC1234,低字节从A开始(省略DX-)</td>
+</tr>
+</tbody></table>
+
+
+###### 注:不满16字节按照[pkcs7](#pkcs7)填充。按照aes128固定密钥加密生成16字节加密数据。
+
+​	发射器根据操作数判断，收到设置密码命令后，先解密依次获取密码和发射器序列号，发射器序列号与本地存储的发射器序列号对比，如果相同则通过，保存密码及新生成的秘钥，并等待验证密码。
+
+##### 设置密码命令回应数据包结构说明:
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Flag</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x1C</td>
+<td align="left">表示该返回值是合法返回值</td>
+</tr>
+<tr>
+<td align="left">Op_code</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x7A</td>
+<td align="left">表示对应的是设置密码的返回值</td>
+</tr>
+<tr>
+<td align="left">Result</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x01<br>
+    0x02<br>
+    0x03<br>
+    0x04<br>
+    0x05<br>
+    0x06
+    </td>
+<td align="left">0x01:设置成功<br>
+    0x02:命令格式不正确<br>
+    0x03:命令长度不正确<br>
+    0x04:已有密码<br>
+    0x05:序列号错误<br>
+    0x06:报文无法解密
+    </td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+
+<h4 id="验证密码">验证密码:</h4>
+
+命令说明：
+
+​	**此条需要加密**。对于已设置密码的发射器，连接成功后，未发送密码之前，此时发射器不接受任何的其他命令，且不发送实时数据或历史数据，只在限定的时间范围内等待发送密码的命令（超时断开连接）。没有发送密码并校验成功的时候发送任何命令会立即断开，不会产生返回值；
+
+##### 验证密码命令数据包结构说明:
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Op_code</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x7B</td>
+<td align="left">操作数</td>
+</tr>
+<tr>
+<td align="left">Operation</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00</td>
+<td align="left">无效填充</td>
+</tr>
+<tr>
+<td align="left"  rowspan="2">Password</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">App需要发送的4位密码，转化为16进制后，低字节在前发送</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">密码的高字节</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+
+##### 验证密码命令回应数据包结构说明:
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Flag</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x1C</td>
+<td align="left">表示该返回值是合法返回值</td>
+</tr>
+<tr>
+<td align="left">Op_code</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x7B</td>
+<td align="left">表示对应的是验证密码的返回值</td>
+</tr>
+<tr>
+<td align="left">Result</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x01<br>
+    0x02<br>
+    0x03<br>
+    0x04<br>
+    0x05
+    </td>
+<td align="left">0x01:校验成功<br>
+    0x02:命令格式不正确<br>
+    0x03:命令长度不正确<br>
+    0x04:密码错误<br>
+    0x05:其他错误<br>
+    </td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+
+<h4 id="启动发射器">启动发射器:</h4>
+
+​	**此条需要加密。**启动发射器是指从此刻开始3min发送一次实时血糖的工作状态,并且运行时间从此刻开始累计，正式开始工作。将内容中的相对时间和from等信息记录下来，方便后面的查看。
+
+相对时间：此时间是APP端的当前时间减一1970/00/00差值，用秒计算，使用32位整型数表示和传输。此命令执行成功后，相对时间会在[CGM Session Start Time(CGM轮次开始时间) 特征]()显示。
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Op_code</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x1A</td>
+<td align="left">操作数</td>
+</tr>
+<tr>
+<td align="left" rowspan="4">Start Time</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit0-7</td>
+<td align="left">发射器启动时的时间，秒为单位计算(UTC时间戳)</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit8-15</td>
+<td align="left">发射器启动时的时间，秒为单位计算(UTC时间戳)</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit16-23</td>
+<td align="left">发射器启动时的时间，秒为单位计算(UTC时间戳)</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit24-32</td>
+<td align="left">发射器启动时的时间，秒为单位计算(UTC时间戳)</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">Factory Code</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit0-7</td>
+<td align="left">工厂校准码低8位</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit8-15</td>
+<td align="left">工厂校准码高8位</td>
+</tr>
+<tr>
+<td align="left">TimeZone</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">用于存储启动时的时区参数(发射器内部本身不处理时区,只做存储)</td>
+</tr>
+<tr>
+<td align="left">Reserved</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">保留</td>
+</tr>
+<tr>
+<td align="left">From</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x01</td>
+<td align="left">启动方式:安卓为0x01,iOS为0x02,接收器为0x03</td>
+</tr>
+<td align="left"  rowspan="3">Software Version</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Version1</td>
+<td align="left">启动用的App或接收器的版本第一位的十六进制数</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Version2</td>
+<td align="left">启动用的App或接收器的版本第二位的十六进制数</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Version3</td>
+<td align="left">启动用的App或接收器的版本第三位的十六进制数</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+
+
+##### 启动发射器命令回应数据包结构说明:
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Flag</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x1C</td>
+<td align="left">表示该返回值是合法返回值</td>
+</tr>
+<tr>
+<td align="left">Op_code</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x1A</td>
+<td align="left">表示对应的是启动发射器的返回值</td>
+</tr>
+<tr>
+<td align="left">Result</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x01<br>
+    0x02<br>
+    0x03<br>
+    0x04<br>
+    0x05<br>
+    0x06<br>
+    0x07<br>
+    0x0A
+    </td>
+<td align="left">0x01:启动成功<br>
+    0x02:校准码错误<br>
+    0x03:命令长度不正确<br>
+    0x04:该发射器已经被启动<br>
+    0x05:已被手动停止,不能再次启动<br>
+    0x06:监测周期已结束,不能再次启动<br>
+    0x07:CRC错误<br>
+	0x0A:未知原因无法启动<br>
+    </td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+
+<h4 id="输入参比血糖">输入参比血糖:</h4>
+
+命令说明：
+
+**此条需要加密。**用户在使用过程中，如果感觉血糖数据和个人症状的感觉不准确，可以选择输入参比对发射器进行校准；
+
+##### 输入参比血糖命令数据包结构说明:
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Op_code</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x04</td>
+<td align="left">操作数</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">Calibration</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">用户输入的血糖值，转化为mmol/L的单位，取1位小数并乘以10，双字节16进制数，低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">参比血糖的高字节</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">Offset</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">该条参比血糖发送的时候，对应的前一个血糖广播数据的序列号，转化为双字节16进制，低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">序列号的高字节</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+
+##### 输入参比血糖命令回应数据包结构说明:
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Flag</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x1C</td>
+<td align="left">表示该返回值是合法返回值</td>
+</tr>
+<tr>
+<td align="left">Op_code</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x04</td>
+<td align="left">表示对应的是输入参比血糖的返回值</td>
+</tr>
+<tr>
+<td align="left">Result</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x01<br>
+    0x02<br>
+    0x03<br>
+    0x04<br>
+    0x05<br>
+    0x06<br>
+    0x07<br>
+    0x08<br>
+    0x09<br>
+    0x0A<br>
+    0x0B
+    </td>
+<td align="left">0x01:成功，成功后第四条数据才会有血糖趋势<br>
+    0x02:命令格式不正确<br>
+    0x03:命令长度不正确<br>
+    0x04:校准不被接收,CRC错误<br>
+    0x05:极化中,无法校准<br>
+        0x06:传感器异常稍后校准<br>
+        0x07:监测结束无法校准<br>
+        0x08:超出量程范围无法校准<br>
+        0x09:当前血糖变化快无法校准<br>
+        0x0A:一天之内无法校准<br>
+        0x0B:30分钟内无法校准
+    </td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+
+<h4 id="非法命令">非法命令:</h4>
+
+命令说明：在设置密码发送密码校验成功之前，如果发送其他随机的命令，则返回非法命令。
+
+##### 非法命令回应数据包结构说明:
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Flag</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x1D</td>
+<td align="left">表示该返回值是非法返回值</td>
+</tr>
+<tr>
+<td align="left">Op_code</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00</td>
+<td align="left">无效填充</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+
+
+<h3 id="记录存取控制点">Record Access Control Point(记录存取控制点)</h3>
+
+
+ 特征UUID:2A52
+
+支持的属性:Write/Write without response/Notify/Indicate
+
+
+<h4 id="获取历史数据">获取历史数据:</h4>
+
+命令说明：
+
+​	**此条需要加密。**App从“[CGM Status(CGM状态) 特征](#CGM状态)”获得目前发射器的数据条数，通过和自身数据库的对比，得到缺失的数据的区间，App发送响应的区间以告知发射器将区间内的数据通过“[CGM Measurement(CGM测量数据) 特征](#CGM测量数据)”发送至App端。
+
+##### 获取历史数据命令数据包结构说明:
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Op_code</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x01</td>
+<td align="left">操作数</td>
+</tr>
+<tr>
+<td align="left">Operation</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00</td>
+<td align="left">无效填充</td>
+</tr>
+<tr>
+<td align="left"  rowspan="2">Start</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00</td>
+<td align="left">所需的起始序列号，转化为双进制16字节数，低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00</td>
+<td align="left">序列号的高字节</td>
+</tr>
+<tr>
+<td align="left"  rowspan="2">End</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00</td>
+<td align="left">所需的停止序列号，转化为双进制16字节数，低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00</td>
+<td align="left">序列号的高字节</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+
+##### 获取历史数据命令回应数据包结构说明:
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Flag</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x1C</td>
+<td align="left">表示该返回值是合法返回值</td>
+</tr>
+<tr>
+<td align="left">Op_code</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x01</td>
+<td align="left">表示对应的是获取历史数据的返回值</td>
+</tr>
+<tr>
+<td align="left">Result</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x01<br>
+    0x02<br>
+    0x03<br>
+    0x04<br>
+    0x05<br>
+    0x06
+    </td>
+<td align="left">0x01:设置区间成功<br>
+    0x02:命令格式不正确<br>
+    0x03:命令长度不正确<br>
+    0x04:起始序列号超过最大值<br>
+    0x05:其他错误<br>
+    0x06:前一条获取历史数据命令处理中
+    </td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+<h3 id="CGM特性">CGM Feature(CGM特性)</h3>
+
+特征UUID:2AA8
+
+支持的属性:Read
+
+##### 特征数据结构说明:
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Start By</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00,0x01,0x02,0x03
+<td align="left">0x00:没有设置发射器启动源头<br>
+    0x01:由安卓APP启动<br>
+    0x02:由iOS APP启动<br>
+    0x03:由接收器启动
+    </td>
+</tr>
+<tr>
+<td align="left" rowspan="3">Start By Version</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Version1</td>
+<td align="left">启动用的App或接收器的版本第一位的十六进制数</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Version2</td>
+<td align="left">启动用的App或接收器的版本第二位的十六进制数</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Version3</td>
+<td align="left">启动用的App或接收器的版本第三位的十六进制数</td>
+</tr>
+<tr>
+<td align="left">Password exist</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00 or 0x01</td>
+<td align="left">是否被设置过密码，未被设置过密码为00</td>
+</tr>
+<tr>
+<td align="left">CRC supported</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00 or 0x01</td>
+<td align="left">是否支持CRC校验（防止某个版本后不需要进行CRC校验）</td>
+</tr>
+<tr>
+<td align="left">Factory calibration supported</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00 or 0x01</td>
+<td align="left">是否支持工厂校准，01表示需要手动校准。默认值为00</td>
+</tr>
+<tr>
+<td align="left">Work time</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x03,0x07,0x0E,0x0F,0x15</td>
+<td align="left">工作时间，如3天，7天，14天，15天，21天（用于计算结束时间）默认0E</td>
+</tr>
+<tr>
+<td align="left">Sample time</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x03,0x05</td>
+<td align="left">数据发送间隔，3分钟或5分钟，默认03</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+
+<h3 id="CGM状态">CGM Status(CGM状态)</h3>
+
+特征UUID:2AA9
+
+支持的属性:Read
+
+##### 特征数据结构说明:
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left" rowspan="2">Number of readings</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">表示当前的启动后一共有多少个数据，个数为offset+1，App根据个数判断缺失的数据的个数和区间。转化为16进制后，低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">个数的高字节</td>
+</tr>
+<tr>
+<td align="left">Running/Abormal status</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">0x00<br>
+0x01<br>
+0x02<br>
+0x08<br>
+0x0E<br>
+0X0F<br>
+0X33<br>
+0X41<br>
+0X42<br>
+0X43<br>
+0X24<br>
+0X25<br>
+0X26
+</td>
+<td align="left">0x00：正常运行<br>
+0x01:没有运行<br>
+0x02:手动停止<br>
+0x08:到期停止<br>
+0x0E:意外停止<br>
+0x0F:意外停止<br>
+0x33:极化过程中<br>
+0x41:大电流<br>
+0x42:小电流<br>
+0x43:CV异常<br>
+0x24:大电流停止<br>
+0x25:小电流停止<br>
+0x26:CV停止
+</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">Factory Code</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">启动发射器时所使用的工厂校准码，低字节在前</td>
+</tr>
+<tr>
+<td align="left">无符号1字节</td>
+<td align="left"></td>
+<td align="left">工厂校准码的高字节</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+
+
+
+
+<h3 id="CGM轮次开始时间">CGM Session Start Time(CGM轮次开始时间)</h3>
+
+特征UUID:2AAA
+
+支持的属性:Read
+
+##### 特征数据结构说明:
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>字段值</th>
+<th>字段说明</th>
+</tr>
+</thead>
+<tbody>
+<td align="left" rowspan="4">Start time</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit0-7</td>
+<td align="left">发射器启动时的时间，秒为单位计算(UTC时间戳)</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit8-15</td>
+<td align="left">发射器启动时的时间，秒为单位计算(UTC时间戳)</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit16-23</td>
+<td align="left">发射器启动时的时间，秒为单位计算(UTC时间戳)</td>
+</tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit24-31</td>
+<td align="left">发射器启动时的时间，秒为单位计算(UTC时间戳)</td>
+<tr>
+<td align="left" rowspan="4">Run time</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit0-7</td>
+<td align="left">发射器已经运行的时间，秒为单位计算</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit8-15</td>
+<td align="left">发射器已经运行的时间，秒为单位计算</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit16-23</td>
+<td align="left">发射器已经运行的时间，秒为单位计算</td>
+</tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left">Bit24-31</td>
+<td align="left">发射器已经运行的时间，秒为单位计算</td>
+<tr>
+<td align="left">TimeZone</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">用于存储启动时的时区参数(发射器内部本身不处理时区,只做存储)</td>
+</tr>
+<tr>
+<td align="left" rowspan="2">CRC16</td>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验低字节在前</td>
+</tr>
+<tr>
+<td align="left" nowrap="nowrap">无符号1字节</td>
+<td align="left"></td>
+<td align="left">CRC校验的高字节</td>
+</tr>
+</tbody></table>
+
+
+
+
+
+<h3 id="制造商名称">Manufacturer Name(制造商名称)</h3>
+
+特征UUID:2A24
+
+支持的属性:Read
+
+##### 特征数据结构说明:
+
+| 字段              | 类型        | 长度 | 字段说明                            |
+| ----------------- | ----------- | ---- | ----------------------------------- |
+| Manufacturer Name | 无符号1字节 | 8    | “Infinovo”的ASCII码的16进制顺序发送 |
+
+
+
+<h3 id="型号名称">Model Name(型号名称)</h3>
+
+特征UUID:2A25
+
+支持的属性:Read
+
+##### 特征数据结构说明:
+
+| 字段       | 类型        | 长度 | 字段说明                      |
+| ---------- | ----------- | ---- | ----------------------------- |
+| Model Name | 无符号1字节 | 2    | “DX”的ASCII码的16进制顺序发送 |
+
+
+
+<h3 id="硬件版本">Hardware Revision(硬件版本)</h3>
+
+特征UUID:2A27
+
+支持的属性:Read
+
+##### 特征数据结构说明:
+
+| 字段              | 类型        | 长度 | 字段说明                       |
+| ----------------- | ----------- | ---- | ------------------------------ |
+| Hardware Revision | 无符号1字节 | 3    | “000”的ASCII码的16进制顺序发送 |
+
+
+
+<h3 id="软件版本">Software Revision(软件版本)</h3>
+
+特征UUID:2A28
+
+支持的属性:Read
+
+用途:按ASCII读取,内容为0.2.4
+
+##### 特征数据结构说明:
+
+| 字段              | 类型        | 长度 | 字段说明                                                     |
+| ----------------- | ----------- | ---- | ------------------------------------------------------------ |
+| Software Revision | 无符号1字节 | 5    | “0.2.4”的ASCII码的16进制顺序发送**(注:此版本号代表了发射器中的固件的主要版本号,若无特殊说明,指代固件版本号时默认都以这个Software Revision为准)** |
+
+
+
+<h3 id="电池电量">Battery Level(电池电量) </h3>
+
+特征UUID:180F
+
+支持的属性:Read/Notification
+
+##### 特征数据结构说明:
+
+| 字段          | 类型        | 长度 | 字段说明                             |
+| ------------- | ----------- | ---- | ------------------------------------ |
+| Battery Level | 无符号1字节 | 1    | 目前无意义,固定为整数100的十六进制值 |
+
+
+
+
+
+<h3 id="pkcs7">pkcs7概述与示例代码</h3>
+
+##### 概述:
+
+​	通讯协议中使用pkcs7主要是因为AES128加密是以128bit也就是16byte为一个块来加密的,故通讯过程中原始数据包未达到16byte时需要用pkcs7来补足到16byte.
+
+##### pkcs7规则:
+
+​	补位的个数: 若不足16byte,就补足变成16byte,缺多少byte就补多少byte。
+​	补位的值: 等于补位个数的十六进制值。
+
+##### 举例:
+
+​	原文:00 11 22 33 44 55 66 77 88 99 AA
+​	pkcs7填充后:00 11 22 33 44 55 66 77 88 99 AA 05 05 05 05 05
+
+##### 示例代码:
+
+```c
+void mbedtls_aes_pkcspadding(uint8_t* data, uint8_t data_len)
+{
+    uint8_t padding_len = 0, i = 0;
+    padding_len = 16 - data_len;
+    if (padding_len >= 16)padding_len = 0;
+
+    for (i = data_len; i < 16; i++)
+    {
+        data[i] = padding_len;
+    }
+}
+```
+
+
+
+<h3 id="AES">AES加密概述与示例代码</h3>
+
+##### 概述:
+
+​	通讯协议中用的加密为AES128加密,模型为ECB.
+
+##### 示例代码(调用C的mbedtls标准库):
+
+```c
+static uint8_t aes_ecb_128_key[16] = { 0x2B,0x7E,0xAA,0x16,0x33,0xAE,0xD2,0xA5,0xAB,0xF7,0xAA,0xC5,0x00,0xDD,0xAC,0xEF };
+mbedtls_aes_context aes;
+
+// APP发送设置密码命令后发射器内部会调用此函数,参数指针value指向设置密码命令数据包中的Password
+void cgms_aes128_update_key(uint8_t* value)
+{
+    aes_ecb_128_key[14] = value[1];
+    aes_ecb_128_key[15] = value[0];
+}
+
+void cgms_aes128_encrpty(uint8_t* plain, uint8_t* cipher)
+{
+	 	 mbedtls_aes_setkey_enc(&aes, aes_ecb_128_key, 128);	//设置加密密钥
+		 mbedtls_aes_crypt_ecb(&aes, MBEDTLS_AES_ENCRYPT, plain, cipher);//ECB加密
+}
+
+void cgms_aes128_decrpty(uint8_t* cipher, uint8_t* plain_decrypt)
+{
+		mbedtls_aes_setkey_dec(&aes, aes_ecb_128_key, 128);//设置解密密钥
+		mbedtls_aes_crypt_ecb(&aes, MBEDTLS_AES_DECRYPT, cipher, plain_decrypt);//ECB解密
+}
+```
+
+
+
+<h3 id="AdditionalInstructionsForPasswordCommand">设置密码命令额外说明</h3>
+
+​	设置固件密码指令为操作码”7A“+”加密后的指令串“
+
+##### 示例：
+
+比如设置固件密码”2582“，使用初始秘钥进行加密；
+
+1. 发射器名称转ASCII：QBL0078-->(0x)51424C30303738
+
+参考网站：https://jisuanqiwang.com/zh/math/hex-to-ascii.html
+
+1. 设置固件密码”2582“，拼接原始指令为”(0x) 822551424C3030373807070707070707“
+2. 原始指令使用默认秘钥ACEF加密后的指令为”(0x) D24282248A492CBFFDF8C9F005F12D2D“
+3. 拼接操作指令7A，最终发送给固件设置密码指令为：”(0x) 7AD24282248A492CBFFDF8C9F005F12D2D“
+
+
+
+##### 固件返回结果解析：
+
+固件返回原始数据：(0x) 15C46BC171E446F58BED258821975E98
+
+使用初始秘钥进行解密.
+
+解密后数据为：(0x) 1C7A0138050B0B0B0B0B0B0B0B0B0B0B
+
+
+
+<h3 id="LaunchCommandAdditionalInstructions">启动发射器命令额外说明</h3>
+
+##### 示例:
+
+工厂校准码为”0523“-->转16进制：(0x)020B
+
+启动时间2024-10-12 09:30:38，
+
+启动时间转时间戳精确到（秒）-->1728696638 -->转16进制：(0x) 6709D13E
+
+
+
+拼接未加密指令：(0x) 1A3ED109670B020800010100002B4E
+
+使用自定义秘钥加密
+
+加密后数据为：(0x) 38D62A0C495C333B9DC61C3EFD0DAB7F
+
+
+
+固件返回结果解析：
+
+固件返回原始数据：(0x) 951FF873B723DF30331B94E9EBCCC58D
+
+使用自定义秘钥解密：
+
+解密后数据为：(0x) 1C1A016D600B0B0B0B0B0B0B0B0B0B0B
+
+
+
+
+
+<h3 id="FlowOfInteraction">建议与发射器的交互流程</h3>
+
+```mermaid
+flowchart TB
+scan_adv["扫描蓝牙广播"]-->connect_device["连接发射器"]-->read_password_exist["读CGM Feature(CGM特性)数据中的Password exist是否为0x00?"]
+read_password_exist--为00-->set_password["设置密码"]
+set_password-->check_password["验证密码"]
+read_password_exist--不为00-->check_password
+check_password-->read_cgm_status_running_abormal_status["读CGM Status(CGM状态)数据中的Running/Abormal status是否是运行中的状态?"]
+read_cgm_status_running_abormal_status--否-->read_cgm_status_running_abormal_status_is_prestart["读CGM Status(CGM状态)数据中的Running/Abormal status是否是尚未启动?"]
+read_cgm_status_running_abormal_status_is_prestart--是-->start_test["启动发射器"]
+read_cgm_status_running_abormal_status_is_prestart--否-->fail_handler["异常停止处理"]
+read_cgm_status_number_of_readings["读CGM Status(CGM状态)数据中的Number of readings来获取发射器现有的数据条数"]
+read_cgm_status_running_abormal_status--是-->read_cgm_status_number_of_readings
+check_app_history_num["与APP内部数据库中的条数做对比,APP是否缺数据?"]
+read_cgm_status_number_of_readings-->check_app_history_num
+wait_new_data["在CGM Measurement(CGM测量数据)等待新的实时数据推送"]
+check_app_history_num--否-->wait_new_data
+send_get_history_data_command["计算缺失的数据区间并发送获取历史数据命令"]
+check_app_history_num--是-->send_get_history_data_command
+wait_history_data["在CGM Measurement(CGM测量数据)等待历史数据推送"]
+send_get_history_data_command-->wait_history_data
+wait_history_data_done["历史数据接收结束"]
+wait_history_data-->wait_history_data_done
+wait_history_data_done-->check_app_history_num
+disconnect_device["任意期间被迫断开发射器时"]
+disconnect_device-->scan_adv
+```
