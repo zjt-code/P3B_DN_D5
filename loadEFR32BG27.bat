@@ -1,7 +1,7 @@
 @ECHO OFF
 SETLOCAL
 		
-SET JLINK="C:\Program Files\SEGGER\JLink_V794b\JLink.exe"
+SET JLINK="C:\Program Files\SEGGER\JLink_V794e\JLink.exe"
 		
 %JLINK% -CommanderScript loadEFR32BG27.jlink
 if %ERRORLEVEL% NEQ 0 GOTO ERROR
