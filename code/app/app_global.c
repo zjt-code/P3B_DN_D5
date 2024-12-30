@@ -41,6 +41,7 @@
 app_state_t g_app_state;
 event_info_t g_EventInfoArray[APP_EVENT_MAX_NUM];
 sl_sleeptimer_timer_handle_t g_OtaDelayParamTimer;
+char g_cBleMacString[13];
 /* Private function prototypes -----------------------------------------------*/
 
 
@@ -284,6 +285,20 @@ void app_init(void)
 
     // 修改设备信息服务中的软件版本号
     sl_bt_gatt_server_write_attribute_value(gattdb_software_revision_string, 0, 5, (uint8_t*)SOFT_VER);
+
+#if (USE_BLE_PROTOCOL==GN_2_PROTOCOL)
+    bd_addr CurAddr;
+    uint8_t AddressType;
+    // 获取本发射器的Mac地址
+    sl_status_t Status = sl_bt_system_get_identity_address(&CurAddr, &AddressType);
+    if (Status == SL_STATUS_OK)
+    {
+        snprintf(g_cBleMacString,13,"%02X%02X%02X%02X%02X%02X", CurAddr.addr[5], CurAddr.addr[4], CurAddr.addr[3], CurAddr.addr[2], CurAddr.addr[1], CurAddr.addr[0]);
+
+        // 修改设备信息服务中的Ble Mac地址
+        sl_bt_gatt_server_write_attribute_value(gattdb_ble_mac_string, 0, 12, (uint8_t*)g_cBleMacString);
+    }
+#endif
 
     // 清空app状态
     app_state_t* pAppState = app_global_get_app_state();
