@@ -823,9 +823,6 @@ void bms003_read_burst(uint8_t ucRegAddr, uint8_t* pData, uint8_t ucLen)
 *******************************************************************************/
 void bms003_booting_config(void)
 {
-    uint8_t ucReadBuffer[32];
-    memset(ucReadBuffer, 0x00, sizeof(ucReadBuffer));
-
     uint8_t ucWriteBuffer[32];
     uint8_t ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = CLK;
@@ -855,13 +852,7 @@ void bms003_booting_config(void)
     ucWriteBuffer[ucBufferIndex++] = ucCh1ReceL8;// addr:0x5C 配置CE[0:7]
     ucWriteBuffer[ucBufferIndex++] = ucCH1ReceH2;// addr:0x5D 配置CE[8:9]
     bms003_write_burst(0x50, ucWriteBuffer, ucBufferIndex);
-    bms003_delay_us(1);
-    // 回读校验
-    bms003_read_burst(0x53, ucReadBuffer, 2);
-    if (ucReadBuffer[0] != CH1_WE1_RFB_SEL || ucReadBuffer[1] != CH1_WE1_VGAIN_SEL)
-    {
-        log_e("bms003_booting_config half read back check error 0x53:0x%02X   0x54:0x%02X", ucReadBuffer[0], ucReadBuffer[1]);
-    }
+	bms003_delay_us(1);
 
     ucBufferIndex = 0;
     ucWriteBuffer[ucBufferIndex++] = ELE_BUF;
@@ -883,18 +874,6 @@ void bms003_booting_config(void)
     ucWriteBuffer[ucBufferIndex++] = 0x01;
     bms003_write_burst(0x017, ucWriteBuffer, ucBufferIndex);
 
-    memset(ucReadBuffer, 0x00, sizeof(ucReadBuffer));
-
-    // 回读校验
-    bms003_read_burst(0x53, ucReadBuffer, 2);
-    if (ucReadBuffer[0] == CH1_WE1_RFB_SEL && ucReadBuffer[1] == CH1_WE1_VGAIN_SEL)
-    {
-        log_i("bms003_booting_config done");
-}
-    else
-    {
-        log_e("bms003_booting_config error 0x53:0x%02X   0x54:0x%02X", ucReadBuffer[0], ucReadBuffer[1]);
-    }
 }
 
 
@@ -990,6 +969,7 @@ void bms003_booting_temp_config(void)
 *******************************************************************************/
 void bms003_wakeup_config(void)
 {
+    log_d("bms003_wakeup_config");
     uint8_t ucBufferIndex = 0;
     uint8_t ucWriteBuffer[32];
     bms003_delay_us(1);
