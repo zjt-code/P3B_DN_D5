@@ -115,6 +115,7 @@ void bms003_bist_init(void)
 
 BIST_IF_TypeDef bist_att;
 
+float WeDacZero,WeDacStep,ReDacZero,ReDacStep;
 uint16_t dac1WE1, dac2RE;            // WE1偏置电压(DAC1)校准值, RE偏置电压(DAC2)校准值
 static float tempK, tempB;                  // 温度K,温度B,
 static double tempWE1, currentWE1;           // WE1温漂系数, WE1电流值 电流源方式  25度
@@ -407,6 +408,86 @@ uint16_t WE1_Read(void)
     return (dac1_ce1_data & 0x3ff);                                   // DAC1_WE1 10bit
 }
 
+
+float WE_DAC_STEP_Read(void)
+{
+    uint32_t temp_k_data;
+
+    BIST_READ_1BYTE(&bist_att, WE_DAC_STEP_REG + 3, 1);
+    temp_k_data = bist_att.READ_DATA_REG;
+
+    BIST_READ_1BYTE(&bist_att, WE_DAC_STEP_REG + 2, 1);
+    temp_k_data = (temp_k_data << 8) + bist_att.READ_DATA_REG;
+
+    BIST_READ_1BYTE(&bist_att, WE_DAC_STEP_REG + 1, 1);
+    temp_k_data = (temp_k_data << 8) + bist_att.READ_DATA_REG;
+
+    BIST_READ_1BYTE(&bist_att, WE_DAC_STEP_REG, 1);
+    temp_k_data = (temp_k_data << 8) + bist_att.READ_DATA_REG;
+    elog_hexdump("raw data",4, &temp_k_data,4);
+    return *((float*)(&temp_k_data));
+}
+
+float WE_DAC_ZERO_Read(void)
+{
+    uint32_t temp_k_data;
+
+    BIST_READ_1BYTE(&bist_att, WE_DAC_ZERO_REG + 3, 1);
+    temp_k_data = bist_att.READ_DATA_REG;
+
+    BIST_READ_1BYTE(&bist_att, WE_DAC_ZERO_REG + 2, 1);
+    temp_k_data = (temp_k_data << 8) + bist_att.READ_DATA_REG;
+
+    BIST_READ_1BYTE(&bist_att, WE_DAC_ZERO_REG + 1, 1);
+    temp_k_data = (temp_k_data << 8) + bist_att.READ_DATA_REG;
+
+    BIST_READ_1BYTE(&bist_att, WE_DAC_ZERO_REG, 1);
+    temp_k_data = (temp_k_data << 8) + bist_att.READ_DATA_REG;
+    elog_hexdump("raw data", 4, &temp_k_data, 4);
+    return *((float*)(&temp_k_data));
+}
+
+float RE_DAC_STEP_Read(void)
+{
+    uint32_t temp_k_data;
+
+    BIST_READ_1BYTE(&bist_att, RE_DAC_STEP_REG + 3, 1);
+    temp_k_data = bist_att.READ_DATA_REG;
+
+    BIST_READ_1BYTE(&bist_att, RE_DAC_STEP_REG + 2, 1);
+    temp_k_data = (temp_k_data << 8) + bist_att.READ_DATA_REG;
+
+    BIST_READ_1BYTE(&bist_att, RE_DAC_STEP_REG + 1, 1);
+    temp_k_data = (temp_k_data << 8) + bist_att.READ_DATA_REG;
+
+    BIST_READ_1BYTE(&bist_att, RE_DAC_STEP_REG, 1);
+    temp_k_data = (temp_k_data << 8) + bist_att.READ_DATA_REG;
+    elog_hexdump("raw data", 4, &temp_k_data, 4);
+    return *((float*)(&temp_k_data));
+}
+
+float RE_DAC_ZERO_Read(void)
+{
+    uint32_t temp_k_data;
+
+    BIST_READ_1BYTE(&bist_att, RE_DAC_ZERO_REG + 3, 1);
+    temp_k_data = bist_att.READ_DATA_REG;
+
+    BIST_READ_1BYTE(&bist_att, RE_DAC_ZERO_REG + 2, 1);
+    temp_k_data = (temp_k_data << 8) + bist_att.READ_DATA_REG;
+
+    BIST_READ_1BYTE(&bist_att, RE_DAC_ZERO_REG + 1, 1);
+    temp_k_data = (temp_k_data << 8) + bist_att.READ_DATA_REG;
+
+    BIST_READ_1BYTE(&bist_att, RE_DAC_ZERO_REG, 1);
+    temp_k_data = (temp_k_data << 8) + bist_att.READ_DATA_REG;
+    elog_hexdump("raw data", 4, &temp_k_data, 4);
+    return *((float*)(&temp_k_data));
+}
+
+
+
+
 uint16_t test_Read(void)
 {
     uint16_t dac1_ce1_data;
@@ -458,7 +539,7 @@ float WE1_current_25c_Read(void)                                  // WE1电流�
 
     BIST_READ_1BYTE(&bist_att, WE1_CURRENT_25C, 1);
     we1_current = (we1_current << 8) + bist_att.READ_DATA_REG;
-
+    
     return *((float*)(&we1_current));
 }
 
@@ -580,11 +661,14 @@ void flash_write_float(uint16_t add, float data)      // 写一个float数据
 */
 void read_param_value(void)
 {
+    WeDacStep = WE_DAC_STEP_Read();
+    WeDacZero = WE_DAC_ZERO_Read();
+    ReDacStep = RE_DAC_STEP_Read();
+    ReDacZero = RE_DAC_ZERO_Read();
     test_Read();
     dac1WE1 = WE1_Read();                   // WE1偏置电压(DAC1)校准值 10bit
-    dac1WE1 = dac1WE1 - (400 / 1.66f);
-    dac2RE = RE_Read();                     // RE偏置电压(DAC2)校准值 10bit
-    //dac2RE = dac2RE + (500 / 1.66f);
+    dac1WE1 = (uint16_t)((0.5f - WeDacZero)/ WeDacStep);
+    dac2RE = (uint16_t)((0.4f - ReDacZero) / ReDacStep); // RE偏置电压(DAC2)校准值 10bit
     tempK = TEMP_K_Read();                  // 温度K
     tempB = TEMP_B_Read();                  // 温度B
     tempWE1 = TEMP_WE1_Read();              // WE1温漂系数
@@ -592,6 +676,10 @@ void read_param_value(void)
     tempValueIR25C = temp_value_25c_Read(); // 热电偶25度温度值
     log_i("dac1WE1:%d", dac1WE1);
     log_i("dac2RE:%d", dac2RE);
+    log_i("WeDacZero:%f", WeDacZero);
+    log_i("WeDacStep:%f", WeDacStep);
+    log_i("ReDacZero:%f", ReDacZero);
+    log_i("ReDacStep:%f", ReDacStep);
     log_i("tempK:%f", tempK);
     log_i("tempB:%f", tempB);
     log_i("tempWE1:%f", tempWE1);

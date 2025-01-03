@@ -66,6 +66,12 @@
 ///////////////////////////////FLASH ADD////////////////////////////////////////////////////////
 #define test              0x0004            //
 
+
+#define WE_DAC_STEP_REG   0x00A0
+#define WE_DAC_ZERO_REG   0x00A4
+#define RE_DAC_STEP_REG   0x00A8
+#define RE_DAC_ZERO_REG   0x00AC
+
 #define DAC1_WE1          0x0018            // WE1偏置电压(DAC1)校准值 10bit
 #define DAC2_RE           0x001A            // RE偏置电压(DAC2)校准值  10bit
 #define WE1_CURRENT_25C   0x0030            // WE1电流采样 电流源方式  25度
