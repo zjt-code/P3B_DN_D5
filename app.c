@@ -15,7 +15,7 @@
 #undef LOG_LVL
 #define LOG_LVL                    ELOG_LVL_INFO
 
-
+#include "sl_bt_api.h"
 #include "em_common.h"
 #include "app_assert.h"
 #include <elog.h>
@@ -30,6 +30,7 @@
 #include "ble_customss.h"
 #include "app_glucose_meas.h"
 #include "cgms_meas.h"
+#include "utility.h"
 /* Private variables ---------------------------------------------------------*/
 
 
@@ -65,9 +66,16 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
     case sl_bt_evt_system_boot_id:
     {
         log_i("sl_bt_on_event:sl_bt_evt_system_boot_id");
+        // 初始化应用层
+        app_init();
+
         int16_t min_pwr, max_pwr;
         // 设置TX发射功率为0dB
         sc = sl_bt_system_set_tx_power(0, 0, &min_pwr, &max_pwr);
+        app_assert_status(sc);
+
+        // 根据欧盟CE认证的内容,将BLE PHY限定在1M PHY 
+        sc = sl_bt_connection_set_default_preferred_phy(0x01, 0x01);
         app_assert_status(sc);
 
         // 创建一个BLE广播集
@@ -94,9 +102,6 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         sc = sl_bt_legacy_advertiser_start(g_ucAdvertisingSetHandle, sl_bt_advertiser_connectable_scannable);
         app_assert_status(sc);
 
-        // 初始化应用层
-        app_init();
-
         break;
     }
 
@@ -108,7 +113,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         static char cSn[14];
         memset(cSn, 0x00, sizeof(cSn));
         cgms_prm_get_sn(cSn);
-        sl_bt_gatt_server_write_attribute_value(gattdb_device_name, 0, sizeof(cSn), cSn);
+        sl_bt_gatt_server_write_attribute_value(gattdb_device_name, 0, sizeof(cSn), (uint8_t*)cSn);
 
         // 调用应用层的回调
         app_event_ble_connected_callback(evt->data.evt_connection_opened.connection);
@@ -287,8 +292,101 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
         break;
     }
     case sl_bt_evt_system_external_signal_id:
+    {
         // 处理事件
         event_handler(evt->data.evt_system_external_signal.extsignals);
+        break;
+    }
+    // -------------------------------
+    // 当远端设备读取特征事件
+    case sl_bt_evt_gatt_server_user_read_request_id:
+    {
+        switch (evt->data.evt_gatt_server_user_read_request.characteristic)
+        {
+        case gattdb_cgm_session_start_time:
+        {
+            sc = sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,
+                                                           evt->data.evt_gatt_server_user_read_request.characteristic,
+                                                           0,
+                                                           sizeof(cgm_session_start_time_char_data_t),
+                                                           (uint8_t*)att_get_start_time(),
+                                                           NULL);
+            if (sc != SL_STATUS_OK)
+            {
+                log_e("sl_bt_evt_gatt_server_user_read_request_id fail %d", sc);
+            }
+            break;
+        }
+        case gattdb_cgm_status:
+        {
+            sc = sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,
+                evt->data.evt_gatt_server_user_read_request.characteristic,
+                0,
+                sizeof(cgm_status_char_data_t),
+                (uint8_t*)att_get_cgm_status(),
+                NULL);
+            if (sc != SL_STATUS_OK)
+            {
+                log_e("sl_bt_evt_gatt_server_user_read_request_id fail %d", sc);
+            }
+            break;
+        }
+        case gattdb_cgm_feature:
+        {
+            sc = sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,
+                evt->data.evt_gatt_server_user_read_request.characteristic,
+                0,
+                sizeof(cgm_feature_char_data_t),
+                (uint8_t*)att_get_feature(),
+                NULL);
+            if (sc != SL_STATUS_OK)
+            {
+                log_e("sl_bt_evt_gatt_server_user_read_request_id fail %d", sc);
+            }
+            break;
+        }
+        case gattdb_cgm_session_run_time:
+        {
+#if (USE_BLE_PROTOCOL!=GN_2_PROTOCOL)
+            sc = sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,
+                evt->data.evt_gatt_server_user_read_request.characteristic,
+                0,
+                sizeof(cgm_session_run_time_char_data_t),
+                (uint8_t*)att_get_run_time(),
+                NULL);
+            if (sc != SL_STATUS_OK)
+            {
+                log_e("sl_bt_evt_gatt_server_user_read_request_id fail %d", sc);
+            }
+#else
+            uint8_t TmpBuffer[2] = { 0x00,0x00 };
+            sc = sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,
+                evt->data.evt_gatt_server_user_read_request.characteristic,
+                0,
+                sizeof(TmpBuffer),
+                (uint8_t*)TmpBuffer,
+                NULL);
+            if (sc != SL_STATUS_OK)
+            {
+                log_e("sl_bt_evt_gatt_server_user_read_request_id fail %d", sc);
+            }
+
+#endif
+            break;
+        }
+        default:
+        {
+            sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,
+                                                      evt->data.evt_gatt_server_user_read_request.characteristic,
+                                                      0x44,
+                                                      sizeof(cgm_session_start_time_char_data_t),
+                                                      (uint8_t*)att_get_start_time(),
+                                                      NULL);
+            break;
+        }
+        }
+        break;
+    }
     default:
     {
         break;
