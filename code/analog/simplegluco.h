@@ -22,7 +22,6 @@ extern "C"
  * INCLUDES
  */
 #include <math.h>
-#include <stdbool.h>
 //#include "logRTT.h"//ADB.WOO
 
 
@@ -33,6 +32,13 @@ extern "C"
 /*********************************************************************
  * MACROS
  */
+
+#ifndef DX_PET
+    #define DX_PET
+#else
+    #define D3_HUM
+#endif
+
 
 #define     BRD_N52832_SDK1702   1
 #define     BRD_RSL10_SDK34154   2
@@ -72,9 +78,10 @@ extern "C"
   #define D_X3         1
   //#define D_X4         0.9       //smoothCoeff t2e_01,t2e_02,t2e_03
   //#define D_X4         0.5       //smoothCoeff t2e_04
-  //#define D_X4         0.7      //smoothCoeff add rls_filter ,lag ,
-#define D_X4         0.8         ////smoothCoeff  v16
+  // #define D_X4         0.7      //smoothCoeff add rls_filter ,lag ,
   //#define D_X5         0.3 //1.0.1t2e_01)
+  #define D_X4         0.8      // 2025.01.02 v16
+
   #define D_X5         0//1.0.1t2e_02)
   #define D_X6         20   //Not use
   #define D_X7         19
@@ -104,10 +111,13 @@ extern "C"
 
 #define lms  0.3
 
+#define GLUCOSE_DATA_LEN 15
 
+#define RLS_FILTER_DATA_LEN 10
+
+#define lms  0.3
 
 #define CV_IO_BUFF_MAX            4
-
 #define CV_THRESOLD               0.20f
 #define DIFF_THRESOLD             2.0f
 
@@ -117,11 +127,9 @@ extern "C"
 #define GVP_SAMPLE_TIME_INTEVAL 	3.0f  // minutes
 #define GVP_ERROR_MAX           	1.0f
 
-#define SENSOR_RATIO_MAX         	1.9f
+#define SENSOR_RATIO_MAX         	1f
 //#define SENSOR_RATIO_MIN         	0.6f
 #define SENSOR_RATIO_MIN         	0.5f
-
-
 
 
 #elif( defined(SENSOR_TYPE) && (SENSOR_TYPE == SENSOR_GN2) )
@@ -224,22 +232,17 @@ extern float sfCurrBg; //�α�Ѫ�ǣ���λ��mmol/L
 extern float sfCurrK;
 extern float sensorK;  //sensor sensitivity in the unit of nA/mmol/L
 
-extern float gluco_calc_val;
-
 /*********************************************************************
  * FUNCTIONS
  */
 
 void simpleGlucoInit(void);//run when start sensor
-void simpleGlucoCalc(float* pResult,unsigned short cnt);
+void simpleGlucoCalc(float* pResult, unsigned short uSample);
 void calcGlucoInit_D03(void);
 void calcGluco_D03(float* pGluco,unsigned short tCnt);
 void calcGluco_StateBackup(void);
 void calcGluco_StateInit(void);
 void calcGluco_StateRecovery(void);
-
-bool gvg_get_result(void);
-bool gluco_check_bg( float calbration);
 /*********************************************************************
 *********************************************************************/
 
