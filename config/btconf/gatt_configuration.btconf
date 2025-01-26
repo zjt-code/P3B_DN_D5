@@ -41,7 +41,7 @@
     <!--Model Name-->
     <characteristic const="false" id="model_name_string" name="Model Name" sourceId="org.bluetooth.characteristic.model_number_string" uuid="2A25">
       <informativeText>Abstract: The value of this characteristic is a UTF-8 string representing the model number assigned by the device vendor.</informativeText>
-      <value length="0" type="utf-8" variable_length="false">D3X</value>
+      <value length="0" type="utf-8" variable_length="false">D5-Pet</value>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>
@@ -75,9 +75,9 @@
     </characteristic>
 
     <!--Sensor Batch Number String-->
-    <characteristic const="true" id="sensor_batch_number_string" name="Sensor Batch Number String" sourceId="org.bluetooth.characteristic.manufacturer_name_string" uuid="2A29">
+    <characteristic const="false" id="sensor_batch_number_string" name="Sensor Batch Number String" sourceId="org.bluetooth.characteristic.manufacturer_name_string" uuid="2A29">
       <informativeText>Abstract: The value of this characteristic is a UTF-8 string representing the name of the manufacturer of the device.</informativeText>
-      <value length="16" type="utf-8" variable_length="false"/>
+      <value length="0" type="utf-8" variable_length="true">Pet</value>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>
