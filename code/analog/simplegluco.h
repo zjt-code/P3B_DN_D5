@@ -33,10 +33,14 @@ extern "C"
  * MACROS
  */
 
-#ifndef DX_PET
-    #define DX_PET
-#else
-    #define D3_HUM
+#define D5_DX_PET
+
+#ifndef D5_DX_PET
+     #define D3_HUM    
+#else  
+  #define D5_ALGO_HUM  1
+  #define D5_ALGO_PET  2
+  #define D5_ALGO      D5_ALGO_HUM
 #endif
 
 
@@ -237,7 +241,7 @@ extern float sensorK;  //sensor sensitivity in the unit of nA/mmol/L
  */
 
 void simpleGlucoInit(void);//run when start sensor
-void simpleGlucoCalc(float* pResult, unsigned short uSample);
+void simpleGlucoCalc(float* pResult,unsigned short usSampleCnt);
 void calcGlucoInit_D03(void);
 void calcGluco_D03(float* pGluco,unsigned short tCnt);
 void calcGluco_StateBackup(void);

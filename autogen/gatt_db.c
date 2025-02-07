@@ -77,7 +77,7 @@ GATT_DATA(sli_bt_gattdb_attribute_chrvalue_t gattdb_attribute_field_25) = {
   .properties = 0x02,
   .max_len = 3,
   .len = 3,
-  .data = { 0x50, 0x65, 0x74, }
+  .data = { 0x48, 0x75, 0x6d, }
 };
 GATT_DATA(sli_bt_gattdb_attribute_chrvalue_t gattdb_attribute_field_23) = {
   .properties = 0x02,
@@ -97,7 +97,7 @@ GATT_DATA(sli_bt_gattdb_attribute_chrvalue_t gattdb_attribute_field_19) = {
 GATT_DATA(sli_bt_gattdb_attribute_chrvalue_t gattdb_attribute_field_17) = {
   .properties = 0x02,
   .max_len = 6,
-  .data = { 0x44, 0x35, 0x2d, 0x50, 0x65, 0x74, },
+  .data = { 0x44, 0x35, 0x2d, 0x48, 0x75, 0x6d, },
 };
 GATT_DATA(sli_bt_gattdb_attribute_chrvalue_t gattdb_attribute_field_15) = {
   .properties = 0x02,
