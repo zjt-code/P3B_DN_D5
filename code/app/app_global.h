@@ -16,6 +16,7 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include "sl_sleeptimer.h"
+#include "simplegluco.h"
 /* Private define ------------------------------------------------------------*/
 
 
@@ -103,7 +104,21 @@ typedef enum
 #define P3_ENCRYPT_PROTOCOL						    (1)				   // P3加密协议宏定义
 #define GN_2_PROTOCOL						     	(2)				   // GN-2加密协议宏定义
 #define USE_BLE_PROTOCOL							(GN_2_PROTOCOL)	   // 使用的BLE通讯协议格式
-#define BLE_ADV_NAME_PREFIXES                       "DN\0"             // 蓝牙广播名前缀
+
+#if defined(D5_ALGO)
+
+  #if(D5_ALGO==D5_ALGO_HUM)
+
+    #define BLE_ADV_NAME_PREFIXES                       "DN\0"             // 蓝牙广播名前缀
+
+  #elif(D5_ALGO==D5_ALGO_PET)
+
+    #define BLE_ADV_NAME_PREFIXES                       "DX\0"             // 蓝牙广播名前缀
+
+  #endif
+
+#endif
+
 
 
 /**********************************************************************/
