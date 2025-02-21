@@ -17,6 +17,9 @@
 #include "bms003_bist_if.h"
 #include "em_timer.h"
 #include "pin_config.h"
+
+#include "simplegluco.h"
+
 uint8_t g_ucFixCh1DinWeL8;
 uint8_t g_ucFixCh1DinWeH2;
 
@@ -667,8 +670,17 @@ void read_param_value(void)
     ReDacZero = RE_DAC_ZERO_Read();
     test_Read();
     dac1WE1 = WE1_Read();                   // WE1偏置电压(DAC1)校准值 10bit
+
+#if (defined(D5_DX_PET)&&(defined(D5_3E_TO_2E)))
+    dac1WE1 = (uint16_t)((0.95f - WeDacZero)/ WeDacStep);
+    dac2RE = (uint16_t)((0.4f - ReDacZero) / ReDacStep); // RE偏置电压(DAC2)校准值 10bit
+#elif defined(D5_DX_PET)
     dac1WE1 = (uint16_t)((0.5f - WeDacZero)/ WeDacStep);
     dac2RE = (uint16_t)((0.4f - ReDacZero) / ReDacStep); // RE偏置电压(DAC2)校准值 10bit
+
+#endif
+
+
     tempK = TEMP_K_Read();                  // 温度K
     tempB = TEMP_B_Read();                  // 温度B
     tempWE1 = TEMP_WE1_Read();              // WE1温漂系数

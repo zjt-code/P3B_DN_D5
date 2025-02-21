@@ -40,8 +40,11 @@ extern "C"
 #else  
   #define D5_ALGO_HUM  1
   #define D5_ALGO_PET  2
-  #define D5_ALGO      D5_ALGO_HUM
+  #define D5_ALGO      D5_ALGO_PET
 #endif
+
+//#define     D5_3E_TO_2E
+
 
 
 #define     BRD_N52832_SDK1702   1
