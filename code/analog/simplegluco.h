@@ -40,7 +40,7 @@ extern "C"
 #else  
   #define D5_ALGO_HUM  1
   #define D5_ALGO_PET  2
-  #define D5_ALGO      D5_ALGO_PET
+  #define D5_ALGO      D5_ALGO_HUM
 #endif
 
 //#define     D5_3E_TO_2E

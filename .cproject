@@ -258,7 +258,7 @@
 									<listOptionValue builtIn="false" value="-Wl,--no-warn-rwx-segments"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.link.option.libs.2082417483" name="Libraries (-l)" superClass="gnu.c.link.option.libs" useByScannerDiscovery="false" valueType="libs">
-									<listOptionValue builtIn="false" value="libslcgms"/>
+									<listOptionValue builtIn="false" value="slcgms_D3S_20250506"/>
 									<listOptionValue builtIn="false" value="gcc"/>
 									<listOptionValue builtIn="false" value="c"/>
 									<listOptionValue builtIn="false" value="m"/>
